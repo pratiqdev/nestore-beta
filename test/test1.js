@@ -32,19 +32,10 @@ const wait = async (time = 250) => {
     }, time)
 }
 
-// const dort = async (...fns) => {
-//     let idx = 0
 
-//     const rt = async(fn) => {
-//         a
-//         idx++
-//     }
 
-//     await rt(fns[idx])
-//     fns.forEach(fn => {
 
-//     })
-// }
+
 
 describe(heading('A | Setup'), () => {
 
@@ -152,7 +143,7 @@ describe(heading('C | Set'), () => {
         
     })
     
-    it('C.2| Set method assigns new key-values', () => {
+    it('C.2 | Set method assigns new key-values', () => {
         const { get, set, reset, store } = nestore(initialStore)
 
         set('brimple', 'boop')
@@ -214,11 +205,11 @@ describe(heading('D | Events'), () => {
 
 
         //$ Register events
-        NST.on('A', (data) => recievedEvents.push(`A = ${data}`))
-        NST.on('B', (data) => recievedEvents.push(`B = ${data}`))
-        NST.on('C', (data) => recievedEvents.push(`C = ${data}`))
-        NST.on('D', (data) => recievedEvents.push(`D = ${data}`))
-        NST.on('E', (data) => recievedEvents.push(`E = ${data}`))
+        NST.on('A', (data) => recievedEvents.push(`A = ${data.value}`))
+        NST.on('B', (data) => recievedEvents.push(`B = ${data.value}`))
+        NST.on('C', (data) => recievedEvents.push(`C = ${data.value}`))
+        NST.on('D', (data) => recievedEvents.push(`D = ${data.value}`))
+        NST.on('E', (data) => recievedEvents.push(`E = ${data.value}`))
 
 
         //$ set and emit events
@@ -249,7 +240,6 @@ describe(heading('D | Events'), () => {
         // }, 1500)
     })
 
-
     it('D.2 | Resetting store emits events for every key', () => {
         const NST = nestore({
             A:'a',
@@ -262,11 +252,11 @@ describe(heading('D | Events'), () => {
         let recievedEvents = []
 
         //$ Register events
-        NST.on('A', (data) => recievedEvents.push(`A = ${data}`))
-        NST.on('B', (data) => recievedEvents.push(`B = ${data}`))
-        NST.on('C', (data) => recievedEvents.push(`C = ${data}`))
-        NST.on('D', (data) => recievedEvents.push(`D = ${data}`))
-        NST.on('E', (data) => recievedEvents.push(`E = ${data}`))
+        NST.on('A', ({value}) => recievedEvents.push(`A = ${value}`))
+        NST.on('B', ({value}) => recievedEvents.push(`B = ${value}`))
+        NST.on('C', ({value}) => recievedEvents.push(`C = ${value}`))
+        NST.on('D', ({value}) => recievedEvents.push(`D = ${value}`))
+        NST.on('E', ({value}) => recievedEvents.push(`E = ${value}`))
         NST.on('nestore-reset', (data) => recievedEvents.push(`reset = store`))
 
 
@@ -280,6 +270,7 @@ describe(heading('D | Events'), () => {
 
         //$ reset the store to trigger emitAll
         NST.reset()
+
         
         
         //$ events should include A B C D E from setters
@@ -301,7 +292,43 @@ describe(heading('D | Events'), () => {
 
     })
 
-    it.only('D.2 | Wildcards listen to changes of any nested state', () => {
+    
+    it.only('D.3 | EmitAll emits events with correct paths', () => {
+
+        const sto = {
+            title: 'The Book',
+            pages: 817,
+            checkedOut: false,
+            chapters: ['1-The Start', '2-The Middle', '3-The End'],
+            flaps: ['AAA', 'BBB', ['xxx', 'yyy', 'zzz']],
+            reviews: {
+                'someGuy':'This is a book',
+                'Some Extra':{
+                    'stuff':'here!'
+                },
+                'Some Guy':'This book was... okay.',
+                'more_stuff_here':{
+                    find: {
+                        'me ?': 'Hello!'
+                    }
+                },
+                'Big Name':'Best book ever in the world always.',
+            }
+
+        }
+
+        const NST = nestore(sto)
+
+        NST.on('', (d) => console.log(`>>>> ${d.path} | ${d.key} | ${d.value}`, d))
+
+        //$ reset the store to trigger emitAll
+        NST.reset()
+
+        
+
+    })
+
+    it('D.4 | Wildcards listen to changes of any nested state', () => {
         const NST = nestore({
             person: {
                 name: 'John',
@@ -320,9 +347,9 @@ describe(heading('D | Events'), () => {
         let recievedEvents = []
 
         //$ Register events
-        NST.on('person.*', (data) => recievedEvents.push(`person.* = ${data}`))
-        NST.on('buildng:.', (data) => recievedEvents.push(`building.* = ${data}`))
-
+        NST.on('person.*', (data) => recievedEvents.push(`person.* = ${data.value}`))
+        NST.on('buildng:.', (data) => recievedEvents.push(`building.* = ${data.value}`))
+        
 
 
         //$ set and emit events
@@ -334,18 +361,10 @@ describe(heading('D | Events'), () => {
         //$ events should include A B C D E from setters
         expect(recievedEvents).to.include('person.* = Brad')      
         expect(recievedEvents).to.include('person.* = 54')      
-        // console.log(re/cievedEvents)  
-        NST.logStore()
+        // console.log(recievedEvents)  
+        // console.log(NST.store)
             
 
     })
-
-  
-
-
-
-
-
-
 
 });

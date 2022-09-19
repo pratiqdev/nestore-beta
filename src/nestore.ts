@@ -1,6 +1,8 @@
 import EE2 from "eventemitter2";
 import debug from 'debug'
 import _ from 'underscore'
+import { T_EmitStruct } from "./interfaces";
+import path from "path";
 
 const l = debug('nestore')
 // debug.enable('nestore:*')
@@ -54,16 +56,35 @@ function diff(a:any,b:any) {
 //     ignoreErrors: false
 //   });
 
+export type T_NestoreConfig = {
+    diffFunction?: (a:any, b:any) => boolean;
+    delimiter?: string;
+    wildcard?: boolean;
+    maxListeners?: number;
+    verboseMemoryLeak?: boolean;
+}
+
+
+
 class nestoreClass extends EE2 {
     internalStore: any;
     originalStore: any
+    diffFunc: Function;
+    delimiter: string;
 
-    constructor(store:any = {}){
+    constructor(store: Object = {}, config: T_NestoreConfig = {}){
         super({
-            wildcard: true,
-            delimiter: '.'
+            wildcard: config.wildcard === false ? false : true,
+            delimiter: typeof config.delimiter === 'string' ? config.delimiter : '.',
+            verboseMemoryLeak: config.verboseMemoryLeak === true ? true : false,
+            maxListeners: typeof config.maxListeners === 'number' 
+                && config.maxListeners <= Number.MAX_SAFE_INTEGER
+                && config.maxListeners >= Number.MIN_SAFE_INTEGER
+                    ? config.maxListeners
+                    : 10
         })
-        log.constr('='.repeat(100))
+
+        log.constr('='.repeat(80))
         log.constr('Creating store')
         if(typeof store !== 'object' || Array.isArray(store)){
             throw new Error("neStore | Initial store must be of type: object");
@@ -71,7 +92,11 @@ class nestoreClass extends EE2 {
         }
         this.internalStore = store
         this.originalStore = {...store} // fake deep clone to break ref
+        this.diffFunc = typeof config.diffFunction === 'function' ? config.diffFunction : diff
+        this.delimiter = typeof config.delimiter === 'string' ? config.delimiter : '.'
 
+
+        
         //$ Not a reliable way to propagate changes to the store
         //$ suggest use of "set()" method when attempting to trigger updates
         // this.onAny((data:any)=>{
@@ -79,10 +104,13 @@ class nestoreClass extends EE2 {
         // })
     }
 
-    #emit(key:string, args:any) {
+    #emit(key:string, args:T_EmitStruct) {
         log.emit(`Emitting  "${key}" :`, args)
-        this.emit('*', args);
-        return this.emit(key, args) || this.emit('', args);
+        if(key === '*'){
+            return this.emit('*', args);
+        }else{
+            return this.emit(key, args) || this.emit('', args);
+        }
     }
 
     //&                                                                                             
@@ -114,7 +142,7 @@ class nestoreClass extends EE2 {
             //%             asdffdasasdfsdf                                         
 
             var schema:any = this.internalStore;  // a moving reference to internal objects within obj
-            var pathList:string[] = path.split('.');
+            var pathList:string[] = path.split(this.delimiter);
             pathList = pathList.map(p => p.replace(/"+|`+|'+|]+/gm, '').split('[')).flat()
             var depth:number = pathList.length;
             for(var i = 0; i < depth-1; i++) {
@@ -124,7 +152,11 @@ class nestoreClass extends EE2 {
             }
         
             schema[pathList[depth-1]] = value;
-            this.#emit(path, value)
+            this.#emit(path, {
+                path,
+                key: pathList[pathList.length - 1],
+                value,
+            })
             return true
         }catch(err){
             return false
@@ -133,6 +165,7 @@ class nestoreClass extends EE2 {
     }
 
     //&                                                                                             
+    //! https://stackoverflow.com/a/58314926/3806481 => _lodash.get alternatives
     get = (path:string | Function) => {
         try{
             log.get(`Getting "${path}"`)
@@ -164,46 +197,131 @@ class nestoreClass extends EE2 {
     #handleEmitAll = () => {
         // const _log = log.extend('$handleEmitAll')
         log.emitAll('Parsing store to emit events')
+
+        let paths:string[] = []
+        let depth =  0
         
-        const switchRecurseTypes = (key:string, obj:any) => {
-            log.emitAll(`Recursing thru: ${key}`, obj)
+        const switchRecurseTypes = (key:string, obj:any, overrideDepth?: number) => {
+            // log.emitAll(`Recursing (${paths.length}) thru: "${paths.join('/')}"\n`) 
+            
+            
+
             // isObject = recurse
             if(typeof obj === 'object' && !Array.isArray(obj)){
-                log.emitAll(`${key} has type "object"`)
+                log.emitAll('\n\n'+`=`.repeat(80))
+                log.emitAll(`\n"${key}" has type <object>`)
+                
+                let testPaths = paths.includes(key) ? paths : [...paths, key]
 
-                Object.entries(obj).forEach(([_key, _val]) => {
+                log.emitAll(`\t| Paths  : ${paths}`)
+                log.emitAll(`\t| Key    : ${key}`)
+                log.emitAll(`\tTest path: ${testPaths}`)
+
+                if(key !== 'NESTORE_STORE_ROOT_KEY' && !paths.length){
+                    paths.push(key)
+                    log.emitAll(`\tNot root-path and no paths yet, setting path to: ${paths}`)
+                }
+                
+                
+                Object.entries(obj).forEach(([_key, _val], idx) => {
+                    log.emitAll(`-`.repeat(40))
+                    log.emitAll(`\t\tParsing "${_key}" : "${_val}"`)
+
+                    if(
+                        paths.length 
+                    ){
+                        // if(idx === 0) depth = 1
+                        let depth = paths.length - 1
+                        log.emitAll(`\t\tRemoving paths at depth: ${depth}`)
+                        if(idx > 0){
+                            for(let i = 0; i < depth; i++){
+                                let removed = paths.pop()
+                                log.emitAll(`\t\t\t${i}/${depth} removing path: ${removed}`)
+                            }
+                        }
+                        log.emitAll(`\t\tadding path: ${_key}`)
+                        paths.push(_key)
+
+                        log.emitAll(`\t\tnew paths:`, paths)
+                    }
+
                     switchRecurseTypes(_key, _val)
                 })
             }
 
+
+
+            
             // isArray - loop
             else if(typeof obj === 'object' && Array.isArray(obj)){
-                log.emitAll(`${key} has type "array"`)
-                obj.forEach(([_key, _val]) => {
-                    switchRecurseTypes(_key, _val)
+                log.emitAll('\n\n'+`=`.repeat(80))
+                log.emitAll(`"${key}" @ "${paths.join('/')}" has type <array>`)
+                
+                if(key !== 'NESTORE_STORE_ROOT_KEY' && !paths.length){
+                    paths.push(key)
+                    log.emitAll(`Not root-path and no paths yet, setting path to: ${paths}`)
+                }
+                
+                
+                
+                obj.forEach((item, idx) => {
+                    log.emitAll(`-`.repeat(40))
+                    
+                    
+                    depth = paths.length - 1
+                    if(overrideDepth){ depth = overrideDepth }
+                    
+                    log.emitAll(`IDX    : ${idx}`)
+                    log.emitAll(`ITEM   : ${item}`)
+                    log.emitAll(`PATH   : ${paths.join('/')}`)
+                    log.emitAll(`DEPTH  : ${depth}`)
+
+                        
+                    if(idx > 0){
+                        for(let i = 0; i < depth; i++){
+                            let removed = paths.pop()
+                            log.emitAll(`\tremoving path: ${removed}`)
+                        }
+                    }
+                    
+                    log.emitAll(`\tadding path: ${idx}  =>  ${paths.join('/')}`)
+                    paths.push(idx+'')
+                    
+
+                    switchRecurseTypes(idx+'', item, depth)
+
                 })
             }
+
+
 
             // emit
             else{
-                this.#emit(key, this.get(key))
+                // this.#emit(key, this.get(key))
+                log.emitAll(`>>>`, paths.length ? paths.join('/') : '/', '>>>', this.get(paths.length ? [...paths].join('.') : key))
+                // log.emitAll(`Max depth, getting value and emitting event: ${key}: ${[...paths].join('.')}`)
+                this.#emit(key, {
+                    key,
+                    path: paths.length ? paths.join('/') : '/',
+                    value: this.get(paths.length ? [...paths].join('.') : key),
+                })
             }
         }
-        switchRecurseTypes('*', this.internalStore)
+        switchRecurseTypes('NESTORE_STORE_ROOT_KEY', this.internalStore)
     }
 
     //&                                                                                             
     reset = () => {
         this.internalStore = {...this.originalStore}
-        this.#emit('nestore-reset', this.internalStore)
+        this.#emit('nestore-reset', {
+            path: '/',
+            key: 'NESTORE_RESET',
+            value: this.internalStore
+        })
         this.#handleEmitAll()
     }
 
     get store() { return this.internalStore }
-
-    logStore = () => {
-        log.emit('LOG STORE:', this.internalStore)
-    }
 
     // return { get, set, store }
 

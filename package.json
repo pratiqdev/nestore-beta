@@ -1,5 +1,5 @@
 {
-  "name": "reginald2",
+  "name": "nestore",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc",
     "test": "clear && tsc && mocha",
-    "debug": "clear && tsc && DEBUG=nestore* mocha",
+    "debug": "clear && tsc && DEBUG=nestore:emitAll mocha",
     "runnit": "clear && rm -r ./dist && tsc && DEBUG=nestore:* node index.js",
     "runnit-quiet": "clear && tsc && node index.js",
     "runnit-windows": "clear && tsc && set DEBUG=nestore:* && node index.js"
