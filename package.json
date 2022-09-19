@@ -8,6 +8,7 @@
   "scripts": {
     "build": "tsc",
     "test": "clear && tsc && mocha",
+    "test-nobuild": "clear && mocha",
     "debug": "clear && tsc && DEBUG=nestore:emitAll mocha",
     "runnit": "clear && rm -r ./dist && tsc && DEBUG=nestore:* node index.js",
     "runnit-quiet": "clear && tsc && node index.js",

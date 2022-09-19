@@ -292,8 +292,10 @@ describe(heading('D | Events'), () => {
 
     })
 
-    
-    it.only('D.3 | EmitAll emits events with correct paths', () => {
+
+    it('D.3 | EmitAll emits events with correct paths', () => {
+
+        const recievedEvents = []
 
         const sto = {
             title: 'The Book',
@@ -319,12 +321,54 @@ describe(heading('D | Events'), () => {
 
         const NST = nestore(sto)
 
-        NST.on('', (d) => console.log(`>>>> ${d.path} | ${d.key} | ${d.value}`, d))
+        NST.on('', (d) => recievedEvents.push(d))
 
         //$ reset the store to trigger emitAll
         NST.reset()
 
+        // console.log(recievedEvents)
+
         
+        const str = JSON.stringify(recievedEvents)
+        
+        const match = (val) => expect(str).to.include(JSON.stringify(val))
+
+        match({key: 'title', path: 'title', value: 'The Book'})
+        match({key: 'pages', path: 'pages', value: 817})
+        match({key: 'checkedOut', path: 'checkedOut', value: false})
+
+        match({key: 'chapters', path: 'chapters', value: ['1-The Start', '2-The Middle', '3-The End']})
+        match({key: '0', path: 'chapters/0', value: '1-The Start'})
+        match({key: '1', path: 'chapters/1', value: '2-The Middle'})
+        match({key: '2', path: 'chapters/2', value: '3-The End'})
+
+        match({ key: 'flaps', path: 'flaps', value: [ 'AAA', 'BBB', ['xxx', 'yyy', 'zzz'] ] },)
+        match({key: '0', path: 'flaps/0', value: 'AAA'})
+        match({key: '1', path: 'flaps/1', value: 'BBB'})
+        match({key: '0', path: 'flaps/2/0', value: 'xxx'})
+        match({key: '1', path: 'flaps/2/1', value: 'yyy'})
+        match({key: '2', path: 'flaps/2/2', value: 'zzz'})
+
+        match({
+            key: 'reviews',
+            path: 'reviews',
+            value: {
+              someGuy: 'This is a book',
+              'Some Extra': {
+                stuff: 'here!'
+              },
+              'Some Guy': 'This book was... okay.',
+              more_stuff_here: {
+                find: {
+                    'me ?': 'Hello!'
+                }
+              },
+              'Big Name': 'Best book ever in the world always.'
+            }
+          },)
+        match({key: 'someGuy', path: 'reviews/someGuy', value: 'This is a book'})
+        match({key: 'stuff', path: 'reviews/Some Extra/stuff', value: 'here!'})
+        match({key: 'Some Guy', path: 'reviews/Some Guy', value: 'This book was... okay.'})
 
     })
 
@@ -366,5 +410,84 @@ describe(heading('D | Events'), () => {
             
 
     })
+
+});
+
+
+describe(heading('E | Performance'), function(){
+    this.timeout(60_000 * 5)
+    
+
+    it.only('E.1 | Bulk changes to the store should complete within 60s', async (done) => {
+        let TEST_START = Date.now()
+
+        const NST = nestore()
+
+        let NUM_OF_OPERATIONS = 0
+        let OPERATION_LIMIT = 100_000
+        let CYCLE_LIMIT = 10
+        let NUM_OF_CYCLES = 0
+
+        let durationArr = []
+        const average = array => array.reduce((a, b) => a + b) / array.length;
+        const min = array => Math.min(...array)
+        const max = array => Math.max(...array)
+
+        let set = 'abcdefghijklmnopqrstuvqxyzABCDEFGHIJKLMNOPQRSTUVQXYZ1234567890_____-----'
+        let randStr = (val = 8) => {
+            let str = ''
+            while(str.length < val){
+                str += set[Math.floor(Math.random() * set.length)]
+            }
+            return str
+        }
+
+        let smallNum = (num) => {
+            num += ''
+            let l = num.length
+            if(l > 3 && l <= 6) return num.substring(0,l-3) + ' K'
+            else if(l > 6 && l <= 9) return num.substring(0,l-6) +'.'+ num.substring(l-6,l-4) + ' M'
+            else if(l > 9 && l <= 12) return num.substring(0,l-9) +'.'+ num.substring(l-9,l-7) + ' B'
+            else if(l > 12 && l <= 15) return num.substring(0,l-12) +'.'+ num.substring(l-12,l-10) + ' T'
+            else return num
+        }
+        
+
+        while(NUM_OF_CYCLES < CYCLE_LIMIT){
+            const CYCLE_START = Date.now()
+            NUM_OF_CYCLES++
+            NUM_OF_OPERATIONS = 0
+
+            while(NUM_OF_OPERATIONS < OPERATION_LIMIT){
+                NUM_OF_OPERATIONS++
+                let key = randStr()
+                let val = 'value-' + key
+    
+                NST.set(key, val)
+                assert(NST.get(key) === val)
+            }
+            let dur = Date.now() - CYCLE_START
+            durationArr.push(dur)
+
+            console.log(`Cycle ${NUM_OF_CYCLES} / ${CYCLE_LIMIT} : ${dur} ms : ${smallNum(NST.keyCount)} keys : ${((dur / OPERATION_LIMIT)+'').substring(0,6)} ms avg`)
+            
+        }
+
+        console.log(`\n`+'.'.repeat(50))
+        console.log(`Total cycles               : ${CYCLE_LIMIT}`)
+        console.log(`Total test duration        : ${Date.now() - TEST_START} ms`)
+        console.log(`Total operations           : ${smallNum(NST.keyCount)} keys`)
+        console.log(`Average time per operation : ${((average(durationArr) / OPERATION_LIMIT) + '').substring(0,6)} ms`)
+        console.log(`Average cycle duration     : ${average(durationArr)} ms`)
+        console.log(`Maximum cycle duration     : ${max(durationArr)} ms`)
+        console.log(`Minimum cycle duration     : ${min(durationArr)} ms`)
+        console.log('.'.repeat(50) + '\n')
+
+        
+        expect(NST.keyCount).to.be.greaterThanOrEqual((OPERATION_LIMIT * NUM_OF_CYCLES) / 2)
+        done()
+
+    })
+
 
 });

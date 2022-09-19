@@ -2,7 +2,6 @@ import EE2 from "eventemitter2";
 import debug from 'debug'
 import _ from 'underscore'
 import { T_EmitStruct } from "./interfaces";
-import path from "path";
 
 const l = debug('nestore')
 // debug.enable('nestore:*')
@@ -71,6 +70,7 @@ class nestoreClass extends EE2 {
     originalStore: any
     diffFunc: Function;
     delimiter: string;
+    cc:any;
 
     constructor(store: Object = {}, config: T_NestoreConfig = {}){
         super({
@@ -94,6 +94,10 @@ class nestoreClass extends EE2 {
         this.originalStore = {...store} // fake deep clone to break ref
         this.diffFunc = typeof config.diffFunction === 'function' ? config.diffFunction : diff
         this.delimiter = typeof config.delimiter === 'string' ? config.delimiter : '.'
+
+        this.cc = {
+            NESTORE_ROOT_KEY: 'NESTORE_STORE_ROOT_KEY'
+        }
 
 
         
@@ -166,7 +170,7 @@ class nestoreClass extends EE2 {
 
     //&                                                                                             
     //! https://stackoverflow.com/a/58314926/3806481 => _lodash.get alternatives
-    get = (path:string | Function) => {
+    get = (path?: string | Function) => {
         try{
             log.get(`Getting "${path}"`)
             if(!path) return this.internalStore;
@@ -195,119 +199,43 @@ class nestoreClass extends EE2 {
 
     //&                                                                                             
     #handleEmitAll = () => {
-        // const _log = log.extend('$handleEmitAll')
-        log.emitAll('Parsing store to emit events')
+        log.emitAll('Parsing store to emit events for every key...')
 
-        let paths:string[] = []
-        let depth =  0
-        
-        const switchRecurseTypes = (key:string, obj:any, overrideDepth?: number) => {
-            // log.emitAll(`Recursing (${paths.length}) thru: "${paths.join('/')}"\n`) 
-            
-            
+        let emitted:string[] = []
 
-            // isObject = recurse
-            if(typeof obj === 'object' && !Array.isArray(obj)){
-                log.emitAll('\n\n'+`=`.repeat(80))
-                log.emitAll(`\n"${key}" has type <object>`)
-                
-                let testPaths = paths.includes(key) ? paths : [...paths, key]
-
-                log.emitAll(`\t| Paths  : ${paths}`)
-                log.emitAll(`\t| Key    : ${key}`)
-                log.emitAll(`\tTest path: ${testPaths}`)
-
-                if(key !== 'NESTORE_STORE_ROOT_KEY' && !paths.length){
-                    paths.push(key)
-                    log.emitAll(`\tNot root-path and no paths yet, setting path to: ${paths}`)
-                }
-                
-                
-                Object.entries(obj).forEach(([_key, _val], idx) => {
-                    log.emitAll(`-`.repeat(40))
-                    log.emitAll(`\t\tParsing "${_key}" : "${_val}"`)
-
-                    if(
-                        paths.length 
-                    ){
-                        // if(idx === 0) depth = 1
-                        let depth = paths.length - 1
-                        log.emitAll(`\t\tRemoving paths at depth: ${depth}`)
-                        if(idx > 0){
-                            for(let i = 0; i < depth; i++){
-                                let removed = paths.pop()
-                                log.emitAll(`\t\t\t${i}/${depth} removing path: ${removed}`)
-                            }
-                        }
-                        log.emitAll(`\t\tadding path: ${_key}`)
-                        paths.push(_key)
-
-                        log.emitAll(`\t\tnew paths:`, paths)
-                    }
-
-                    switchRecurseTypes(_key, _val)
-                })
-            }
-
-
-
-            
-            // isArray - loop
-            else if(typeof obj === 'object' && Array.isArray(obj)){
-                log.emitAll('\n\n'+`=`.repeat(80))
-                log.emitAll(`"${key}" @ "${paths.join('/')}" has type <array>`)
-                
-                if(key !== 'NESTORE_STORE_ROOT_KEY' && !paths.length){
-                    paths.push(key)
-                    log.emitAll(`Not root-path and no paths yet, setting path to: ${paths}`)
-                }
-                
-                
-                
-                obj.forEach((item, idx) => {
-                    log.emitAll(`-`.repeat(40))
-                    
-                    
-                    depth = paths.length - 1
-                    if(overrideDepth){ depth = overrideDepth }
-                    
-                    log.emitAll(`IDX    : ${idx}`)
-                    log.emitAll(`ITEM   : ${item}`)
-                    log.emitAll(`PATH   : ${paths.join('/')}`)
-                    log.emitAll(`DEPTH  : ${depth}`)
-
-                        
-                    if(idx > 0){
-                        for(let i = 0; i < depth; i++){
-                            let removed = paths.pop()
-                            log.emitAll(`\tremoving path: ${removed}`)
-                        }
-                    }
-                    
-                    log.emitAll(`\tadding path: ${idx}  =>  ${paths.join('/')}`)
-                    paths.push(idx+'')
-                    
-
-                    switchRecurseTypes(idx+'', item, depth)
-
-                })
-            }
-
-
-
-            // emit
-            else{
-                // this.#emit(key, this.get(key))
-                log.emitAll(`>>>`, paths.length ? paths.join('/') : '/', '>>>', this.get(paths.length ? [...paths].join('.') : key))
-                // log.emitAll(`Max depth, getting value and emitting event: ${key}: ${[...paths].join('.')}`)
-                this.#emit(key, {
-                    key,
-                    path: paths.length ? paths.join('/') : '/',
-                    value: this.get(paths.length ? [...paths].join('.') : key),
-                })
+         
+        const visitNodes = (obj:any, visitor:any, stack:any[] = []) => {
+            if (typeof obj === 'object') {
+              for (let key in obj) {
+                visitor(stack.join('.').replace(/(?:\.)(\d+)(?![a-z_])/ig, '[$1]'), obj);
+                visitNodes(obj[key], visitor, [...stack, key]);
+              }
+            } else {
+              visitor(stack.join('.').replace(/(?:\.)(\d+)(?![a-z_])/ig, '[$1]'), obj);
             }
         }
-        switchRecurseTypes('NESTORE_STORE_ROOT_KEY', this.internalStore)
+
+        visitNodes(this.internalStore, (_path:string, value:any) => {
+            let split = _path.split(/\[|\]\[|\]\.|\.|\]/g)
+            .filter(x => x.trim() !== '')
+            
+            let key = split[split.length - 1] ?? '/'
+            let path = split.length ? split.join('/') : '/'
+
+
+            if(!emitted.includes(path)){
+                emitted.push(path)
+                
+                // log.emitAll(`EMITTING PATH: "${path}"`)
+                this.#emit(path, {
+                    key,
+                    path,
+                    value,
+                })
+            }
+
+        });
+          
     }
 
     //&                                                                                             
@@ -321,9 +249,33 @@ class nestoreClass extends EE2 {
         this.#handleEmitAll()
     }
 
+    get keyCount () {
+        //! This operations execution duration increases proportionally with 
+        //! the total number of keys in the store
+
+        //- t1: 1m keys @ 1045 ms
+
+        
+        let start = Date.now()
+        let count:number = 0
+         
+        const visitNodes = (obj:any) => {
+            if (typeof obj === 'object') {
+              for (let key in obj) {
+                visitNodes(obj[key]);
+              }
+            } else {
+                count++
+            }
+        }
+
+        visitNodes(this.internalStore)
+        console.log(`keyCount + ${Date.now() - start} ms`)
+        return count
+    }
+
     get store() { return this.internalStore }
 
-    // return { get, set, store }
 
 }
 
