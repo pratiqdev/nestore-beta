@@ -39,3 +39,25 @@ const D = {
 
 //                    NEW, OLD
 console.log('A-B',diff(B,A))
+
+
+    //_ This method of updating the store is not recommended                
+            //_ diffing is flawed and does not promote use of wildcard listeners    
+            //_ Also not setting any values on the store...
+            //_ set(s => s.title = 'value')
+            // if(typeof path === 'function'){
+            //     let tempStore = _.cloneDeep(this.INTERNAL_STORE)
+            //     path(tempStore)
+            //     let changeMap = this.DIFF_FUNC(this.INTERNAL_STORE, tempStore)
+            //     Object.entries(changeMap).forEach(([k,v]:any) => {
+            //         console.log(`changeMap: "${k}" => "${v}"`)
+            //         this.#emit(k, {
+            //             path: '',
+            //             key: k,
+            //             value: v
+            //         })
+            //     })
+            //     return
+            // }
+            //_                                                                      
+            

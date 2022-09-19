@@ -2,6 +2,7 @@ import assert from 'assert'
 import nestore from '../dist/nestore.js'
 import { expect } from 'chai';
 
+
 const heading = (text) => `${text}\n  ${'-'.repeat(text.length)}`
 
 const GLOBAL_NST = nestore({ global: true })
@@ -60,7 +61,7 @@ describe(heading('A | Setup'), () => {
     it('A.3 | Store matches initialStore on start', () => {
         const { get, set, reset, store } = nestore(initialStore)
 
-        assert(store === initialStore)
+        // assert(store === initialStore)
         assert(typeof store === typeof initialStore)
         assert(JSON.stringify(store) === JSON.stringify(initialStore))
     })
@@ -69,16 +70,50 @@ describe(heading('A | Setup'), () => {
         const A = nestore({ name: 'Alice'})
         const B = nestore({ name: 'Bob'})
 
-        assert(A.store.name === 'Alice')
-        assert(B.store.name === 'Bob')
+        expect(A.store.name).to.eq('Alice')
+        expect(B.store.name).to.eq('Bob')
+        // assert(A.store.name === 'Alice')
+        // assert(B.store.name === 'Bob')
         
         A.set('name', 'Andrew')
-        assert(A.store.name === 'Andrew')
-        assert(B.store.name === 'Bob')
+        expect(A.store.name).to.eq('Andrew')
+        expect(B.store.name).to.eq('Bob')
+        // assert(A.store.name === 'Andrew')
+        // assert(B.store.name === 'Bob')
 
         B.set('name', 'Becky')
-        assert(A.store.name === 'Andrew')
-        assert(B.store.name === 'Becky')
+        expect(A.store.name).to.eq('Andrew')
+        expect(B.store.name).to.eq('Becky')
+        // assert(A.store.name === 'Andrew')
+        // assert(B.store.name === 'Becky')
+        
+    })
+
+    it('A.5 | Passing existing nestore to nestore returns original', () => {
+        const A = nestore({ name: 'Alice'})
+        const B = nestore(A)
+
+        expect(A.store.name).to.eq('Alice')
+        expect(B.store.name).to.eq('Alice')
+        
+        A.set('name', 'Andrew')
+        expect(A.store.name).to.eq('Andrew')
+        expect(B.store.name).to.eq('Andrew')
+
+        B.set('name', 'Becky')
+        expect(A.store.name).to.eq('Becky')
+        expect(B.store.name).to.eq('Becky')
+        
+    })
+
+    it('A.6 | Nestore does not provide access to internal methods', () => {
+        const NST = nestore({ name: 'Alice'})
+
+        expect(typeof NST.keyCount).to.eq('undefined')
+        // expect(typeof NST.#emit).to.eq('undefined')
+        // expect(typeof NST.#handleEmitAll).to.eq('undefined')
+        // expect(typeof NST.#splitPath).to.eq('undefined')
+        // expect(typeof NST.#splitPathToKey).to.eq('undefined')
         
     })
 
@@ -109,8 +144,9 @@ describe(heading('B | Get'), () => {
     it('B.3 | Get callback method returns correct value', () => {
         const { get, set, reset, store } = nestore(initialStore)
 
-        assert(get(s => s) === initialStore)
-        assert(get(s => s.title) === initialStore.title)
+        // assert(get(s => s) === initialStore)
+        expect(JSON.stringify(get(s => s))).to.eq(JSON.stringify(initialStore))
+        // assert(get(s => s.title) === initialStore.title)
 
     })
 
@@ -126,8 +162,9 @@ describe(heading('B | Get'), () => {
     it('B.5 | Get method with no args returns entire store', () => {
         const { get, set, reset, store } = nestore(initialStore)
 
-        assert(get() === initialStore)
-        assert(JSON.stringify(get()) === JSON.stringify(initialStore))
+        // assert(get() === initialStore)
+        expect(JSON.stringify(get()))
+        .to.eq(JSON.stringify(initialStore))
 
     })
 
@@ -147,10 +184,10 @@ describe(heading('C | Set'), () => {
         const { get, set, reset, store } = nestore(initialStore)
 
         set('brimple', 'boop')
-        assert(get('brimple') === 'boop')
-
+        expect(get('brimple')).to.eq('boop')
+        
         set('dap.bap','tap')
-        assert(get('dap.bap') === 'tap')
+        expect(get('dap.bap')).to.eq('tap')
         
     })
 
@@ -162,24 +199,65 @@ describe(heading('C | Set'), () => {
         assert( set('thing', 'blap') === true )
     })
 
-    it('C.4 | Set callback method should set correct values', () => {
+    it.skip('C.4 | (set cb is deprecated) Set callback method should set correct values', () => {
         const { get, set, reset, store } = nestore(initialStore)
 
         set(s => s.title = '12345')
-        assert( get('title') === '12345' ) 
+        expect(get('title')).to.eq('12345')
 
     })
 
-    it('C.5 | Modify the store without using set method (no events)', () => {
+    it('C.5 | Direct store modifications dont affect internal store with directMod disabled', () => {
         const NST = nestore(initialStore)
 
         NST.on('title', ()=> console.log('store was updated...'))
 
         NST.store.title = '98765'
         NST.store.thangy = 'woop'
-        // console.log( get('title') )
-        assert( NST.get('title') === '98765')
-        assert( NST.get('thangy') === 'woop')
+
+        expect( NST.get('title') )
+            .to.not.eq( '98765' )
+        
+        expect( NST.get('thangy') )
+            .to.not.eq( 'woop' )
+            
+
+
+
+
+    })
+
+    it('C.6 | Direct store modifications affect internal store with directMod enabled', () => {
+        const NST = nestore(initialStore, { allowDirectModification: true })
+
+        NST.on('title', ()=> console.log('store was updated...'))
+
+        NST.store.title = '98765'
+        NST.store.thangy = 'woop'
+
+        expect( NST.get('title') )
+            .to.eq( '98765' )
+        
+        expect( NST.get('thangy') )
+            .to.eq( 'woop' )
+            
+
+
+
+
+    })
+
+    it('C.7 | Object passed to set() should override internal store', () => {
+        const NST = nestore(initialStore)
+
+        NST.set({
+            internalStore: 'override'
+        })
+
+
+        expect( NST.get('internalStore') )
+            .to.eq( 'override' )
+        
 
 
 
@@ -187,7 +265,6 @@ describe(heading('C | Set'), () => {
     })
 
 });
-
 
 describe(heading('D | Events'), () => {
 
@@ -271,7 +348,6 @@ describe(heading('D | Events'), () => {
         //$ reset the store to trigger emitAll
         NST.reset()
 
-        
         
         //$ events should include A B C D E from setters
         expect(recievedEvents).to.include('A = apple')        
@@ -413,12 +489,63 @@ describe(heading('D | Events'), () => {
 
 });
 
+describe(heading('E | Utilities'), () => {
 
-describe(heading('E | Performance'), function(){
+    it('E.1 | Returns the correct "entries"', async () => {
+        const NST = nestore(initialStore)
+        expect(JSON.stringify(NST.entries)).to.eq(JSON.stringify(Object.entries(initialStore)))
+    })
+
+    it('E.2 | Returns the correct "keys"', async () => {
+        const NST = nestore(initialStore)
+        expect(JSON.stringify(NST.keys)).to.eq(JSON.stringify(Object.keys(initialStore)))
+    })
+
+    it('E.3 | Returns the correct "values"', async () => {
+        const NST = nestore(initialStore)
+        expect(JSON.stringify(NST.values)).to.eq(JSON.stringify(Object.values(initialStore)))
+    })
+
+    it('E.4 | Returns the correct "length"', async () => {
+        const NST = nestore(initialStore)
+        expect(NST.entries.length).to.eq(Object.entries(initialStore).length)
+        expect(NST.keys.length).to.eq(Object.entries(initialStore).length)
+        expect(NST.values.length).to.eq(Object.entries(initialStore).length)
+    })
+
+    it('E.5 | Returns the correct "paths"', async () => {
+        const _NST = nestore(initialStore)
+        // console.log(_NST.paths)
+
+        expect(_NST.paths.length).to.eq(16)
+
+        expect(_NST.paths).to.include('/')
+        expect(_NST.paths).to.include('title')
+        expect(_NST.paths).to.include('pages')
+        expect(_NST.paths).to.include('checkedOut')
+        expect(_NST.paths).to.include('chapters')
+        expect(_NST.paths).to.include('chapters/0')
+        expect(_NST.paths).to.include('chapters/1')
+        expect(_NST.paths).to.include('chapters/2')
+        expect(_NST.paths).to.include('reviews')
+        expect(_NST.paths).to.include('reviews/someGuy')
+        expect(_NST.paths).to.include('reviews/Some Guy')
+        expect(_NST.paths).to.include('reviews/Big Name')
+        expect(_NST.paths).to.include('reviews/Some Extra')
+        expect(_NST.paths).to.include('reviews/Some Extra/Stuff Here')
+        expect(_NST.paths).to.include('reviews/Some Extra/Stuff Here/find')
+        expect(_NST.paths).to.include('reviews/Some Extra/Stuff Here/find/me ?')
+    })
+
+   
+
+});
+
+describe.skip(heading('Performance'), function(){
     this.timeout(60_000 * 5)
     
 
-    it.only('E.1 | Bulk changes to the store should complete within 60s', async (done) => {
+    it('E.1 | Bulk changes to the store should complete within 60s', async (done) => {
         let TEST_START = Date.now()
 
         const NST = nestore()
@@ -469,19 +596,19 @@ describe(heading('E | Performance'), function(){
             let dur = Date.now() - CYCLE_START
             durationArr.push(dur)
 
-            console.log(`Cycle ${NUM_OF_CYCLES} / ${CYCLE_LIMIT} : ${dur} ms : ${smallNum(NST.keyCount)} keys : ${((dur / OPERATION_LIMIT)+'').substring(0,6)} ms avg`)
+            console.log(`\tCycle ${NUM_OF_CYCLES} / ${CYCLE_LIMIT} : ${dur} ms : ${((dur / OPERATION_LIMIT)+'').substring(0,6)} ms avg`)
             
         }
 
-        console.log(`\n`+'.'.repeat(50))
-        console.log(`Total cycles               : ${CYCLE_LIMIT}`)
-        console.log(`Total test duration        : ${Date.now() - TEST_START} ms`)
-        console.log(`Total operations           : ${smallNum(NST.keyCount)} keys`)
-        console.log(`Average time per operation : ${((average(durationArr) / OPERATION_LIMIT) + '').substring(0,6)} ms`)
-        console.log(`Average cycle duration     : ${average(durationArr)} ms`)
-        console.log(`Maximum cycle duration     : ${max(durationArr)} ms`)
-        console.log(`Minimum cycle duration     : ${min(durationArr)} ms`)
-        console.log('.'.repeat(50) + '\n')
+        console.log(`\n\t`+'.'.repeat(50))
+        console.log(`\tTotal cycles               : ${CYCLE_LIMIT}`)
+        console.log(`\tTotal test duration        : ${Date.now() - TEST_START} ms`)
+        console.log(`\tTotal operations           : ${smallNum(NST.keyCount)} keys`)
+        console.log(`\tAverage time per operation : ${((average(durationArr) / OPERATION_LIMIT) + '').substring(0,6)} ms`)
+        console.log(`\tAverage cycle duration     : ${average(durationArr)} ms`)
+        console.log(`\tMaximum cycle duration     : ${max(durationArr)} ms`)
+        console.log(`\tMinimum cycle duration     : ${min(durationArr)} ms`)
+        console.log('\t'+'.'.repeat(50) + '\n')
 
         
         expect(NST.keyCount).to.be.greaterThanOrEqual((OPERATION_LIMIT * NUM_OF_CYCLES) / 2)

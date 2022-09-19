@@ -1,113 +1,111 @@
 import EE2 from "eventemitter2";
-import debug from 'debug'
-import _ from 'underscore'
-import { T_EmitStruct } from "./interfaces";
+import * as lodash from 'lodash-es'
+import { T_EmitStruct, T_NestoreOptions } from "./interfaces";
+import log from './log.js'
+import BUILT_IN_DIFF from "./built-in-diff.js";
 
-const l = debug('nestore')
-// debug.enable('nestore:*')
-
-
-const log = {
-    constr: l.extend('constructor'),
-    set: l.extend('set'),
-    get: l.extend('get'),
-    reset: l.extend('reset'),
-    emit: l.extend('emit'),
-    emitAll: l.extend('emitAll'),
-}
-// console.log('NESTORE')
-
-function diff(a:any,b:any) {
-    var r:any = {};
-    _.each(a, function(v:any,k:any) {
-        if(b[k] === v) return;
-        // but what if it returns an empty object? still attach?
-        r[k] = _.isObject(v)
-                ? diff(v, b[k])
-                : v
-            ;
-        });
-    return r;
-}
-
-
-// var emitter = new EE2({
-
-//     // set this to `true` to use wildcards
-//     wildcard: false,
-  
-//     // the delimiter used to segment namespaces
-//     delimiter: '.', 
-  
-//     // set this to `true` if you want to emit the newListener event
-//     newListener: false, 
-  
-//     // set this to `true` if you want to emit the removeListener event
-//     removeListener: false, 
-  
-//     // the maximum amount of listeners that can be assigned to an event
-//     maxListeners: 10,
-  
-//     // show event name in memory leak message when more than maximum amount of listeners is assigned
-//     verboseMemoryLeak: false,
-  
-//     // disable throwing uncaughtException if an error event is emitted and it has no listeners
-//     ignoreErrors: false
-//   });
-
-export type T_NestoreConfig = {
-    diffFunction?: (a:any, b:any) => boolean;
-    delimiter?: string;
-    wildcard?: boolean;
-    maxListeners?: number;
-    verboseMemoryLeak?: boolean;
-}
 
 
 
 class nestoreClass extends EE2 {
-    internalStore: any;
-    originalStore: any
-    diffFunc: Function;
-    delimiter: string;
-    cc:any;
+    INTERNAL_STORE: Object; // ESMap<string, any>;
+    ORIGINAL_STORE: Object; // ESMap<string, any>;
+    DIFF_FUNC: Function;
+    DELIMITER: string;
+    ALLOW_DIRECT_MOD: boolean;
+    PATH_LIST: string[];
 
-    constructor(store: Object = {}, config: T_NestoreConfig = {}){
+    constructor(store: Object = {}, options: T_NestoreOptions = {}){
         super({
-            wildcard: config.wildcard === false ? false : true,
-            delimiter: typeof config.delimiter === 'string' ? config.delimiter : '.',
-            verboseMemoryLeak: config.verboseMemoryLeak === true ? true : false,
-            maxListeners: typeof config.maxListeners === 'number' 
-                && config.maxListeners <= Number.MAX_SAFE_INTEGER
-                && config.maxListeners >= Number.MIN_SAFE_INTEGER
-                    ? config.maxListeners
+            wildcard: options.wildcard === false ? false : true,
+            delimiter: typeof options.delimiter === 'string' ? options.delimiter : '.',
+            verboseMemoryLeak: options.verboseMemoryLeak === true ? true : false,
+            maxListeners: typeof options.maxListeners === 'number' 
+                && options.maxListeners <= Number.MAX_SAFE_INTEGER
+                && options.maxListeners >= Number.MIN_SAFE_INTEGER
+                    ? options.maxListeners
                     : 10
         })
 
+        
+
         log.constr('='.repeat(80))
         log.constr('Creating store')
+
         if(typeof store !== 'object' || Array.isArray(store)){
-            throw new Error("neStore | Initial store must be of type: object");
-            
-        }
-        this.internalStore = store
-        this.originalStore = {...store} // fake deep clone to break ref
-        this.diffFunc = typeof config.diffFunction === 'function' ? config.diffFunction : diff
-        this.delimiter = typeof config.delimiter === 'string' ? config.delimiter : '.'
-
-        this.cc = {
-            NESTORE_ROOT_KEY: 'NESTORE_STORE_ROOT_KEY'
+            throw new Error("neStore | Initial store must be of type: object  eg: { myKey: 'myValue' }");
         }
 
+        this.ALLOW_DIRECT_MOD = options.allowDirectModification === true ? true : false;
+        this.INTERNAL_STORE = lodash.cloneDeep(store)
+        this.ORIGINAL_STORE = lodash.cloneDeep(store)
+        this.DIFF_FUNC = typeof options.diffFunction === 'function' ? options.diffFunction : BUILT_IN_DIFF
+        this.DELIMITER = typeof options.delimiter === 'string' ? options.delimiter : '.'
+        this.PATH_LIST = []
 
-        
-        //$ Not a reliable way to propagate changes to the store
-        //$ suggest use of "set()" method when attempting to trigger updates
-        // this.onAny((data:any)=>{
-        //      console.log('this.onAny => ', data)
-        // })
+        this.#keyCount()
+
+        if(store instanceof nestoreClass){
+            return store;
+        }
     }
 
+    //_                                                                                             
+    #keyCount(){
+        this.PATH_LIST = []
+         
+        const visitNodes = (obj:any, visitor:any, stack:any[] = []) => {
+            if (typeof obj === 'object') {
+              for (let key in obj) {
+                visitor(stack.join('.').replace(/(?:\.)(\d+)(?![a-z_])/ig, '[$1]'), obj);
+                visitNodes(obj[key], visitor, [...stack, key]);
+              }
+            } else {
+              visitor(stack.join('.').replace(/(?:\.)(\d+)(?![a-z_])/ig, '[$1]'), obj);
+            }
+        }
+
+        visitNodes(this.INTERNAL_STORE, (_path:string, value:any) => {
+            // let split = _path.split(/\[|\]\[|\]\.|\.|\]/g)
+            let split = this.#splitPath(_path)
+            .filter(x => x.trim() !== '')
+            
+            // let key = split[split.length - 1] ?? '/'
+            let path = split.length ? split.join('/') : '/'
+
+
+            if(!this.PATH_LIST.includes(path)){
+                this.PATH_LIST.push(path)
+                log.set(`keyCount: Counting key at: ${path}`)
+            }
+
+        });
+
+
+
+
+
+
+
+        // const visitNodes = (obj:any) => {
+        //     if (typeof obj === 'object') {
+        //       for (let key in obj) {
+        //         log.set(`> keyCount: increasing keycount with:`, key)
+        //         let p = `${key}/${obj[key]}`
+
+        //         this.KEY_COUNT++
+        //         visitNodes(obj[key]);
+        //       }
+        //     } else {
+        //         log.set(`  keyCount: increasing keycount with:`, obj)
+        //         this.KEY_COUNT++
+        //     }
+        // }
+
+        // visitNodes(this.INTERNAL_STORE)
+    }
+
+    //_                                                                                             
     #emit(key:string, args:T_EmitStruct) {
         log.emit(`Emitting  "${key}" :`, args)
         if(key === '*'){
@@ -117,87 +115,7 @@ class nestoreClass extends EE2 {
         }
     }
 
-    //&                                                                                             
-    set = (path:string | Function, value?:any) => {
-        try{
-            // const _log = log.extend('set')
-            log.set(`Setting "${path}" : "${value}"`)
-            if(!path || (typeof path !== 'function' && !value)){
-                log.set('Incorrect args for "set()". Returning false')
-                return false;
-            } 
-
-
-            //+ set(s => s.title = 'value')
-
-            
-            //~ This method of updating the store is not recommended                
-            //~ diffing is flawed and does not promote use of wildcard listeners    
-            if(typeof path === 'function'){
-                let tempStore = {...this.internalStore}
-                path(this.internalStore)
-                let changeMap = diff(this.internalStore, tempStore)
-                Object.entries(changeMap).forEach((item:any) => {
-                    // console.log('changeMap:', item)
-                    this.#emit(item[0], item[1])
-                })
-                return
-            }
-            //%             asdffdasasdfsdf                                         
-
-            var schema:any = this.internalStore;  // a moving reference to internal objects within obj
-            var pathList:string[] = path.split(this.delimiter);
-            pathList = pathList.map(p => p.replace(/"+|`+|'+|]+/gm, '').split('[')).flat()
-            var depth:number = pathList.length;
-            for(var i = 0; i < depth-1; i++) {
-                var elem = pathList[i];
-                if( !schema[elem] ) schema[elem] = {}
-                schema = schema[elem];
-            }
-        
-            schema[pathList[depth-1]] = value;
-            this.#emit(path, {
-                path,
-                key: pathList[pathList.length - 1],
-                value,
-            })
-            return true
-        }catch(err){
-            return false
-        }
-
-    }
-
-    //&                                                                                             
-    //! https://stackoverflow.com/a/58314926/3806481 => _lodash.get alternatives
-    get = (path?: string | Function) => {
-        try{
-            log.get(`Getting "${path}"`)
-            if(!path) return this.internalStore;
-            
-            if(typeof path === 'function'){
-                return path(this.internalStore)
-            }
-            
-            var schema:any = this.internalStore;  // a moving reference to internal objects within obj
-            var pathList:string[] = path.split('.');
-            pathList = pathList.map(p => p.replace(/"+|`+|'+|]+/gm, '').split('[')).flat()
-            var depth:number = pathList.length;
-            for(var i = 0; i < depth-1; i++) {
-                var elem = pathList[i];
-                if( !schema[elem] ) schema[elem] = {}
-                schema = schema[elem];
-            }
-            
-            return schema[pathList[depth-1]]
-        }catch(err){
-            return undefined
-        }
-    }
-
-
-
-    //&                                                                                             
+    //_                                                                                             
     #handleEmitAll = () => {
         log.emitAll('Parsing store to emit events for every key...')
 
@@ -215,8 +133,9 @@ class nestoreClass extends EE2 {
             }
         }
 
-        visitNodes(this.internalStore, (_path:string, value:any) => {
-            let split = _path.split(/\[|\]\[|\]\.|\.|\]/g)
+        visitNodes(this.INTERNAL_STORE, (_path:string, value:any) => {
+            // let split = _path.split(/\[|\]\[|\]\.|\.|\]/g)
+            let split = this.#splitPath(_path)
             .filter(x => x.trim() !== '')
             
             let key = split[split.length - 1] ?? '/'
@@ -226,7 +145,7 @@ class nestoreClass extends EE2 {
             if(!emitted.includes(path)){
                 emitted.push(path)
                 
-                // log.emitAll(`EMITTING PATH: "${path}"`)
+                // log.emitAll(`EMITTING: "${path}" => "${value}"`)
                 this.#emit(path, {
                     key,
                     path,
@@ -238,48 +157,159 @@ class nestoreClass extends EE2 {
           
     }
 
+    //_                                                                                             
+    #splitPath(path:string){
+       return path.split(/\[|\]\[|\]\.|\.|\]/g)
+    }
+
+    //_                                                                                             
+    #splitPathToKey(path:string){
+        let split = this.#splitPath(path)
+        return split[split.length - 1]
+    }
+
+
+
+
+
+    //&                                                                                             
+    setStore = (_store: Object = {}) => {
+        try{
+            // console.log(`setting "${path}" => "${value}"`)
+            // const _log = log.extend('set')
+            log.set(`Setting new store "/" : "${_store}"`)
+
+            if(!(typeof _store === 'object' && !Array.isArray(_store))) {
+                log.set(`setStore requires a new store object: setStore({ ...newStore })`)
+                return false
+            }
+
+            this.#keyCount()
+            this.#handleEmitAll()
+
+            return true
+        }catch(err){
+            return false
+        }
+
+    }
+
+    //&                                                                                             
+    set = (path:string | Object, value?:any) => {
+        try{
+            log.set(`Setting "${path}" : "${value}"`)
+
+            if(
+                (!path && value) 
+                || (typeof path !== 'object' && !value)
+            ){
+                log.set('Incorrect args for "set()". Returning false')
+                return false;
+            } 
+
+            
+            
+            // set the store directly with an object
+            // NST.set({ ...newStore })
+            if(typeof path === 'object'){
+                if(Array.isArray(path)){
+                    lodash.set(this.INTERNAL_STORE, path, value)
+                }else{
+                    this.INTERNAL_STORE = path
+                    this.#emit('/', {
+                        path: '/',
+                        key: '/',
+                        value: this.store,
+                    })
+                }
+                
+                this.#keyCount()
+                return true
+            }
+
+            
+            lodash.set(this.INTERNAL_STORE, path, value)
+            this.#emit(path, {
+                path,
+                // key: pathList[pathList.length - 1],
+                key: this.#splitPathToKey(path),
+                value,
+            })
+            this.#keyCount()
+            return true
+        }catch(err){
+            return false
+        }
+
+    }
+
+    //&                                                                                             
+    get = (path?: string | Function) => {
+        try{
+            log.get(`Getting "${path}"`)
+            if(!path) return this.store
+            
+            if(typeof path === 'function'){
+                return path(this.INTERNAL_STORE)
+            }
+
+            return lodash.get(this.INTERNAL_STORE, path)
+
+            // let x1 = this.INTERNAL_STORE.get(path)
+
+            // if(x1){
+            //     return x1
+            // }else{
+
+            //     var schema:any = this.INTERNAL_STORE;  // a moving reference to internal objects within obj
+            //     var pathList:string[] = path.split('.');
+            //     pathList = pathList.map(p => p.replace(/"+|`+|'+|]+/gm, '').split('[')).flat()
+            //     var depth:number = pathList.length;
+            //     for(var i = 0; i < depth-1; i++) {
+            //         var elem = pathList[i];
+            //         if( !schema[elem] ) schema[elem] = {}
+            //         schema = schema[elem];
+            //     }
+            //     return schema[pathList[depth-1]]
+            // }
+            
+        }catch(err){
+            return undefined
+        }
+    }
+
     //&                                                                                             
     reset = () => {
-        this.internalStore = {...this.originalStore}
+        this.INTERNAL_STORE = this.ORIGINAL_STORE
+        this.#keyCount()
         this.#emit('nestore-reset', {
             path: '/',
             key: 'NESTORE_RESET',
-            value: this.internalStore
+            value: this.INTERNAL_STORE
         })
         this.#handleEmitAll()
     }
 
-    get keyCount () {
-        //! This operations execution duration increases proportionally with 
-        //! the total number of keys in the store
 
-        //- t1: 1m keys @ 1045 ms
 
-        
-        let start = Date.now()
-        let count:number = 0
-         
-        const visitNodes = (obj:any) => {
-            if (typeof obj === 'object') {
-              for (let key in obj) {
-                visitNodes(obj[key]);
-              }
-            } else {
-                count++
-            }
-        }
+    get entries(){ return Object.entries(this.INTERNAL_STORE) }
+    get keys(){ return Object.keys(this.INTERNAL_STORE) }
+    get values(){ return Object.values(this.INTERNAL_STORE) }
+    get paths(){ return this.PATH_LIST }
 
-        visitNodes(this.internalStore)
-        console.log(`keyCount + ${Date.now() - start} ms`)
-        return count
+
+    //&                                                                                             
+    get store() { 
+        return this.ALLOW_DIRECT_MOD 
+            ? this.INTERNAL_STORE 
+            : lodash.cloneDeep(this.INTERNAL_STORE)
     }
 
-    get store() { return this.internalStore }
 
 
 }
 
-const NST = (...store:any) => new nestoreClass(...store)
+const NST = (store?:Object, options?: T_NestoreOptions) => new nestoreClass(store, options)
 
 
 export default NST
