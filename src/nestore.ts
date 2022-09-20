@@ -1,19 +1,93 @@
 import EE2 from "eventemitter2";
 import * as lodash from 'lodash-es'
-import { T_EmitStruct, T_NestoreOptions } from "./interfaces";
-import log from './log.js'
-import BUILT_IN_DIFF from "./built-in-diff.js";
+// import COMMON from "./common.js";
+// import { T_EmitStruct, T_NestoreOptions } from "./interfaces";
+// import log from './log.js'
+import * as _ from 'lodash-es'
+import createDebug from 'debug'
+
+
+/************************************************************************************************ */
+export type T_NestoreOptions = {
+    delimiter?: string;
+    wildcard?: boolean;
+    allowDirectModification?: boolean;
+    maxListeners?: number;
+    verboseMemoryLeak?: boolean;
+    diffFunction?: (a:any, b:any) => Object;
+}
+
+/** Structure of all values emitted by eventemitter */
+export type T_EmitStruct = {
+    path: string;
+    key: string;
+    value?: any;
+}
+/************************************************************************************************ */
+
+
+
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+const l = createDebug('nestore')
+const log = {
+    constr: l.extend('constructor'),
+    set:    l.extend('set        '),
+    get:    l.extend('get        '),
+    reset:  l.extend('reset      '),
+    emit:   l.extend('emit       '),
+    emitAll:l.extend('emitAll    '),
+    norm:   l.extend('normPath   '),
+    remove: l.extend('remove     '),
+    devtool:l.extend('devtool    '),
+}
+
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+const BUILT_IN_DIFF = (a:any,b:any) => {
+    var r:any = {};
+    _.each(a, function(v:any,k:any) {
+        if(b[k] === v) return;
+        // but what if it returns an empty object? still attach?
+        r[k] = _.isObject(v)
+                ? BUILT_IN_DIFF(v, b[k])
+                : v
+            ;
+        });
+    return r;
+}
+
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+const COMMON = {
+    NESTORE_ROOT_KEY: 'NESTORE_STORE_ROOT_KEY',
+    DEFAULT_DELIMITER: '.'
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 
 class nestoreClass extends EE2 {
-    INTERNAL_STORE: Object; // ESMap<string, any>;
-    ORIGINAL_STORE: Object; // ESMap<string, any>;
-    DIFF_FUNC: Function;
+    
+    INTERNAL_STORE: Object | Partial<Object>; 
+    ORIGINAL_STORE: Object | Partial<Object>;
     DELIMITER: string;
     ALLOW_DIRECT_MOD: boolean;
-    PATH_LIST: string[];
 
     constructor(store: Object = {}, options: T_NestoreOptions = {}){
         super({
@@ -39,89 +113,57 @@ class nestoreClass extends EE2 {
         this.ALLOW_DIRECT_MOD = options.allowDirectModification === true ? true : false;
         this.INTERNAL_STORE = lodash.cloneDeep(store)
         this.ORIGINAL_STORE = lodash.cloneDeep(store)
-        this.DIFF_FUNC = typeof options.diffFunction === 'function' ? options.diffFunction : BUILT_IN_DIFF
-        this.DELIMITER = typeof options.delimiter === 'string' ? options.delimiter : '.'
-        this.PATH_LIST = []
-
-        this.#keyCount()
+        this.DELIMITER = typeof options.delimiter === 'string' ? options.delimiter : COMMON.DEFAULT_DELIMITER
 
         if(store instanceof nestoreClass){
             return store;
         }
-    }
 
-    //_                                                                                             
-    #keyCount(){
-        this.PATH_LIST = []
-         
-        const visitNodes = (obj:any, visitor:any, stack:any[] = []) => {
-            if (typeof obj === 'object') {
-              for (let key in obj) {
-                visitor(stack.join('.').replace(/(?:\.)(\d+)(?![a-z_])/ig, '[$1]'), obj);
-                visitNodes(obj[key], visitor, [...stack, key]);
-              }
-            } else {
-              visitor(stack.join('.').replace(/(?:\.)(\d+)(?![a-z_])/ig, '[$1]'), obj);
+        if(typeof window !== 'undefined'){
+            let W:any = window
+            if(typeof W.__REDUX_DEVTOOLS_EXTENSION__ !== 'undefined'){
+                log.devtool(`Found window and devTools`)
+            }else{
+                log.devtool(`Found window with no devTools`)
             }
-        }
-
-        visitNodes(this.INTERNAL_STORE, (_path:string, value:any) => {
-            // let split = _path.split(/\[|\]\[|\]\.|\.|\]/g)
-            let split = this.#splitPath(_path)
-            .filter(x => x.trim() !== '')
-            
-            // let key = split[split.length - 1] ?? '/'
-            let path = split.length ? split.join('/') : '/'
-
-
-            if(!this.PATH_LIST.includes(path)){
-                this.PATH_LIST.push(path)
-                log.set(`keyCount: Counting key at: ${path}`)
-            }
-
-        });
-
-
-
-
-
-
-
-        // const visitNodes = (obj:any) => {
-        //     if (typeof obj === 'object') {
-        //       for (let key in obj) {
-        //         log.set(`> keyCount: increasing keycount with:`, key)
-        //         let p = `${key}/${obj[key]}`
-
-        //         this.KEY_COUNT++
-        //         visitNodes(obj[key]);
-        //       }
-        //     } else {
-        //         log.set(`  keyCount: increasing keycount with:`, obj)
-        //         this.KEY_COUNT++
-        //     }
-        // }
-
-        // visitNodes(this.INTERNAL_STORE)
-    }
-
-    //_                                                                                             
-    #emit(key:string, args:T_EmitStruct) {
-        log.emit(`Emitting  "${key}" :`, args)
-        if(key === '*'){
-            return this.emit('*', args);
         }else{
-            return this.emit(key, args) || this.emit('', args);
+            log.devtool(`Headless mode`)
         }
     }
 
+
     //_                                                                                             
-    #handleEmitAll = () => {
+    #emit(args:T_EmitStruct) {
+        args.path = this.#normalizePath(args.path)
+        log.emit(`Emitting  "${args.key}" : ${args.path} : `, args.value)
+    
+        // this.emit('*', args);
+        return this.emit(args.path, args) || this.emit('', args);
+    }
+
+    #normalizePath(path:string | string[]){
+        // log.norm(`\nbefore : ${path}`)
+        if(Array.isArray(path)){
+            log.norm(`path is array, joining at delimiter: ${this.DELIMITER}`)
+            path = path.join(this.DELIMITER)
+        }
+
+        if(path.trim() === '' || path.trim() === '/'){
+            return '/'
+        }
+
+        let split = this.#splitPath(path)
+        let _path:string = split.join(this.DELIMITER)
+        log.norm(`Normalized path: ${path} => ${_path}`)
+        
+        return _path
+    }
+
+    //_                                                                                             
+    #handleEmitAll(){
         log.emitAll('Parsing store to emit events for every key...')
 
         let emitted:string[] = []
-
-         
         const visitNodes = (obj:any, visitor:any, stack:any[] = []) => {
             if (typeof obj === 'object') {
               for (let key in obj) {
@@ -139,16 +181,16 @@ class nestoreClass extends EE2 {
             .filter(x => x.trim() !== '')
             
             let key = split[split.length - 1] ?? '/'
-            let path = split.length ? split.join('/') : '/'
+            let path = split.length ? split.join(this.DELIMITER) : '/'
 
 
             if(!emitted.includes(path)){
                 emitted.push(path)
                 
                 // log.emitAll(`EMITTING: "${path}" => "${value}"`)
-                this.#emit(path, {
-                    key,
+                this.#emit({
                     path,
+                    key,
                     value,
                 })
             }
@@ -159,7 +201,7 @@ class nestoreClass extends EE2 {
 
     //_                                                                                             
     #splitPath(path:string){
-       return path.split(/\[|\]\[|\]\.|\.|\]/g)
+       return path.split(/\[|\]\[|\]\.|\.|\]|\//g)
     }
 
     //_                                                                                             
@@ -171,28 +213,6 @@ class nestoreClass extends EE2 {
 
 
 
-
-    //&                                                                                             
-    setStore = (_store: Object = {}) => {
-        try{
-            // console.log(`setting "${path}" => "${value}"`)
-            // const _log = log.extend('set')
-            log.set(`Setting new store "/" : "${_store}"`)
-
-            if(!(typeof _store === 'object' && !Array.isArray(_store))) {
-                log.set(`setStore requires a new store object: setStore({ ...newStore })`)
-                return false
-            }
-
-            this.#keyCount()
-            this.#handleEmitAll()
-
-            return true
-        }catch(err){
-            return false
-        }
-
-    }
 
     //&                                                                                             
     set = (path:string | Object, value?:any) => {
@@ -216,26 +236,23 @@ class nestoreClass extends EE2 {
                     lodash.set(this.INTERNAL_STORE, path, value)
                 }else{
                     this.INTERNAL_STORE = path
-                    this.#emit('/', {
+                    this.#emit({
                         path: '/',
-                        key: '/',
+                        key: '',
                         value: this.store,
                     })
                 }
                 
-                this.#keyCount()
                 return true
             }
 
             
             lodash.set(this.INTERNAL_STORE, path, value)
-            this.#emit(path, {
+            this.#emit({
                 path,
-                // key: pathList[pathList.length - 1],
                 key: this.#splitPathToKey(path),
                 value,
             })
-            this.#keyCount()
             return true
         }catch(err){
             return false
@@ -255,24 +272,6 @@ class nestoreClass extends EE2 {
 
             return lodash.get(this.INTERNAL_STORE, path)
 
-            // let x1 = this.INTERNAL_STORE.get(path)
-
-            // if(x1){
-            //     return x1
-            // }else{
-
-            //     var schema:any = this.INTERNAL_STORE;  // a moving reference to internal objects within obj
-            //     var pathList:string[] = path.split('.');
-            //     pathList = pathList.map(p => p.replace(/"+|`+|'+|]+/gm, '').split('[')).flat()
-            //     var depth:number = pathList.length;
-            //     for(var i = 0; i < depth-1; i++) {
-            //         var elem = pathList[i];
-            //         if( !schema[elem] ) schema[elem] = {}
-            //         schema = schema[elem];
-            //     }
-            //     return schema[pathList[depth-1]]
-            // }
-            
         }catch(err){
             return undefined
         }
@@ -281,24 +280,70 @@ class nestoreClass extends EE2 {
     //&                                                                                             
     reset = () => {
         this.INTERNAL_STORE = this.ORIGINAL_STORE
-        this.#keyCount()
-        this.#emit('nestore-reset', {
-            path: '/',
-            key: 'NESTORE_RESET',
-            value: this.INTERNAL_STORE
+        // this.#emit({
+        //     path: '/',
+        //     key: '/',
+        //     value: this.INTERNAL_STORE
+        // })
+        this.#handleEmitAll()
+    }
+
+
+    //&                                                                                             
+    remove = (path: string) => {
+        //! should this delete the key and value from the table or should it set the value to undefined?
+        //! this should completely delete the key from the store object
+        //! the set() method can set a key to undefined
+        this.INTERNAL_STORE = lodash.omit(this.INTERNAL_STORE, [path])
+
+        this.#emit({
+            path,
+            key: this.#splitPathToKey(path),
+            value: undefined
         })
         this.#handleEmitAll()
     }
 
 
 
-    get entries(){ return Object.entries(this.INTERNAL_STORE) }
-    get keys(){ return Object.keys(this.INTERNAL_STORE) }
-    get values(){ return Object.values(this.INTERNAL_STORE) }
-    get paths(){ return this.PATH_LIST }
+
+    //+ ____________________________________________________________________________________________                                                                                             
+    /** @deprecated */
+    get paths(){
+        let PATH_LIST:string[] = []
+         
+        const visitNodes = (obj:any, visitor:any, stack:any[] = []) => {
+            if (typeof obj === 'object') {
+              for (let key in obj) {
+                visitor(stack.join('.').replace(/(?:\.)(\d+)(?![a-z_])/ig, '[$1]'), obj);
+                visitNodes(obj[key], visitor, [...stack, key]);
+              }
+            } else {
+              visitor(stack.join('.').replace(/(?:\.)(\d+)(?![a-z_])/ig, '[$1]'), obj);
+            }
+        }
+
+        visitNodes(this.INTERNAL_STORE, (_path:string, value:any) => {
+            // let split = _path.split(/\[|\]\[|\]\.|\.|\]/g)
+            let split = this.#splitPath(_path)
+            .filter(x => x.trim() !== '')
+            
+            // let key = split[split.length - 1] ?? '/'
+            let path = split.length ? split.join(this.DELIMITER) : '/'
 
 
-    //&                                                                                             
+            if(!PATH_LIST.includes(path)){
+                PATH_LIST.push(path)
+                log.set(`keyCount: Counting key at: ${path}`)
+            }
+
+        });
+
+        return PATH_LIST
+
+    }
+
+    //+ ____________________________________________________________________________________________                                                                                             
     get store() { 
         return this.ALLOW_DIRECT_MOD 
             ? this.INTERNAL_STORE 
@@ -310,6 +355,5 @@ class nestoreClass extends EE2 {
 }
 
 const NST = (store?:Object, options?: T_NestoreOptions) => new nestoreClass(store, options)
-
 
 export default NST

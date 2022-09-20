@@ -1,11 +1,12 @@
 import assert from 'assert'
-import nestore from '../dist/nestore.js'
-import { expect } from 'chai';
-
+import nestore from '../index.js'
+import chai from 'chai';
+chai.config.truncateThreshold = 1500; // disable truncating
+const { expect } = chai
 
 const heading = (text) => `${text}\n  ${'-'.repeat(text.length)}`
 
-const GLOBAL_NST = nestore({ global: true })
+// const GLOBAL_NST = nestore({ global: true })
 
 const initialStore = {
     title: 'The Book',
@@ -199,15 +200,15 @@ describe(heading('C | Set'), () => {
         assert( set('thing', 'blap') === true )
     })
 
-    it.skip('C.4 | (set cb is deprecated) Set callback method should set correct values', () => {
-        const { get, set, reset, store } = nestore(initialStore)
+    // it.skip('C.4 | (set cb is deprecated) Set callback method should set correct values', () => {
+    //     const { get, set, reset, store } = nestore(initialStore)
 
-        set(s => s.title = '12345')
-        expect(get('title')).to.eq('12345')
+    //     set(s => s.title = '12345')
+    //     expect(get('title')).to.eq('12345')
 
-    })
+    // })
 
-    it('C.5 | Direct store modifications dont affect internal store with directMod disabled', () => {
+    it('C.4 | Direct store modifications dont affect internal store with directMod disabled', () => {
         const NST = nestore(initialStore)
 
         NST.on('title', ()=> console.log('store was updated...'))
@@ -227,7 +228,7 @@ describe(heading('C | Set'), () => {
 
     })
 
-    it('C.6 | Direct store modifications affect internal store with directMod enabled', () => {
+    it('C.5 | Direct store modifications affect internal store with directMod enabled', () => {
         const NST = nestore(initialStore, { allowDirectModification: true })
 
         NST.on('title', ()=> console.log('store was updated...'))
@@ -247,7 +248,7 @@ describe(heading('C | Set'), () => {
 
     })
 
-    it('C.7 | Object passed to set() should override internal store', () => {
+    it('C.6 | Object passed to set() should override internal store', () => {
         const NST = nestore(initialStore)
 
         NST.set({
@@ -266,9 +267,88 @@ describe(heading('C | Set'), () => {
 
 });
 
-describe(heading('D | Events'), () => {
+describe(heading('D | Remove'), () => {
 
-    it('D.1 | Changes to the store made with `set()` emit events', async () => {
+    it('D.1 | Removing values deletes the key:value from the store', () => {
+        const NST = nestore(initialStore)
+        NST.remove('title')
+        expect(typeof NST.get('title')).to.eq('undefined')
+    })
+
+    it('D.2 | Removing values emits event with undefined value', () => {
+        const NST = nestore(initialStore)
+        let events = null
+
+        NST.on('title', (data) => {
+            events = JSON.stringify(data)
+        })
+
+        NST.remove('title')
+        expect(events).to.eq(JSON.stringify({ path: 'title', key: 'title', value: undefined}))
+    })
+
+});
+
+describe(heading('E | Events'), () => {
+
+    it('E.1 | Uses all available wildcards and nested access methods', async () => {
+        const NST = nestore(initialStore)
+
+        let recievedEvents = []
+
+        let setters = [
+            'title',
+            'reviews.someGuy',
+            'reviews.Some Guy',
+            'reviews.Some Extra.Stuff Here',
+            'chapters.0',
+            'chapters.1',
+            'chapters.2',
+        ]
+
+   
+        let validList = [
+            'title',    // The Book
+            'reviews.*',
+            'reviews.**',
+            'chapters.*',
+            '*',
+            ''
+        ]
+        
+        let invalidList = [
+            'title.*',  // null
+            'reviews',
+            'reviews:*',
+            'reviews*',
+            'reviews/',
+            'reviews/*',
+        ]
+
+        let list = [...validList, ...invalidList]
+
+        list.forEach(k => {
+            NST.on(k, () => recievedEvents.push(k))
+        })
+
+        setters.forEach(s => {
+            NST.set(s, 'was-set')
+        })
+
+
+        console.log(recievedEvents)
+
+        assert( recievedEvents.every(evnt => !invalidList.includes(evnt)) )
+
+
+        
+        
+        // setTimeout(()=>{
+        //     done()
+        // }, 1500)
+    })
+
+    it('E.2 | Changes to the store made with `set()` emit events', async () => {
         const NST = nestore(initialStore)
 
         let recievedEvents = []
@@ -317,7 +397,7 @@ describe(heading('D | Events'), () => {
         // }, 1500)
     })
 
-    it('D.2 | Resetting store emits events for every key', () => {
+    it('E.3 | Resetting store emits events for every key', () => {
         const NST = nestore({
             A:'a',
             B:'b',
@@ -334,7 +414,7 @@ describe(heading('D | Events'), () => {
         NST.on('C', ({value}) => recievedEvents.push(`C = ${value}`))
         NST.on('D', ({value}) => recievedEvents.push(`D = ${value}`))
         NST.on('E', ({value}) => recievedEvents.push(`E = ${value}`))
-        NST.on('nestore-reset', (data) => recievedEvents.push(`reset = store`))
+        NST.on('/', (data) => recievedEvents.push(`reset = store`))
 
 
         //$ set and emit events
@@ -348,6 +428,7 @@ describe(heading('D | Events'), () => {
         //$ reset the store to trigger emitAll
         NST.reset()
 
+        // console.log(recievedEvents)
         
         //$ events should include A B C D E from setters
         expect(recievedEvents).to.include('A = apple')        
@@ -364,12 +445,12 @@ describe(heading('D | Events'), () => {
         expect(recievedEvents).to.include('B = b')        
         expect(recievedEvents).to.include('C = c')        
         expect(recievedEvents).to.include('D = d')        
-        expect(recievedEvents).to.include('E = e')        
+        expect(recievedEvents).to.include('E = e')   
+        
 
     })
 
-
-    it('D.3 | EmitAll emits events with correct paths', () => {
+    it('E.4 | EmitAll emits events with correct paths', () => {
 
         const recievedEvents = []
 
@@ -395,39 +476,39 @@ describe(heading('D | Events'), () => {
 
         }
 
-        const NST = nestore(sto)
+        const NST = nestore(sto, {delimiter: '/'})
 
         NST.on('', (d) => recievedEvents.push(d))
 
         //$ reset the store to trigger emitAll
         NST.reset()
 
-        // console.log(recievedEvents)
+        console.log(recievedEvents)
 
         
         const str = JSON.stringify(recievedEvents)
         
         const match = (val) => expect(str).to.include(JSON.stringify(val))
 
-        match({key: 'title', path: 'title', value: 'The Book'})
-        match({key: 'pages', path: 'pages', value: 817})
-        match({key: 'checkedOut', path: 'checkedOut', value: false})
+        match({path: 'title', key: 'title', value: 'The Book'})
+        match({path: 'pages', key: 'pages', value: 817})
+        match({path: 'checkedOut', key: 'checkedOut', value: false})
 
-        match({key: 'chapters', path: 'chapters', value: ['1-The Start', '2-The Middle', '3-The End']})
-        match({key: '0', path: 'chapters/0', value: '1-The Start'})
-        match({key: '1', path: 'chapters/1', value: '2-The Middle'})
-        match({key: '2', path: 'chapters/2', value: '3-The End'})
+        match({path: 'chapters', key: 'chapters', value: ['1-The Start', '2-The Middle', '3-The End']})
+        match({path: 'chapters/0', key: '0', value: '1-The Start'})
+        match({path: 'chapters/1', key: '1', value: '2-The Middle'})
+        match({path: 'chapters/2', key: '2', value: '3-The End'})
 
-        match({ key: 'flaps', path: 'flaps', value: [ 'AAA', 'BBB', ['xxx', 'yyy', 'zzz'] ] },)
-        match({key: '0', path: 'flaps/0', value: 'AAA'})
-        match({key: '1', path: 'flaps/1', value: 'BBB'})
-        match({key: '0', path: 'flaps/2/0', value: 'xxx'})
-        match({key: '1', path: 'flaps/2/1', value: 'yyy'})
-        match({key: '2', path: 'flaps/2/2', value: 'zzz'})
+        match({ path: 'flaps', key: 'flaps', value: [ 'AAA', 'BBB', ['xxx', 'yyy', 'zzz'] ] },)
+        match({path: 'flaps/0', key: '0', value: 'AAA'})
+        match({path: 'flaps/1', key: '1', value: 'BBB'})
+        match({path: 'flaps/2/0', key: '0', value: 'xxx'})
+        match({path: 'flaps/2/1', key: '1', value: 'yyy'})
+        match({path: 'flaps/2/2', key: '2', value: 'zzz'})
 
         match({
-            key: 'reviews',
             path: 'reviews',
+            key: 'reviews',
             value: {
               someGuy: 'This is a book',
               'Some Extra': {
@@ -442,13 +523,13 @@ describe(heading('D | Events'), () => {
               'Big Name': 'Best book ever in the world always.'
             }
           },)
-        match({key: 'someGuy', path: 'reviews/someGuy', value: 'This is a book'})
-        match({key: 'stuff', path: 'reviews/Some Extra/stuff', value: 'here!'})
-        match({key: 'Some Guy', path: 'reviews/Some Guy', value: 'This book was... okay.'})
+        match({path: 'reviews/someGuy', key: 'someGuy', value: 'This is a book'})
+        match({path: 'reviews/Some Extra/stuff', key: 'stuff', value: 'here!'})
+        match({path: 'reviews/Some Guy', key: 'Some Guy', value: 'This book was... okay.'})
 
     })
 
-    it('D.4 | Wildcards listen to changes of any nested state', () => {
+    it('E.5 | Wildcards listen to changes of any nested state', () => {
         const NST = nestore({
             person: {
                 name: 'John',
@@ -467,16 +548,22 @@ describe(heading('D | Events'), () => {
         let recievedEvents = []
 
         //$ Register events
+        NST.on('', (data) => recievedEvents.push(`"*" = ${JSON.stringify(data)}`))
+        NST.on('*', (data) => recievedEvents.push(`"*" = ${JSON.stringify(data)}`))
+        NST.on('person', (data) => recievedEvents.push(`"person" = ${data.key} => ${data.value}`))
+        NST.on('person.', (data) => recievedEvents.push(`"person" = ${data.key} => ${data.value}`))
+        NST.on('person/*', (data) => recievedEvents.push(`"person/*" = ${data.key} => ${data.value}`))
         NST.on('person.*', (data) => recievedEvents.push(`person.* = ${data.value}`))
-        NST.on('buildng:.', (data) => recievedEvents.push(`building.* = ${data.value}`))
         
 
-
+        
+        
         //$ set and emit events
         NST.set('person.name', 'Brad')
         NST.set('person.age', '54')
    
         
+        console.log(recievedEvents)
         
         //$ events should include A B C D E from setters
         expect(recievedEvents).to.include('person.* = Brad')      
@@ -487,80 +574,103 @@ describe(heading('D | Events'), () => {
 
     })
 
-});
+    it.only('E.6 | Events have matching structs with normalized path', () => {
+        const NST = nestore({
+            person: {
+                name: 'John',
+                age: 88
+            },
+            buiding: {
+                owner: 'Alice',
+                type: 'House',
+                stats: {
+                    sqft: 5134,
+                    floors: 3
+                }
+            },
+            weekdays: ['monday', 'tuesday', 'wednesday']
+        })
 
-describe(heading('E | Utilities'), () => {
+        let recievedEvents = []
 
-    it('E.1 | Returns the correct "entries"', async () => {
-        const NST = nestore(initialStore)
-        expect(JSON.stringify(NST.entries)).to.eq(JSON.stringify(Object.entries(initialStore)))
-    })
+        //$ Register events
+        // NST.on('person.*', (data) => recievedEvents.push(JSON.stringify(data)))
+        NST.on('building.*', (data) => {
+            console.log(`ON: "building.*" => ${data}`)
+            recievedEvents.push(JSON.stringify(data))
+        })
 
-    it('E.2 | Returns the correct "keys"', async () => {
-        const NST = nestore(initialStore)
-        expect(JSON.stringify(NST.keys)).to.eq(JSON.stringify(Object.keys(initialStore)))
-    })
+        NST.on('building', (data) => {
+            console.log(`ON: "building" => ${data}`)
+            recievedEvents.push(JSON.stringify(data))
+        })
+        // NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
+        // NST.on('*', (data) => recievedEvents.push(JSON.stringify(data)))
+        
 
-    it('E.3 | Returns the correct "values"', async () => {
-        const NST = nestore(initialStore)
-        expect(JSON.stringify(NST.values)).to.eq(JSON.stringify(Object.values(initialStore)))
-    })
 
-    it('E.4 | Returns the correct "length"', async () => {
-        const NST = nestore(initialStore)
-        expect(NST.entries.length).to.eq(Object.entries(initialStore).length)
-        expect(NST.keys.length).to.eq(Object.entries(initialStore).length)
-        expect(NST.values.length).to.eq(Object.entries(initialStore).length)
-    })
+        //$ set and emit events
+        // NST.set('person.name', 'Brad')
+        // NST.set('person/age', 54)
+        // NST.set('person/nickname', 'Bradlington')
 
-    it('E.5 | Returns the correct "paths"', async () => {
-        const _NST = nestore(initialStore)
-        // console.log(_NST.paths)
-
-        expect(_NST.paths.length).to.eq(16)
-
-        expect(_NST.paths).to.include('/')
-        expect(_NST.paths).to.include('title')
-        expect(_NST.paths).to.include('pages')
-        expect(_NST.paths).to.include('checkedOut')
-        expect(_NST.paths).to.include('chapters')
-        expect(_NST.paths).to.include('chapters/0')
-        expect(_NST.paths).to.include('chapters/1')
-        expect(_NST.paths).to.include('chapters/2')
-        expect(_NST.paths).to.include('reviews')
-        expect(_NST.paths).to.include('reviews/someGuy')
-        expect(_NST.paths).to.include('reviews/Some Guy')
-        expect(_NST.paths).to.include('reviews/Big Name')
-        expect(_NST.paths).to.include('reviews/Some Extra')
-        expect(_NST.paths).to.include('reviews/Some Extra/Stuff Here')
-        expect(_NST.paths).to.include('reviews/Some Extra/Stuff Here/find')
-        expect(_NST.paths).to.include('reviews/Some Extra/Stuff Here/find/me ?')
-    })
-
+        NST.set('building.owner', 'Bobby')
+        // NST.set('building.type', 'Residential')
+        // NST.set('building/stats.sqft', 5250)
+        
+        NST.reset()
    
+        
+        console.log(recievedEvents)  
+        
+        //$ from setter
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'person.name', key: 'name', value: 'Brad' }))      
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'person.age', key: 'age', value: 54 }))  
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'person.nickname', key: 'nickname', value: 'Bradlington' }))  
+        
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'building.owner', key: 'owner', value: 'Bobby' }))  
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'building.type', key: 'type', value: 'Residential' }))  
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'building.stats.sqft', key: 'sqft', value: 5250 }))  
+
+        //$ from reset
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'person.name', key: 'name', value: 'John' }))      
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'person.age', key: 'age', value: 88 }))  
+        
+        //! Keys that no longer exist will no emit events!
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'person.nickname', key: 'nickname', value: 'Bradlington' }))  
+        
+        //                                              '{"path":"building.owner","key":"owner","value":"Alice"}'
+        expect(recievedEvents).to.include(JSON.stringify({ path: 'building.owner', key: 'owner', value: 'Alice' }))  
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'building.type', key: 'type', value: 'House' }))  
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'building.stats.sqft', key: 'sqft', value: 5134 }))  
+
+
+        // console.log(NST.store)
+            
+
+    })
+
 
 });
 
-describe.skip(heading('Performance'), function(){
-    this.timeout(60_000 * 5)
+
+describe(heading('Performance'), function(){
+    this.timeout(60_000)
     
 
-    it('E.1 | Bulk changes to the store should complete within 60s', async (done) => {
-        let TEST_START = Date.now()
-
-        const NST = nestore()
-
-        let NUM_OF_OPERATIONS = 0
-        let OPERATION_LIMIT = 100_000
+    it('PERF.1 | Bulk changes to the store should complete within time limit', (done) => {
+        let OPERATION_LIMIT = 10_000
         let CYCLE_LIMIT = 10
+        let NUM_OF_OPERATIONS = 0
         let NUM_OF_CYCLES = 0
-
+        let TEST_START = Date.now()
         let durationArr = []
+        let enableLogging = true
+
+        let set = 'abcdefghijklmnopqrstuvqxyzABCDEFGHIJKLMNOPQRSTUVQXYZ1234567890_____-----'
         const average = array => array.reduce((a, b) => a + b) / array.length;
         const min = array => Math.min(...array)
         const max = array => Math.max(...array)
-
-        let set = 'abcdefghijklmnopqrstuvqxyzABCDEFGHIJKLMNOPQRSTUVQXYZ1234567890_____-----'
         let randStr = (val = 8) => {
             let str = ''
             while(str.length < val){
@@ -568,7 +678,7 @@ describe.skip(heading('Performance'), function(){
             }
             return str
         }
-
+        
         let smallNum = (num) => {
             num += ''
             let l = num.length
@@ -579,6 +689,7 @@ describe.skip(heading('Performance'), function(){
             else return num
         }
         
+        const NST = nestore()
 
         while(NUM_OF_CYCLES < CYCLE_LIMIT){
             const CYCLE_START = Date.now()
@@ -596,22 +707,32 @@ describe.skip(heading('Performance'), function(){
             let dur = Date.now() - CYCLE_START
             durationArr.push(dur)
 
-            console.log(`\tCycle ${NUM_OF_CYCLES} / ${CYCLE_LIMIT} : ${dur} ms : ${((dur / OPERATION_LIMIT)+'').substring(0,6)} ms avg`)
+            enableLogging && console.log(`\tCycle ${NUM_OF_CYCLES} / ${CYCLE_LIMIT} : ${smallNum(NUM_OF_CYCLES * NUM_OF_OPERATIONS)} : ${dur} ms : ${((dur / OPERATION_LIMIT)+'').substring(0,6)} ms avg`)
             
         }
-
-        console.log(`\n\t`+'.'.repeat(50))
-        console.log(`\tTotal cycles               : ${CYCLE_LIMIT}`)
-        console.log(`\tTotal test duration        : ${Date.now() - TEST_START} ms`)
-        console.log(`\tTotal operations           : ${smallNum(NST.keyCount)} keys`)
-        console.log(`\tAverage time per operation : ${((average(durationArr) / OPERATION_LIMIT) + '').substring(0,6)} ms`)
-        console.log(`\tAverage cycle duration     : ${average(durationArr)} ms`)
-        console.log(`\tMaximum cycle duration     : ${max(durationArr)} ms`)
-        console.log(`\tMinimum cycle duration     : ${min(durationArr)} ms`)
-        console.log('\t'+'.'.repeat(50) + '\n')
-
         
-        expect(NST.keyCount).to.be.greaterThanOrEqual((OPERATION_LIMIT * NUM_OF_CYCLES) / 2)
+        console.log('\tCycles complete')
+
+        const avgOpTime = average(durationArr) / OPERATION_LIMIT
+
+        expect(avgOpTime).to.be.lessThanOrEqual(0.02)
+
+        if(enableLogging){
+            console.log(`\n\t`+'.'.repeat(50))
+            console.log(`\tTotal cycles               : ${CYCLE_LIMIT}`)
+            console.log(`\tTotal test duration        : ${Date.now() - TEST_START} ms`)
+            console.log(`\tTotal operations           : ${smallNum(CYCLE_LIMIT * OPERATION_LIMIT)} keys`)
+            console.log(`\tAverage time per operation : ${avgOpTime + ''.substring(0,6)} ms`)
+            console.log(`\tDurations at start / end   : ${durationArr[0]} / ${durationArr[durationArr.length - 1]} `)
+            console.log(`\tDifference start / end     : ${((durationArr[durationArr.length - 1] - durationArr[0]) + '').substring(0,6)} ms`)
+            console.log(`\tAverage cycle duration     : ${average(durationArr)} ms`)
+            console.log(`\tMaximum cycle duration     : ${max(durationArr)} ms`)
+            console.log(`\tMinimum cycle duration     : ${min(durationArr)} ms`)
+            console.log('\t'+'.'.repeat(50) + '\n')
+        }
+        
+        
+        
         done()
 
     })
