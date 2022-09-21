@@ -20,7 +20,7 @@
     "runnit-quiet": "clear && tsc && node index.js",
     "runnit-windows": "clear && tsc && set DEBUG=nestore:* && node index.js",
     "roll": "rollup --config rollup.config.js",
-    "pub":"npm publish --access public"
+    "pub": "npm publish --access public"
   },
   "keywords": [],
   "author": "",

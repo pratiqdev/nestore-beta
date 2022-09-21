@@ -14,6 +14,8 @@ export type T_NestoreOptions = {
     mutable?: boolean;
     maxListeners?: number;
     verbose?: boolean;
+    throwOnRevert?: boolean;
+    timeout?: number;
 }
 
 /** Structure of all values emitted by eventemitter */
@@ -74,7 +76,31 @@ const COMMON = {
 
 
 
+const colors = {
+    reset: '\x1b[0m',
 
+    //text color
+
+    black: '\x1b[30m',
+    red: '\x1b[31m',
+    green: '\x1b[32m',
+    yellow: '\x1b[33m',
+    blue: '\x1b[34m',
+    magenta: '\x1b[35m',
+    cyan: '\x1b[36m',
+    white: '\x1b[37m',
+
+    //background color
+
+    blackBg: '\x1b[40m',
+    redBg: '\x1b[41m',
+    greenBg: '\x1b[42m',
+    yellowBg: '\x1b[43m',
+    blueBg: '\x1b[44m',
+    magentaBg: '\x1b[45m',
+    cyanBg: '\x1b[46m',
+    whiteBg: '\x1b[47m'
+}
 
 
 
@@ -85,6 +111,8 @@ class Nestore<T> extends EE2{
     #ORIGINAL_STORE: Partial<T>;
     #DELIMITER_CHAR: string;
     #SETTER_FUNCTIONS: string[];
+    // #THROW_ON_REVERT: boolean;
+    // #ASYNC_SETTER_TIMEOUT: number;
 
 
     constructor(store: T | Partial<T> = {}, options: T_NestoreOptions = {}){
@@ -99,38 +127,146 @@ class Nestore<T> extends EE2{
                     : 10
         })
 
+        this.#INTERNAL_STORE = {}
+        this.#ORIGINAL_STORE = {}
+        this.#DELIMITER_CHAR = ''
+        this.#SETTER_FUNCTIONS = []
+        // this.#THROW_ON_REVERT = options.throwOnRevert === false ? false : true
+        // this.#ASYNC_SETTER_TIMEOUT = 2_000
+
+        // if(options.timeout && options.timeout > 0 && options.timeout < (60_000 * 10)){
+        //     this.#ASYNC_SETTER_TIMEOUT = options.timeout
+        // }
+
+        if(store instanceof Nestore) return store;
         
         
-        log.constr('='.repeat(80))
-        log.constr('Creating store')
         
         if(typeof store !== 'object' || Array.isArray(store)){
             throw new Error("neStore | Initial store must be of type: object  eg: { myKey: 'myValue' }");
         }
         
-        // this.#INTERNAL_STORE = lodash.cloneDeep(store)
-        // this.#ORIGINAL_STORE = lodash.cloneDeep(store)
-        // this.#this = this
-        this.#SETTER_FUNCTIONS = []
+        log.constr('='.repeat(80))
+        log.constr('NESTORE: Creating store')
+        log.constr(store)
+        log.constr('='.repeat(80))
+        // let that = this
+
+
+
+        // async function fulfillWithTimeLimit(timeLimit:number, task:Function, failureValue?:string){
+        //     let timeout;
+        //     //@ts-ignore
+        //     console.log(`>>>>>> IN fulfill with timeout: this:`, typeof this)
+        //     console.log(`>>>>>> IN fulfill with timeout: that:`, typeof that)
+
+        //     const timeoutPromise = new Promise((resolve, reject) => {
+        //         timeout = setTimeout(() => {
+        //             resolve(failureValue);
+        //         }, timeLimit);
+        //     });
+        //     try{
+        //         // // console.log('>>> Awaiting race...')
+        //         let response = await Promise.race([task, timeoutPromise]);
+        //         // // console.log('>>> Race complete')
+        //         if(timeout){ //the code works without this but let's be safe and clean up the timeout
+        //             clearTimeout(timeout);
+        //         }
+
+        //         if(response === failureValue){
+        //             if(that.#THROW_ON_REVERT){
+        //                 throw new Error(failureValue)
+        //             }
+        //             console.log(failureValue);
+        //             response = false
+        //         }
+
+        //         // console.log('>>> Returning response')
+        //         return response;
+        //     }catch(err){
+        //         // // console.log(`>>> race error:`, err)
+        //         return err
+        //     }
+        // }
+
+        // function isPromise(p:any) {
+        //     if (typeof p === 'object' && typeof p.then === 'function') {
+        //     return true;
+        //     }
+        
+        //     return false;
+        // }
+        
+        // // ✅ Check if return value is promise
+        // function returnsPromise(f:any) {
+        //     if(f.constructor.name === 'AsyncFunction'){
+        //         // console.log('✅ Function returns promise');
+        //         return true
+        //     }
+
+        //     let funcResult = null
+
+        //     if(typeof f === 'function'){
+        //         try{
+        //             // @ts-ignore
+        //             funcResult = f()
+        //             return funcResult
+        //         }catch(err){
+        //             // // console.log('funcResult err:', err)
+        //         }
+        //     }
+
+        //     if (funcResult) {
+        //         // console.log('✅ Function returns promise');
+        //         return true;
+        //     }
+        
+        //     // console.log('⛔️ Function does NOT return promise');
+        //     return false;
+        // }
+        
         
         store && Object.entries(store).forEach(([ key, val ]) => {
             if(typeof val === 'function'){
                 this.#SETTER_FUNCTIONS.push(key)
+                // console.log(`>>>>>> IN LOOP:`, this)
+
                 //@ts-ignore
                 this[key] = (...args:any) => val(this, args)
-                // this.#set_dynamic_property(key, async (...args:any) => val(this, args))
+       
+                // let failureValue = 
+                //     colors.yellow
+                //     + `\nNestore setter error:\n`
+                //     // + `-`.repeat(60) + '\n'
+                //     +`Setter function "${colors.white + key + colors.yellow}" did not return or resolve within the limit of ${this.#ASYNC_SETTER_TIMEOUT} ms.`
+                //     + `\nThe store will reflect any changes that occurred within the time limit.`
+                //     + colors.reset
+                //     + '\n'
+                
+                // let isProm = false
+                // try{
+                //     isProm = returnsPromise(val)
+                // }catch(err){
+                //     // console.log('prom error;', err)
+                // }
+                // //@ts-ignore
+                // this[key] = isProm
+                //     ? (...args:any) => fulfillWithTimeLimit(this.#ASYNC_SETTER_TIMEOUT, val(this, args), failureValue)
+                //     : (...args:any) => val(this, args)
+
             }
         })
-        
-        this.#INTERNAL_STORE = lodash.omit(store, this.#SETTER_FUNCTIONS)
-        this.#ORIGINAL_STORE = lodash.omit(store, this.#SETTER_FUNCTIONS)
+
+        // create deep clones of the store arg to prevent modifications by reference
+        // omit all custom setter functions from the store
+        this.#INTERNAL_STORE = lodash.cloneDeep(lodash.omit(store, this.#SETTER_FUNCTIONS))
+        this.#ORIGINAL_STORE = lodash.cloneDeep(lodash.omit(store, this.#SETTER_FUNCTIONS))
         this.#DELIMITER_CHAR = typeof options.delimiter === 'string' ? options.delimiter : COMMON.DEFAULT_DELIMITER_CHAR
-      
-
         
         
-        if(store instanceof Nestore) return store;
 
+
+        // handle connecting to the redux-devtools browser extension
         if(typeof window !== 'undefined'){
             let W:any = window
             if(typeof W.__REDUX_DEVTOOLS_EXTENSION__ !== 'undefined'){
@@ -145,41 +281,19 @@ class Nestore<T> extends EE2{
 
 
     //_                                                                                             
-    #set_dynamic_property(name:string, value: Function) {
-        //@ts-ignore
-        this[name] = value;
-    }
-
-    //_                                                                                             
     #emit(args:T_EmitStruct) {
         args.path = this.#normalizePath(args.path)
-        log.emit(`>> Emitting  "${args.path}"`, args.value)
+        log.emit(`>> Emitting  "${args.path}"`)
+        log.emit(args.value)
     
         // this.emit('*', args);
         return this.emit(args.path, args) || this.emit('', args);
     }
-
-    #normalizePath(path:string | string[]){
-        // log.norm(`\nbefore : ${path}`)
-        if(Array.isArray(path)){
-            log.norm(`path is array, joining at delimiter: ${this.#DELIMITER_CHAR}`)
-            path = path.join(this.#DELIMITER_CHAR)
-        }
-
-        if(path.trim() === '' || path.trim() === '/'){
-            return '/'
-        }
-
-        let split = this.#splitPath(path)
-        let _path:string = split.join(this.#DELIMITER_CHAR)
-        // log.norm(`Normalized path: ${path} => ${_path}`)
-        
-        return _path
-    }
-
+    
     //_                                                                                             
     #handleEmitAll(){
         log.emitAll('Parsing store to emit events for every key...')
+        log.emitAll(this.store)
 
         let emitted:string[] = []
 
@@ -194,7 +308,7 @@ class Nestore<T> extends EE2{
             }
         }
 
-        visitNodes(this.#INTERNAL_STORE, (_path:string, value:any) => {
+        visitNodes(this.store, (_path:string, value:any) => {
             // let split = _path.split(/\[|\]\[|\]\.|\.|\]/g)
             let split = this.#splitPath(_path)
             .filter(x => x.trim() !== '')
@@ -218,6 +332,25 @@ class Nestore<T> extends EE2{
     }
 
     //_                                                                                             
+    #normalizePath(path:string | string[]){
+        // log.norm(`\nbefore : ${path}`)
+        if(Array.isArray(path)){
+            log.norm(`path is array, joining at delimiter: ${this.#DELIMITER_CHAR}`)
+            path = path.join(this.#DELIMITER_CHAR)
+        }
+
+        if(path.trim() === '' || path.trim() === '/'){
+            return '/'
+        }
+
+        let split = this.#splitPath(path)
+        let _path:string = split.join(this.#DELIMITER_CHAR)
+        // log.norm(`Normalized path: ${path} => ${_path}`)
+        
+        return _path
+    }
+
+    //_                                                                                             
     #splitPath(path:string){
        return path.split(/\[|\]\[|\]\.|\.|\]|\//g)
     }
@@ -227,6 +360,7 @@ class Nestore<T> extends EE2{
         let split = this.#splitPath(path)
         return split[split.length - 1]
     }
+
 
 
 
@@ -283,7 +417,7 @@ class Nestore<T> extends EE2{
         try{
             if(!path || path === ''){
                 log.get(`Nullish "path" argument: returning entire store.`)
-                return this.#INTERNAL_STORE
+                return this.store
             }
             log.get(`Getting "${path}"`)
             
@@ -291,7 +425,7 @@ class Nestore<T> extends EE2{
                 return path(this.#INTERNAL_STORE)
             }
 
-            return lodash.get(this.#INTERNAL_STORE, path)
+            return lodash.get(this.store, path)
 
         }catch(err){
             return undefined
@@ -300,7 +434,14 @@ class Nestore<T> extends EE2{
 
     //&                                                                                             
     reset = () => {
+        log.reset('-'.repeat(60))
+        log.reset(`current store:`)
+        log.reset(this.#INTERNAL_STORE)
+        log.reset('-'.repeat(60))
         this.#INTERNAL_STORE = this.#ORIGINAL_STORE
+        log.reset(`reset store:`)
+        log.reset(this.#INTERNAL_STORE)
+        log.reset('-'.repeat(60))
         // this.#emit({
         //     path: '/',
         //     key: '/',
@@ -325,92 +466,11 @@ class Nestore<T> extends EE2{
         this.#handleEmitAll()
     }
 
-    //&                                                                                             
-    // call = (path: string) => {
-    //     try{
-    //         log.call(`Calling path: "${path}"`)
-            
-    //         if(path in this.#INTERNAL_STORE && typeof this.#INTERNAL_STORE[path] === 'function'){
-
-                
-    //             // call the function at the path provided
-    //             let theFunc = this.#INTERNAL_STORE[path]
-    //             log.call(`Found func:`, theFunc)
-                
-    //             // create a deep clone of the store and pass it to the called function
-    //             let theSto = lodash.cloneDeep(this.#INTERNAL_STORE)
-    //             log.call(`Cloned store:`, theSto)
-                
-    //             // get the result of the function
-    //             let result = theFunc(theSto)
-
-    //             if(typeof result !== 'object'){
-    //                 return false;
-    //             }
-
-
-    //             log.call(`Function result:`, result)
-                
-
-    //             this.#INTERNAL_STORE = lodash.merge(this.#INTERNAL_STORE, result)
-    //         }
-
-    //         this.#emit({
-    //             path,
-    //             key: path,
-    //             value: null
-    //         })
-    //     }catch(err){
-    //         return false
-    //     }
-    // }
-
-
-
-
-    //+ ____________________________________________________________________________________________                                                                                             
-    // /** @deprecated */
-    // get paths(){
-    //     let PATH_LIST:string[] = []
-         
-    //     const visitNodes = (obj:any, visitor:any, stack:any[] = []) => {
-    //         if (typeof obj === 'object') {
-    //           for (let key in obj) {
-    //             visitor(stack.join('.').replace(/(?:\.)(\d+)(?![a-z_])/ig, '[$1]'), obj);
-    //             visitNodes(obj[key], visitor, [...stack, key]);
-    //           }
-    //         } else {
-    //           visitor(stack.join('.').replace(/(?:\.)(\d+)(?![a-z_])/ig, '[$1]'), obj);
-    //         }
-    //     }
-
-    //     visitNodes(this.#INTERNAL_STORE, (_path:string, value:any) => {
-    //         // let split = _path.split(/\[|\]\[|\]\.|\.|\]/g)
-    //         let split = this.#splitPath(_path)
-    //         .filter(x => x.trim() !== '')
-            
-    //         // let key = split[split.length - 1] ?? '/'
-    //         let path = split.length ? split.join(this.#DELIMITER_CHAR) : '/'
-
-
-    //         if(!PATH_LIST.includes(path)){
-    //             PATH_LIST.push(path)
-    //             log.set(`keyCount: Counting key at: ${path}`)
-    //         }
-
-    //     });
-
-    //     return PATH_LIST
-
-    // }
-
-   
-
-
+    get store(){
+        return lodash.cloneDeep(this.#INTERNAL_STORE)
+    }
 
 }
-
-// nestoreClass.prototype.emit
 
 
 

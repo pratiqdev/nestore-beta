@@ -42,51 +42,48 @@ const wait = async (time = 250) => {
 describe(heading('A | Setup'), () => {
 
     it('A.1 | Creates a filled store that returns store and methods', () => {
-        const { get, set, reset, store } = nestore(initialStore)
+        const NST = nestore(initialStore)
 
-        assert(typeof get === 'function')
-        assert(typeof set === 'function')
-        assert(typeof reset === 'function')
-        assert(typeof store === typeof initialStore)
+        assert(typeof NST.get === 'function')
+        assert(typeof NST.set === 'function')
+        assert(typeof NST.reset === 'function')
+        expect(JSON.stringify(NST.get())).to.eq(JSON.stringify(initialStore))
     });
-
+    
     it('A.2 | Creates an empty store that returns store and methods', () => {
-        const { get, set, reset, store } = nestore()
+        const NST = nestore(initialStore)
 
-        assert(typeof get === 'function')
-        assert(typeof set === 'function')
-        assert(typeof reset === 'function')
-        assert(typeof store === typeof initialStore)
+        assert(typeof NST.get === 'function')
+        assert(typeof NST.set === 'function')
+        assert(typeof NST.reset === 'function')
+        expect(JSON.stringify(NST.get())).to.eq(JSON.stringify(initialStore))
     });
-
+    
     it('A.3 | Store matches initialStore on start', () => {
-        const { get, set, reset, store } = nestore(initialStore)
-
-        // assert(store === initialStore)
-        assert(typeof store === typeof initialStore)
-        assert(JSON.stringify(store) === JSON.stringify(initialStore))
+        const NST = nestore(initialStore)
+        expect(JSON.stringify(NST.get())).to.eq(JSON.stringify(initialStore))
     })
 
     it('A.4 | Mutliple stores do not modify each other', () => {
         const A = nestore({ name: 'Alice'})
         const B = nestore({ name: 'Bob'})
 
-        expect(A.store.name).to.eq('Alice')
-        expect(B.store.name).to.eq('Bob')
-        // assert(A.store.name === 'Alice')
-        // assert(B.store.name === 'Bob')
+        expect(A.get('name')).to.eq('Alice')
+        expect(B.get().name).to.eq('Bob')
+        // assert(A.get().name === 'Alice')
+        // assert(B.get().name === 'Bob')
         
         A.set('name', 'Andrew')
-        expect(A.store.name).to.eq('Andrew')
-        expect(B.store.name).to.eq('Bob')
-        // assert(A.store.name === 'Andrew')
-        // assert(B.store.name === 'Bob')
+        expect(A.get().name).to.eq('Andrew')
+        expect(B.get().name).to.eq('Bob')
+        // assert(A.get().name === 'Andrew')
+        // assert(B.get().name === 'Bob')
 
         B.set('name', 'Becky')
-        expect(A.store.name).to.eq('Andrew')
-        expect(B.store.name).to.eq('Becky')
-        // assert(A.store.name === 'Andrew')
-        // assert(B.store.name === 'Becky')
+        expect(A.get().name).to.eq('Andrew')
+        expect(B.get().name).to.eq('Becky')
+        // assert(A.get().name === 'Andrew')
+        // assert(B.get().name === 'Becky')
         
     })
 
@@ -94,16 +91,16 @@ describe(heading('A | Setup'), () => {
         const A = nestore({ name: 'Alice'})
         const B = nestore(A)
 
-        expect(A.store.name).to.eq('Alice')
-        expect(B.store.name).to.eq('Alice')
+        expect(A.get().name).to.eq('Alice')
+        expect(B.get().name).to.eq('Alice')
         
         A.set('name', 'Andrew')
-        expect(A.store.name).to.eq('Andrew')
-        expect(B.store.name).to.eq('Andrew')
+        expect(A.get().name).to.eq('Andrew')
+        expect(B.get().name).to.eq('Andrew')
 
         B.set('name', 'Becky')
-        expect(A.store.name).to.eq('Becky')
-        expect(B.store.name).to.eq('Becky')
+        expect(A.get().name).to.eq('Becky')
+        expect(B.get().name).to.eq('Becky')
         
     })
 
@@ -123,30 +120,30 @@ describe(heading('A | Setup'), () => {
 describe(heading('B | Get'), () => {
 
     it('B.1 | Get string method returns correct value', () => {
-        const { get, set, reset, store } = nestore(initialStore)
+        const NST = nestore(initialStore)
 
-        assert(get('title') === initialStore.title)
-        assert(get('pages') === initialStore.pages)
-        assert(get('checkedOut') === initialStore.checkedOut)
-        assert(get('chapters[2]') === initialStore.chapters[2])
-        assert(get('reviews.someGuy') === initialStore.reviews.someGuy)
-        assert(get('reviews["Some Guy"]') === initialStore.reviews['Some Guy'])
-        assert(get('reviews["Some Extra"]["Stuff Here"].find["me ?"]') === initialStore.reviews["Some Extra"]["Stuff Here"].find["me ?"])
+        expect(NST.get('title') ).to.eq( initialStore.title)
+        expect(NST.get('pages') ).to.eq( initialStore.pages)
+        expect(NST.get('checkedOut') ).to.eq( initialStore.checkedOut)
+        expect(NST.get('chapters[2]') ).to.eq( initialStore.chapters[2])
+        expect(NST.get('reviews.someGuy') ).to.eq( initialStore.reviews.someGuy)
+        expect(NST.get('reviews["Some Guy"]') ).to.eq( initialStore.reviews['Some Guy'])
+        expect(NST.get('reviews["Some Extra"]["Stuff Here"].find["me ?"]') ).to.eq( initialStore.reviews["Some Extra"]["Stuff Here"].find["me ?"])
     })
 
     it('B.2 | Get string method returns undefined on incorrect path', () => {
-        const { get, set, reset, store } = nestore(initialStore)
+        const NST = nestore(initialStore)
 
-        assert(typeof get('frobble') === 'undefined')
-        assert(typeof get('pages.frizzle') === 'undefined')
-        assert(typeof get('thingy.jimjam') === 'undefined')
+        assert(typeof NST.get('frobble') === 'undefined')
+        assert(typeof NST.get('pages.frizzle') === 'undefined')
+        assert(typeof NST.get('thingy.jimjam') === 'undefined')
     })
 
     it('B.3 | Get callback method returns correct value', () => {
-        const { get, set, reset, store } = nestore(initialStore)
+        const NST = nestore(initialStore)
 
         // assert(get(s => s) === initialStore)
-        expect(JSON.stringify(get(s => s))).to.eq(JSON.stringify(initialStore))
+        expect(JSON.stringify(NST.get(s => s))).to.eq(JSON.stringify(initialStore))
         // assert(get(s => s.title) === initialStore.title)
 
     })
@@ -161,10 +158,10 @@ describe(heading('B | Get'), () => {
     })
 
     it('B.5 | Get method with no args returns entire store', () => {
-        const { get, set, reset, store } = nestore(initialStore)
+        const NST = nestore(initialStore)
 
         // assert(get() === initialStore)
-        expect(JSON.stringify(get()))
+        expect(JSON.stringify(NST.get()))
         .to.eq(JSON.stringify(initialStore))
 
     })
@@ -174,30 +171,30 @@ describe(heading('B | Get'), () => {
 describe(heading('C | Set'), () => {
 
     it('C.1 | Set method changes existing values', () => {
-        const { get, set, reset, store } = nestore(initialStore)
+        const NST = nestore(initialStore)
 
-        set('title', 'The Best Book Ever')
-        assert(get('title') === 'The Best Book Ever')
+        NST.set('title', 'The Best Book Ever')
+        assert(NST.get('title') === 'The Best Book Ever')
         
     })
     
     it('C.2 | Set method assigns new key-values', () => {
-        const { get, set, reset, store } = nestore(initialStore)
+        const NST = nestore(initialStore)
 
-        set('brimple', 'boop')
-        expect(get('brimple')).to.eq('boop')
+        NST.set('brimple', 'boop')
+        expect(NST.get('brimple')).to.eq('boop')
         
-        set('dap.bap','tap')
-        expect(get('dap.bap')).to.eq('tap')
+        NST.set('dap.bap','tap')
+        expect(NST.get('dap.bap')).to.eq('tap')
         
     })
 
     it('C.3 | Set method should with no args should return false', () => {
-        const { get, set, reset, store } = nestore(initialStore)
+        const NST = nestore(initialStore)
 
-        assert( set() === false )
-        assert( set('thing') === false )
-        assert( set('thing', 'blap') === true )
+        assert( NST.set() === false )
+        assert( NST.set('thing') === false )
+        assert( NST.set('thing', 'blap') === true )
     })
 
     // it.skip('C.4 | (set cb is deprecated) Set callback method should set correct values', () => {
@@ -208,13 +205,13 @@ describe(heading('C | Set'), () => {
 
     // })
 
-    it('C.4 | Direct store modifications dont affect internal store with mutable disabled', () => {
+    it('C.4 | Direct store modifications dont affect internal store', () => {
         const NST = nestore(initialStore)
 
         NST.on('title', ()=> console.log('store was updated...'))
 
-        NST.store.title = '98765'
-        NST.store.thangy = 'woop'
+        NST.get().title = '98765'
+        NST.get().thangy = 'woop'
 
         expect( NST.get('title') )
             .to.not.eq( '98765' )
@@ -228,27 +225,27 @@ describe(heading('C | Set'), () => {
 
     })
 
-    it('C.5 | Direct store modifications affect internal store with mutable enabled', () => {
-        const NST = nestore(initialStore, { mutable: true })
+    // it('C.5 | Direct store modifications affect internal store with mutable enabled', () => {
+    //     const NST = nestore(initialStore, { mutable: true })
 
-        NST.on('title', ()=> console.log('store was updated...'))
+    //     NST.on('title', ()=> console.log('store was updated...'))
 
-        NST.store.title = '98765'
-        NST.store.thangy = 'woop'
+    //     NST.get().title = '98765'
+    //     NST.get().thangy = 'woop'
 
-        expect( NST.get('title') )
-            .to.eq( '98765' )
+    //     expect( NST.get('title') )
+    //         .to.eq( '98765' )
         
-        expect( NST.get('thangy') )
-            .to.eq( 'woop' )
+    //     expect( NST.get('thangy') )
+    //         .to.eq( 'woop' )
             
 
 
 
 
-    })
+    // })
 
-    it('C.6 | Object passed to set() should override internal store', () => {
+    it('C.5 | Object passed to set() should override internal store', () => {
         const NST = nestore(initialStore)
 
         NST.set({
@@ -569,12 +566,12 @@ describe(heading('E | Events'), () => {
         expect(recievedEvents).to.include('person.* = Brad')      
         expect(recievedEvents).to.include('person.* = 54')      
         // console.log(recievedEvents)  
-        // console.log(NST.store)
+        // console.log(NST.get())
             
 
     })
 
-    it('E.6 | Events have matching structs with normalized path', () => {
+    it.only('E.6 | Events have matching structs with normalized path', () => {
         const NST = nestore({
             person: {
                 name: 'John',
@@ -603,32 +600,32 @@ describe(heading('E | Events'), () => {
 
         //$ set and emit events
         NST.set('person.name', 'Brad')
-        NST.set('person/age', 54)
-        NST.set('person/nickname', 'Bradlington')
+        // NST.set('person/age', 54)
+        // NST.set('person/nickname', 'Bradlington')
 
-        NST.set('building.owner', 'Bobby')
-        NST.set('building.type', 'Residential')
-        NST.set('building/stats.sqft', 5250)
+        // NST.set('building.owner', 'Bobby')
+        // NST.set('building.type', 'Residential')
+        // NST.set('building/stats.sqft', 5250)
         
         NST.reset()
    
         
-        // console.log(recievedEvents)  
+        console.log(recievedEvents)  
         
         //$ from setter
         expect(recievedEvents).to.include(JSON.stringify({ path: 'person.name', key: 'name', value: 'Brad' }))      
-        expect(recievedEvents).to.include(JSON.stringify({ path: 'person.age', key: 'age', value: 54 }))  
-        expect(recievedEvents).to.include(JSON.stringify({ path: 'person.nickname', key: 'nickname', value: 'Bradlington' }))  
-        expect(recievedEvents).to.include(JSON.stringify({ path: 'building.owner', key: 'owner', value: 'Bobby' }))  
-        expect(recievedEvents).to.include(JSON.stringify({ path: 'building.type', key: 'type', value: 'Residential' }))  
-        expect(recievedEvents).to.include(JSON.stringify({ path: 'building.stats.sqft', key: 'sqft', value: 5250 }))  
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'person.age', key: 'age', value: 54 }))  
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'person.nickname', key: 'nickname', value: 'Bradlington' }))  
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'building.owner', key: 'owner', value: 'Bobby' }))  
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'building.type', key: 'type', value: 'Residential' }))  
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'building.stats.sqft', key: 'sqft', value: 5250 }))  
 
         //$ from reset
-        expect(recievedEvents).to.include(JSON.stringify({ path: 'person.name', key: 'name', value: 'John' }))      
-        expect(recievedEvents).to.include(JSON.stringify({ path: 'person.age', key: 'age', value: 88 }))  
-        expect(recievedEvents).to.include(JSON.stringify({ path: 'building.owner', key: 'owner', value: 'Alice' }))  
-        expect(recievedEvents).to.include(JSON.stringify({ path: 'building.type', key: 'type', value: 'House' }))  
-        expect(recievedEvents).to.include(JSON.stringify({ path: 'building.stats.sqft', key: 'sqft', value: 5134 }))  
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'person.name', key: 'name', value: 'John' }))      
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'person.age', key: 'age', value: 88 }))  
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'building.owner', key: 'owner', value: 'Alice' }))  
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'building.type', key: 'type', value: 'House' }))  
+        // expect(recievedEvents).to.include(JSON.stringify({ path: 'building.stats.sqft', key: 'sqft', value: 5134 }))  
         
         
         //! Keys that no longer exist will no emit events!
