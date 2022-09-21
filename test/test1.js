@@ -208,7 +208,7 @@ describe(heading('C | Set'), () => {
 
     // })
 
-    it('C.4 | Direct store modifications dont affect internal store with directMod disabled', () => {
+    it('C.4 | Direct store modifications dont affect internal store with mutable disabled', () => {
         const NST = nestore(initialStore)
 
         NST.on('title', ()=> console.log('store was updated...'))
@@ -228,8 +228,8 @@ describe(heading('C | Set'), () => {
 
     })
 
-    it('C.5 | Direct store modifications affect internal store with directMod enabled', () => {
-        const NST = nestore(initialStore, { allowDirectModification: true })
+    it('C.5 | Direct store modifications affect internal store with mutable enabled', () => {
+        const NST = nestore(initialStore, { mutable: true })
 
         NST.on('title', ()=> console.log('store was updated...'))
 
@@ -336,7 +336,7 @@ describe(heading('E | Events'), () => {
         })
 
 
-        console.log(recievedEvents)
+        // console.log(recievedEvents)
 
         assert( recievedEvents.every(evnt => !invalidList.includes(evnt)) )
 
@@ -483,7 +483,7 @@ describe(heading('E | Events'), () => {
         //$ reset the store to trigger emitAll
         NST.reset()
 
-        console.log(recievedEvents)
+        // console.log(recievedEvents)
 
         
         const str = JSON.stringify(recievedEvents)
@@ -563,7 +563,7 @@ describe(heading('E | Events'), () => {
         NST.set('person.age', '54')
    
         
-        console.log(recievedEvents)
+        // console.log(recievedEvents)
         
         //$ events should include A B C D E from setters
         expect(recievedEvents).to.include('person.* = Brad')      
@@ -574,13 +574,13 @@ describe(heading('E | Events'), () => {
 
     })
 
-    it.only('E.6 | Events have matching structs with normalized path', () => {
+    it('E.6 | Events have matching structs with normalized path', () => {
         const NST = nestore({
             person: {
                 name: 'John',
                 age: 88
             },
-            buiding: {
+            building: {
                 owner: 'Alice',
                 type: 'House',
                 stats: {
@@ -594,58 +594,45 @@ describe(heading('E | Events'), () => {
         let recievedEvents = []
 
         //$ Register events
-        // NST.on('person.*', (data) => recievedEvents.push(JSON.stringify(data)))
-        NST.on('building.*', (data) => {
-            console.log(`ON: "building.*" => ${data}`)
-            recievedEvents.push(JSON.stringify(data))
-        })
+        NST.on('person.*', (data) => recievedEvents.push(JSON.stringify(data)))
+        //! double wildcard required for "building.stats.sqft"
+        NST.on('building.**', (data) => recievedEvents.push(JSON.stringify(data)))
 
-        NST.on('building', (data) => {
-            console.log(`ON: "building" => ${data}`)
-            recievedEvents.push(JSON.stringify(data))
-        })
-        // NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
-        // NST.on('*', (data) => recievedEvents.push(JSON.stringify(data)))
-        
+
 
 
         //$ set and emit events
-        // NST.set('person.name', 'Brad')
-        // NST.set('person/age', 54)
-        // NST.set('person/nickname', 'Bradlington')
+        NST.set('person.name', 'Brad')
+        NST.set('person/age', 54)
+        NST.set('person/nickname', 'Bradlington')
 
         NST.set('building.owner', 'Bobby')
-        // NST.set('building.type', 'Residential')
-        // NST.set('building/stats.sqft', 5250)
+        NST.set('building.type', 'Residential')
+        NST.set('building/stats.sqft', 5250)
         
         NST.reset()
    
         
-        console.log(recievedEvents)  
+        // console.log(recievedEvents)  
         
         //$ from setter
-        // expect(recievedEvents).to.include(JSON.stringify({ path: 'person.name', key: 'name', value: 'Brad' }))      
-        // expect(recievedEvents).to.include(JSON.stringify({ path: 'person.age', key: 'age', value: 54 }))  
-        // expect(recievedEvents).to.include(JSON.stringify({ path: 'person.nickname', key: 'nickname', value: 'Bradlington' }))  
-        
-        // expect(recievedEvents).to.include(JSON.stringify({ path: 'building.owner', key: 'owner', value: 'Bobby' }))  
-        // expect(recievedEvents).to.include(JSON.stringify({ path: 'building.type', key: 'type', value: 'Residential' }))  
-        // expect(recievedEvents).to.include(JSON.stringify({ path: 'building.stats.sqft', key: 'sqft', value: 5250 }))  
+        expect(recievedEvents).to.include(JSON.stringify({ path: 'person.name', key: 'name', value: 'Brad' }))      
+        expect(recievedEvents).to.include(JSON.stringify({ path: 'person.age', key: 'age', value: 54 }))  
+        expect(recievedEvents).to.include(JSON.stringify({ path: 'person.nickname', key: 'nickname', value: 'Bradlington' }))  
+        expect(recievedEvents).to.include(JSON.stringify({ path: 'building.owner', key: 'owner', value: 'Bobby' }))  
+        expect(recievedEvents).to.include(JSON.stringify({ path: 'building.type', key: 'type', value: 'Residential' }))  
+        expect(recievedEvents).to.include(JSON.stringify({ path: 'building.stats.sqft', key: 'sqft', value: 5250 }))  
 
         //$ from reset
-        // expect(recievedEvents).to.include(JSON.stringify({ path: 'person.name', key: 'name', value: 'John' }))      
-        // expect(recievedEvents).to.include(JSON.stringify({ path: 'person.age', key: 'age', value: 88 }))  
+        expect(recievedEvents).to.include(JSON.stringify({ path: 'person.name', key: 'name', value: 'John' }))      
+        expect(recievedEvents).to.include(JSON.stringify({ path: 'person.age', key: 'age', value: 88 }))  
+        expect(recievedEvents).to.include(JSON.stringify({ path: 'building.owner', key: 'owner', value: 'Alice' }))  
+        expect(recievedEvents).to.include(JSON.stringify({ path: 'building.type', key: 'type', value: 'House' }))  
+        expect(recievedEvents).to.include(JSON.stringify({ path: 'building.stats.sqft', key: 'sqft', value: 5134 }))  
+        
         
         //! Keys that no longer exist will no emit events!
         // expect(recievedEvents).to.include(JSON.stringify({ path: 'person.nickname', key: 'nickname', value: 'Bradlington' }))  
-        
-        //                                              '{"path":"building.owner","key":"owner","value":"Alice"}'
-        expect(recievedEvents).to.include(JSON.stringify({ path: 'building.owner', key: 'owner', value: 'Alice' }))  
-        // expect(recievedEvents).to.include(JSON.stringify({ path: 'building.type', key: 'type', value: 'House' }))  
-        // expect(recievedEvents).to.include(JSON.stringify({ path: 'building.stats.sqft', key: 'sqft', value: 5134 }))  
-
-
-        // console.log(NST.store)
             
 
     })
@@ -659,7 +646,7 @@ describe(heading('Performance'), function(){
     
 
     it('PERF.1 | Bulk changes to the store should complete within time limit', (done) => {
-        let OPERATION_LIMIT = 10_000
+        let OPERATION_LIMIT = 500_000
         let CYCLE_LIMIT = 10
         let NUM_OF_OPERATIONS = 0
         let NUM_OF_CYCLES = 0
@@ -711,8 +698,6 @@ describe(heading('Performance'), function(){
             
         }
         
-        console.log('\tCycles complete')
-
         const avgOpTime = average(durationArr) / OPERATION_LIMIT
 
         expect(avgOpTime).to.be.lessThanOrEqual(0.02)

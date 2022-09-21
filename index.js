@@ -1,3 +1,3 @@
-import nestore from './compiled/nestore.js'
+import nestore from './dist/index.js'
 
 export default nestore

@@ -4,16 +4,23 @@
   "description": "",
   "main": "index.js",
   "type": "module",
-  "types": "compiled/nestore.d.ts",
+  "types": "dist/index.d.ts",
+  "files": [
+    "./index.js",
+    "./README.md",
+    "dist/",
+    "public/"
+  ],
   "scripts": {
-    "build": "clear && rm -rf ./compiled && tsc",
-    "test": "clear && tsc && mocha",
-    "test-nobuild": "clear && mocha",
-    "debug": "clear && tsc && DEBUG=nestore:* mocha",
-    "runnit": "clear && rm -rf ./compiled && tsc && DEBUG=nestore:* node index.js",
+    "build": "clear && rm -rf ./dist && tsc",
+    "test": "clear && tsc && mocha --config .mocharc.cjs",
+    "test-nobuild": "clear && mocha --config .mocharc.cjs",
+    "debug": "clear && tsc && DEBUG=nestore:* mocha --config .mocharc.cjs",
+    "runnit": "clear && rm -rf ./dist && tsc && DEBUG=nestore:* node index.js",
     "runnit-quiet": "clear && tsc && node index.js",
     "runnit-windows": "clear && tsc && set DEBUG=nestore:* && node index.js",
-    "roll": "rollup --config rollup.config.js"
+    "roll": "rollup --config rollup.config.js",
+    "pub":"npm publish --access public"
   },
   "keywords": [],
   "author": "",
