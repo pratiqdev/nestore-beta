@@ -571,7 +571,7 @@ describe(heading('E | Events'), () => {
 
     })
 
-    it.only('E.6 | Events have matching structs with normalized path', () => {
+    it('E.6 | Events have matching structs with normalized path', () => {
         const NST = nestore({
             person: {
                 name: 'John',
