@@ -642,13 +642,76 @@ describe(heading('E | Events'), () => {
 
 });
 
+describe(heading('F | Mutability'), () => {
+
+    it('F.1 | No methods return a reference that can mutate the store', async () => {
+        const NST = nestore(initialStore)
+
+        let recievedEvents = []
+
+        let setters = [
+            'title',
+            'reviews.someGuy',
+            'reviews.Some Guy',
+            'reviews.Some Extra.Stuff Here',
+            'chapters.0',
+            'chapters.1',
+            'chapters.2',
+        ]
+
+   
+        let validList = [
+            'title',    // The Book
+            'reviews.*',
+            'reviews.**',
+            'chapters.*',
+            '*',
+            ''
+        ]
+        
+        let invalidList = [
+            'title.*',  // null
+            'reviews',
+            'reviews:*',
+            'reviews*',
+            'reviews/',
+            'reviews/*',
+        ]
+
+        let list = [...validList, ...invalidList]
+
+        list.forEach(k => {
+            NST.on(k, () => recievedEvents.push(k))
+        })
+
+        setters.forEach(s => {
+            NST.set(s, 'was-set')
+        })
+
+
+        // console.log(recievedEvents)
+
+        assert( recievedEvents.every(evnt => !invalidList.includes(evnt)) )
+
+
+        
+        
+        // setTimeout(()=>{
+        //     done()
+        // }, 1500)
+    })
+
+
+});
+
 
 describe(heading('Performance'), function(){
     this.timeout(60_000)
 
     after(function(){
         fs.promises.writeFile(testStatsFile, JSON.stringify(testResults, null, 2))
-        console.log('Wrote to stat file...')
+        console.log('\tPerformance tests complete.')
+        console.log('\tWrote result data to stat file: "test-results.json"')
     })
 
     beforeEach(function(){
@@ -686,8 +749,7 @@ describe(heading('Performance'), function(){
         else return num
     }
 
-    const handleOutput = (test, opTime, startTime, durationArr) => {
-
+    const handleOutput = (test, opTime, startTime, durationArr, done) => {
         if(!testResults[test]){
             testResults[test] = []
         }
@@ -697,7 +759,7 @@ describe(heading('Performance'), function(){
             testResults[test].shift()
         }
         
-        if(!enableLogging) return
+        if(!enableLogging) return done()
 
         console.log(`\n\t`+'.'.repeat(50))
         // console.log(`\tTotal cycles               : ${CYCLE_LIMIT}`)
@@ -716,7 +778,7 @@ describe(heading('Performance'), function(){
         if(thisStats.length < MAX_STAT_HISTORY){
             console.log('\tNot enough historical data to graph...')
             console.log('\t'+'.'.repeat(50) + '\n')
-            return;
+            return done()
         }
 
         let _max = Math.max(...thisStats)
@@ -729,7 +791,7 @@ describe(heading('Performance'), function(){
         console.log(`\tLast score:`, thisStats[thisStats.length - 1])
         
         // console.log('\t'+'.'.repeat(50) + '\n')
-        console.log('\n')
+        console.log('')
 
 
 
@@ -750,13 +812,15 @@ describe(heading('Performance'), function(){
         }
         console.log('\t'+'.'.repeat(50) + '\n')
 
+        done()
+
     }
 
     console.log(`\tOperation limit: ${OPERATION_LIMIT * CYCLE_LIMIT}`)
 
     
     it('PERF.1 | set', (done) => {
-        
+        console.log('\tPERF.1 | set')
         let NUM_OF_OPERATIONS = 0
         let NUM_OF_CYCLES = 0
         let TEST_START = Date.now()
@@ -788,14 +852,12 @@ describe(heading('Performance'), function(){
 
         expect(avgOpTime).to.be.lessThanOrEqual(MAX_AVG_OP_TIME)
    
-        handleOutput('PERF.1', avgOpTime, TEST_START, durationArr)
+        handleOutput('PERF.1', avgOpTime, TEST_START, durationArr, done)
         
-        
-        done()
-
     })
 
     it('PERF.2 | get', (done) => {
+        console.log('\tPERF.2 | get')
 
         let NUM_OF_OPERATIONS = 0
         let NUM_OF_CYCLES = 0
@@ -830,17 +892,12 @@ describe(heading('Performance'), function(){
 
         expect(avgOpTime).to.be.lessThanOrEqual(MAX_AVG_OP_TIME)
 
-        handleOutput('PERF.2', avgOpTime, TEST_START, durationArr)
-
- 
-        
-        
-        
-        done()
+        handleOutput('PERF.2', avgOpTime, TEST_START, durationArr, done)
 
     })
 
     it('PERF.3 | get random', (done) => {
+        console.log('\tPERF.3 | get random')
         
         let NUM_OF_OPERATIONS = 0
         let NUM_OF_CYCLES = 0
@@ -877,13 +934,13 @@ describe(heading('Performance'), function(){
 
         expect(avgOpTime).to.be.lessThanOrEqual(MAX_AVG_OP_TIME)
 
-        handleOutput('PERF.3', avgOpTime, TEST_START, durationArr)
+        handleOutput('PERF.3', avgOpTime, TEST_START, durationArr, done)
 
-        done()
 
     })
 
-    it.only('PERF.4 | set => get', (done) => {
+    it('PERF.4 | set => get', (done) => {
+        console.log('\tPERF.4 | set => get')
         
         // let OPERATION_LIMIT = 100
         // let CYCLE_LIMIT = 10
@@ -920,16 +977,16 @@ describe(heading('Performance'), function(){
 
         expect(avgOpTime).to.be.lessThanOrEqual(MAX_AVG_OP_TIME)
 
-        handleOutput('PERF.4', avgOpTime, TEST_START, durationArr)
+        handleOutput('PERF.4', avgOpTime, TEST_START, durationArr, done)
 
         
         
         
-        done()
 
     })
 
     it('PERF.5 | default map comparison : set => get', (done) => {
+        console.log('\tPERF.5 | default map comparison : set => get')
         
         // let OPERATION_LIMIT = 1
         // let CYCLE_LIMIT = 10
@@ -968,10 +1025,7 @@ describe(heading('Performance'), function(){
 
         expect(avgOpTime).to.be.lessThanOrEqual(MAX_AVG_OP_TIME)
 
-        handleOutput('PERF.5', avgOpTime, TEST_START, durationArr)
-        
-        
-        done()
+        handleOutput('PERF.5', avgOpTime, TEST_START, durationArr, done)
 
     })
 
