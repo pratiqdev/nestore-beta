@@ -8,8 +8,7 @@
   "files": [
     "./index.js",
     "./README.md",
-    "dist/",
-    "public/"
+    "dist/"
   ],
   "scripts": {
     "build": "clear && rm -rf ./dist && tsc",

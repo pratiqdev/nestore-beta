@@ -1,4 +1,4 @@
-![logo-banner](./public/nestore-logo-5.png)
+![logo-banner](nestore-logo-5.png)
 
 A simple ESMap based store with a powerful event interface. Setup is easy with Nestore, just import, create, and export your store!
 
