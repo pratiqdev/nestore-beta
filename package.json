@@ -13,7 +13,8 @@
   ],
   "scripts": {
     "build": "clear && rm -rf ./dist && tsc",
-    "test": "clear && tsc && mocha --config .mocharc.cjs",
+    "test": "clear && mocha --config .mocharc.cjs",
+    "watch-test": "clear && tsc && nodemon",
     "test-nobuild": "clear && mocha --config .mocharc.cjs",
     "debug": "clear && tsc && DEBUG=nestore:* mocha --config .mocharc.cjs",
     "runnit": "clear && rm -rf ./dist && tsc && DEBUG=nestore:* node index.js",

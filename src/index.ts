@@ -364,34 +364,41 @@ class Nestore<T> extends EE2{
 
 
 
+    // 3
+
+    // Lets assume you have an entry like following in your package.json - scripts": {
+    //     "start:test": "mocha test/ --recursive --exit"
+    //  }
+    
+    // To run the mocha test using nodemon please use the following command: 
+    // nodemon --exec "npm run start:test"
+    
 
 
     //&                                                                                             
     set = (path:string | Partial<T>, value?:any) => {
         try{
             log.set(`Setting "${path}" : "${value}"`)
-
+  
             if(
                 (!path && value) 
                 || (typeof path !== 'object' && !value)
             ){
                 log.set('Incorrect args for "set()". Returning false')
-                return false;
+                return false;  
             } 
 
-            
+             
             
             // set the store directly with an object
             // NST.set({ ...newStore })
             if(typeof path === 'object'){
-                if(Array.isArray(path)){
-                    lodash.set(this.#INTERNAL_STORE, path, value)
-                }else{
-                    this.#INTERNAL_STORE = path
+                if(!Array.isArray(path)){
+                    this.#INTERNAL_STORE = lodash.cloneDeep(path)
                     this.#emit({
                         path: '/',
                         key: '',
-                        value: this.#INTERNAL_STORE,
+                        value: this.store,  
                     })
                 }
                 
@@ -422,10 +429,10 @@ class Nestore<T> extends EE2{
             log.get(`Getting "${path}"`)
             
             if(typeof path === 'function'){
-                return path(this.#INTERNAL_STORE)
+                return path(this.store)
             }
 
-            return lodash.get(this.store, path)
+            return lodash.get(this.#INTERNAL_STORE, path)
 
         }catch(err){
             return undefined

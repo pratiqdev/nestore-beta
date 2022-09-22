@@ -1,6 +1,6 @@
 const config = {
     /** exit after the first failure */
-    bail: true,
+    bail: false,
 
     /** CHeck for global var mem leaks during tests */
     checkLeaks: true,

@@ -1,0 +1,5 @@
+{
+    "watch": ["dist/*"],
+    "ext": "ts,json,js",
+    "exec": "clear && mocha --config ./.mocharc.cjs"      
+} 
