@@ -1,4 +1,4 @@
-![logo-banner](nestore-logo-5.png)
+![logo-banner](https://raw.githubusercontent.com/pratiqdev/nestore/logo.png)
 
 A simple ESMap based store with a powerful event interface. Setup is easy with Nestore, just import, create, and export your store!
 
