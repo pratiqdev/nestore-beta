@@ -1,9 +1,8 @@
 
-<!-- ![link-text](./public/nestore-logo-3.png) -->
 <div style='width: 100%; display: flex; flex-direction: column; align-items: center'>
 
 <div style='background: #ccc; height: 15rem; width: 15rem; border-radius: 50%; margin-bottom:2rem'>
-    <img src='public/nestore-logo.png' style='max-height:15rem; margin: 0 50%; transform: translateX(-50%)'>
+<img src='public/nestore-logo.png' style='max-height:15rem; margin: 0 50%; transform: translateX(-50%)'>
 </div>
 
 <h1 style='color: #55e; font-weight: bold; font-family: Courier; letter-spacing: .2rem'>neStore</h1>
@@ -11,22 +10,27 @@
 <div style='width: 100%; display: flex; justify-content: center'>
 <div style='margin: 1rem'>
 
-![badge](https://img.shields.io/badge/tests-passing-limegreen)
+<!-- ![badge](https://img.shields.io/badge/tests-passing-limegreen) -->
+<img alt='' src='https://img.shields.io/badge/tests-passing-limegreen' />
 
 </div>
 <div style='margin: 1rem'>
 
-![badge](https://img.shields.io/badge/version-1.0.0-color)
+<!-- ![badge](https://img.shields.io/badge/version-1.0.0-color) -->
+<img alt='' src='https://img.shields.io/badge/version-1.0.0-color' />
 
 </div>
 <div style='margin: 1rem'>
 
-[![](https://img.shields.io/badge/license-MIT-blue)](https://choosealicense.com/licenses/{{package-license}}/)
+<!-- [![](https://img.shields.io/badge/license-MIT-blue)](https://choosealicense.com/licenses/{{package-license}}/) -->
+<img alt='' src='https://img.shields.io/badge/license-MIT-blue' />
 
 </div>
 <div style='margin: 1rem'>
 
-![badge](https://img.shields.io/badge/Made_with_<3-red)
+<!-- ![badge](https://img.shields.io/badge/Made_with_<3-red) -->
+<img alt='' src='https://img.shields.io/badge/Made_with_<3-red' />
+
 
 </div>
 </div>
