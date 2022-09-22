@@ -1,4 +1,4 @@
-![logo-banner](/nestore/public/nestore-logo-5.png)
+![logo-banner](public/nestore-logo-5.png)
 
 A simple ESMap based store with a powerful event interface. An exploration of event based datastore management for JavaScript/TypeScript applications.  Setup is easy with Nestore, just import, create, and export your store!
 
