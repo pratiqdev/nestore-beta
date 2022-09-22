@@ -28,14 +28,62 @@ const initialStore = {
                 }
             }
         }
-    }
+    },
 
-}
-
-const wait = async (time = 250) => {
-    setTimeout(()=>{
+    setterTestA: () => {
+        // returns undefined
+    },
+    setterTestB: () => {
         return true
-    }, time)
+    },
+    setterTestC: (NST, args) => {
+        return args
+    },
+    setterTestD: (NST) => {
+        // sets a value
+        NST.set('setter-test-d', true)
+    },
+    setterTestE: (NST, args) => {
+        // returns a value from args
+        const [thePath] = args
+        return NST.get(thePath)
+    },
+    setterTestF: (NST) => {
+        // mutates then returns a value
+        let val = NST.get('pages') + 1
+        NST.set('pages', val)
+        return val
+    },
+    setterTestG: async (NST) => {
+        // console.log('>>> running setter G')
+        let prom = () => new Promise(res => setTimeout(() => res(true), 200))
+        // console.log('>>> waiting for promise')
+        await prom()
+        // console.log('>>> setting value')
+        NST.set('async', true)
+        // console.log('>>> returning value')
+        return 'async_success'
+    },
+    setterTestH: async (NST) => {
+        return new Promise((res) => {
+
+            setTimeout(()=>{
+                NST.set('async', 77)
+                res('7_7')
+            }, 200)
+        })
+    },
+
+
+
+    mutabilityTestA: (N, args) => {
+        const [newTitle] = args
+        N.get().title = newTitle
+    },
+    mutabilityTestB: (N, args) => {
+        const [newTitle] = args
+        N.store.title = newTitle
+    },
 }
 
 const testResults = JSON.parse(await fs.promises.readFile(testStatsFile, { encoding: 'utf-8'}))
@@ -642,65 +690,197 @@ describe(heading('E | Events'), () => {
 
 });
 
-describe(heading('F | Mutability'), () => {
+describe(heading('F | Setters'), () => {
 
-    it('F.1 | No methods return a reference that can mutate the store', async () => {
+    it('F.1 | setterA', async () => {
         const NST = nestore(initialStore)
 
         let recievedEvents = []
+        NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
 
-        let setters = [
-            'title',
-            'reviews.someGuy',
-            'reviews.Some Guy',
-            'reviews.Some Extra.Stuff Here',
-            'chapters.0',
-            'chapters.1',
-            'chapters.2',
-        ]
+        let res = NST.setterTestA()
+        expect(res).to.eq(undefined)
 
-   
-        let validList = [
-            'title',    // The Book
-            'reviews.*',
-            'reviews.**',
-            'chapters.*',
-            '*',
-            ''
-        ]
+        expect( recievedEvents.length ).to.eq( 0 )
         
-        let invalidList = [
-            'title.*',  // null
-            'reviews',
-            'reviews:*',
-            'reviews*',
-            'reviews/',
-            'reviews/*',
-        ]
-
-        let list = [...validList, ...invalidList]
-
-        list.forEach(k => {
-            NST.on(k, () => recievedEvents.push(k))
-        })
-
-        setters.forEach(s => {
-            NST.set(s, 'was-set')
-        })
-
-
-        // console.log(recievedEvents)
-
-        assert( recievedEvents.every(evnt => !invalidList.includes(evnt)) )
-
-
-        
-        
-        // setTimeout(()=>{
-        //     done()
-        // }, 1500)
     })
 
+    it('F.2 | setterB', async () => {
+        const NST = nestore(initialStore)
+
+        let recievedEvents = []
+        NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
+
+        let res = NST.setterTestB()
+        expect(res).to.eq(true)
+
+        expect( recievedEvents.length ).to.eq( 0 )
+        
+    })
+
+    it('F.3 | setterC', async () => {
+        const NST = nestore(initialStore)
+
+        let recievedEvents = []
+        NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
+
+        let res = NST.setterTestC('hello', 'world')
+        expect(res[0]).to.eq('hello')
+        expect(res[1]).to.eq('world')
+
+        expect( recievedEvents.length ).to.eq( 0 )
+        
+    })
+
+    it('F.4 | setterD', async () => {
+        const NST = nestore(initialStore)
+
+        let recievedEvents = []
+        NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
+
+        NST.setterTestD()
+        expect(NST.get('setter-test-d')).to.eq(true)
+
+        expect( recievedEvents.length ).to.eq( 1 )
+        
+    })
+
+    it('F.5 | setterE', async () => {
+        const NST = nestore(initialStore)
+
+        let recievedEvents = []
+        NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
+
+        let res = NST.setterTestE('title')
+        expect(res).to.eq('The Book')
+
+        expect( recievedEvents.length ).to.eq( 0 )
+        
+    })
+
+    it('F.6 | setterF', async () => {
+        const NST = nestore(initialStore)
+
+        let recievedEvents = []
+        NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
+
+        let pages = NST.get('pages')
+        let res = NST.setterTestF()
+
+        expect(res).to.eq(pages + 1)
+        expect(NST.get('pages')).to.eq(pages + 1)
+
+        expect( recievedEvents.length ).to.eq( 1 )
+        
+    })
+
+
+    it('F.7 | setterG', async () => {
+        const NST = nestore(initialStore)
+
+        let recievedEvents = []
+        NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
+        // console.log('>>> calling setter G')
+        let res = await NST.setterTestG()
+        
+        // console.log('>>> asserting values')
+        expect(res).to.eq('async_success')
+        expect(NST.get('async')).to.eq(true)
+
+        expect( recievedEvents.length ).to.eq( 1 )
+        return true
+    })
+
+    it('F.8 | setterH', async () => {
+        const NST = nestore(initialStore)
+
+        let recievedEvents = []
+        NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
+        // console.log('>>> calling setter G')
+        let res = await NST.setterTestH()
+        
+        // console.log('>>> asserting values')
+        expect(res).to.eq('7_7')
+        expect(NST.get('async')).to.eq(77)
+
+        expect( recievedEvents.length ).to.eq( 1 )
+        return true
+    })
+
+});
+
+describe(heading('G | Mutability'), () => {
+
+    it('G.1 | NST.get() => store.* = X', async () => {
+        const NST = nestore(initialStore)
+
+        let recievedEvents = []
+        NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
+
+        NST.get().title = 'aaa'
+        expect(NST.get('title')).to.not.eq('aaa')
+
+        // no events should be emitted from direct mutations, if they happen
+        expect( recievedEvents.length ).to.eq( 0 )
+        
+    })
+
+    it('G.2 | NST.store.* = X', async () => {
+        const NST = nestore(initialStore)
+
+        let recievedEvents = []
+        NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
+
+        NST.store.title = 'bbb'
+        expect(NST.get('title')).to.not.eq('bbb')
+
+        // no events should be emitted from direct mutations, if they happen
+        expect( recievedEvents.length ).to.eq( 0 )
+        
+    })
+
+    it('G.3 | setter((x) => x.get() => .store.* = X)', async () => {
+        const NST = nestore(initialStore)
+
+        let recievedEvents = []
+        NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
+
+        NST.mutabilityTestA('ccc')
+        expect(NST.get('title')).to.not.eq('ccc')
+        
+        // no events should be emitted from direct mutations, if they happen
+        expect( recievedEvents.length ).to.eq( 0 )
+        
+    })
+
+    it('G.4 | setter((x) => x.store.* = X)', async () => {
+        const NST = nestore(initialStore)
+
+        let recievedEvents = []
+        NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
+
+        NST.mutabilityTestB('ddd')
+        expect(NST.get('title')).to.not.eq('ddd')
+
+        // no events should be emitted from direct mutations, if they happen
+        expect( recievedEvents.length ).to.eq( 0 )
+        
+    })
+
+    it('G.5 | NST.get("path") = X', async () => {
+        const NST = nestore(initialStore)
+
+        let recievedEvents = []
+        NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
+
+        let ref = NST.get('title') 
+        ref = 'eee'
+        expect(NST.get('title')).to.not.eq('eee')
+
+        // no events should be emitted from direct mutations, if they happen
+        expect( recievedEvents.length ).to.eq( 0 )
+        
+    })
 
 });
 
@@ -724,7 +904,7 @@ describe(heading('Performance'), function(){
     let CYCLE_LIMIT = 100
     let MAX_AVG_OP_TIME = 0.02
     let MAX_STAT_HISTORY = 5
-    let enableLogging = true
+    let enableLogging = false
 
 
     let set = 'ABCDEF'

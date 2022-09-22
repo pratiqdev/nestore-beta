@@ -9,7 +9,7 @@ const config = {
     slow: 250,
 
     /** How many times to attempt a failed test */
-    retries: 3,
+    // retries: 3,
 }
 
 module.exports = config
