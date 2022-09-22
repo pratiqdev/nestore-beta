@@ -1,6 +1,6 @@
 {
   "name": "nestore",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "index.js",
   "type": "module",
@@ -21,7 +21,7 @@
     "runnit-quiet": "clear && tsc && node index.js",
     "runnit-windows": "clear && tsc && set DEBUG=nestore:* && node index.js",
     "roll": "rollup --config rollup.config.js",
-    "pub": "npm publish --access public"
+    "pub": "npm version patch --force && npm publish --access public"
   },
   "keywords": [],
   "author": "",
