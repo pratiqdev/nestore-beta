@@ -1,8 +1,9 @@
 ![logo-banner](public/nestore-logo-5.png)
 
-A simple ESMap based store with a powerful event interface. An exploration of event based datastore management for JavaScript/TypeScript applications.  Setup is easy with Nestore, just import, create, and export your store!
+A simple ESMap based store with a powerful event interface. Setup is easy with Nestore, just import, create, and export your store!
 
 > **Inspired by Zustand**  
+> An exploration of event based datastore management for JavaScript/TypeScript applications.  
 > API inspired by the vanilla implementation of [Zustand](https://github.com/pmndrs/zustand)
 
 

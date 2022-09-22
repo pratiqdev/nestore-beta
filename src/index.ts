@@ -1,107 +1,8 @@
-import EE2, { event } from "eventemitter2";
-import * as lodash from 'lodash-es'
-// import COMMON from "./common.js";
-// import { T_EmitStruct, T_NestoreOptions } from "./interfaces";
-// import log from './log.js'
-import * as _ from 'lodash-es'
-import createDebug from 'debug'
-
-
-/************************************************************************************************ */
-export type T_NestoreOptions = {
-    delimiter?: string;
-    wildcard?: boolean;
-    mutable?: boolean;
-    maxListeners?: number;
-    verbose?: boolean;
-    throwOnRevert?: boolean;
-    timeout?: number;
-}
-
-/** Structure of all values emitted by eventemitter */
-export type T_EmitStruct = {
-    path: string;
-    key: string;
-    value?: any;
-}
-/************************************************************************************************ */
-
-
-
-//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-const l = createDebug('nestore')
-const log = {
-    constr: l.extend('constructor'),
-    set:    l.extend('set        '),
-    get:    l.extend('get        '),
-    reset:  l.extend('reset      '),
-    emit:   l.extend('emit       '),
-    emitAll:l.extend('emitAll    '),
-    norm:   l.extend('normPath   '),
-    remove: l.extend('remove     '),
-    devtool:l.extend('devtool    '),
-    call   :l.extend('call       '),
-}
-
-//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-const BUILT_IN_DIFF = (a:any,b:any) => {
-    var r:any = {};
-    _.each(a, function(v:any,k:any) {
-        if(b[k] === v) return;
-        // but what if it returns an empty object? still attach?
-        r[k] = _.isObject(v)
-                ? BUILT_IN_DIFF(v, b[k])
-                : v
-            ;
-        });
-    return r;
-}
-
-//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-const COMMON = {
-    NESTORE_ROOT_KEY: 'NESTORE_STORE_ROOT_KEY',
-    DEFAULT_DELIMITER_CHAR: '.'
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const colors = {
-    reset: '\x1b[0m',
-
-    //text color
-
-    black: '\x1b[30m',
-    red: '\x1b[31m',
-    green: '\x1b[32m',
-    yellow: '\x1b[33m',
-    blue: '\x1b[34m',
-    magenta: '\x1b[35m',
-    cyan: '\x1b[36m',
-    white: '\x1b[37m',
-
-    //background color
-
-    blackBg: '\x1b[40m',
-    redBg: '\x1b[41m',
-    greenBg: '\x1b[42m',
-    yellowBg: '\x1b[43m',
-    blueBg: '\x1b[44m',
-    magentaBg: '\x1b[45m',
-    cyanBg: '\x1b[46m',
-    whiteBg: '\x1b[47m'
-}
-
+import EE2 from "eventemitter2";
+import { cloneDeep, omit, set, get } from 'lodash-es'
+import { T_NestoreEmit, T_NestoreOptions } from "./interfaces";
+import COMMON from "./common.js";
+import log from "./log.js";
 
 
 
@@ -259,8 +160,8 @@ class Nestore<T> extends EE2{
 
         // create deep clones of the store arg to prevent modifications by reference
         // omit all custom setter functions from the store
-        this.#INTERNAL_STORE = lodash.cloneDeep(lodash.omit(store, this.#SETTER_FUNCTIONS))
-        this.#ORIGINAL_STORE = lodash.cloneDeep(lodash.omit(store, this.#SETTER_FUNCTIONS))
+        this.#INTERNAL_STORE = cloneDeep(omit(store, this.#SETTER_FUNCTIONS))
+        this.#ORIGINAL_STORE = cloneDeep(omit(store, this.#SETTER_FUNCTIONS))
         this.#DELIMITER_CHAR = typeof options.delimiter === 'string' ? options.delimiter : COMMON.DEFAULT_DELIMITER_CHAR
         
         
@@ -280,8 +181,9 @@ class Nestore<T> extends EE2{
     }
 
 
+
     //_                                                                                             
-    #emit(args:T_EmitStruct) {
+    #emit(args:T_NestoreEmit) {
         args.path = this.#normalizePath(args.path)
         log.emit(`>> Emitting  "${args.path}"`)
         log.emit(args.value)
@@ -361,17 +263,6 @@ class Nestore<T> extends EE2{
         return split[split.length - 1]
     }
 
-
-
-
-    // 3
-
-    // Lets assume you have an entry like following in your package.json - scripts": {
-    //     "start:test": "mocha test/ --recursive --exit"
-    //  }
-    
-    // To run the mocha test using nodemon please use the following command: 
-    // nodemon --exec "npm run start:test"
     
 
 
@@ -394,7 +285,7 @@ class Nestore<T> extends EE2{
             // NST.set({ ...newStore })
             if(typeof path === 'object'){
                 if(!Array.isArray(path)){
-                    this.#INTERNAL_STORE = lodash.cloneDeep(path)
+                    this.#INTERNAL_STORE = cloneDeep(path)
                     this.#emit({
                         path: '/',
                         key: '',
@@ -406,7 +297,7 @@ class Nestore<T> extends EE2{
             }
 
             
-            lodash.set(this.#INTERNAL_STORE, path, value)
+            set(this.#INTERNAL_STORE, path, value)
             this.#emit({
                 path,
                 key: this.#splitPathToKey(path),
@@ -432,7 +323,7 @@ class Nestore<T> extends EE2{
                 return path(this.store)
             }
 
-            return lodash.get(this.#INTERNAL_STORE, path)
+            return get(this.#INTERNAL_STORE, path)
 
         }catch(err){
             return undefined
@@ -457,13 +348,12 @@ class Nestore<T> extends EE2{
         this.#handleEmitAll()
     }
 
-
     //&                                                                                             
     remove = (path: string) => {
         //! should this delete the key and value from the table or should it set the value to undefined?
         //! this should completely delete the key from the store object
         //! the set() method can set a key to undefined
-        this.#INTERNAL_STORE = lodash.omit(this.#INTERNAL_STORE, [path])
+        this.#INTERNAL_STORE = omit(this.#INTERNAL_STORE, [path])
 
         this.#emit({
             path,
@@ -474,7 +364,7 @@ class Nestore<T> extends EE2{
     }
 
     get store(){
-        return lodash.cloneDeep(this.#INTERNAL_STORE)
+        return cloneDeep(this.#INTERNAL_STORE)
     }
 
 }
@@ -484,7 +374,7 @@ class Nestore<T> extends EE2{
 function NST<T>(store?: T, options?: T_NestoreOptions): Partial<Nestore<T>> {
     return new Nestore<Partial<T>>(store, options)
     // let nst = new Nestore<Partial<T>>(store, options)
-    // return lodash.omit(nst, nst.#SETTER_FUNCTIONS)
+    // return omit(nst, nst.#SETTER_FUNCTIONS)
 }
 
 export default NST
