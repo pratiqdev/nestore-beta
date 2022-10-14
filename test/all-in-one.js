@@ -1,7 +1,11 @@
 import assert from 'assert'
-import nestore from '../index.js'
+import nestore, { mongoAdapter, persistAdapter } from '../index.js'
 import chai from 'chai';
 import fs from 'fs'
+import dotenv from 'dotenv'
+
+dotenv.config()
+
 const __dir = await fs.promises.realpath('.')
 const testStatsFile = __dir + '/test/test-results.json'
 
@@ -86,13 +90,26 @@ const initialStore = {
     },
 }
 
+const mls = () => {
+    let store = JSON.stringify({thisValue: 'is from mockLocalStorage - a mock localStorage setup'});
+    let set = (val) => store = JSON.stringify(val)
+    let get = () => JSON.parse(store)
+
+    return { get, set }
+}
+
+const mockLocalStorage = mls()
+
+
+
 const testResults = JSON.parse(await fs.promises.readFile(testStatsFile, { encoding: 'utf-8'}))
 
 
 
 
 
-describe(heading('A | Setup'), () => {
+describe(heading('A | Setup'), function(){
+    this.timeout(10_000)
 
     it('A.1 | Creates a filled store that returns store and methods', () => {
         const NST = nestore(initialStore)
@@ -165,6 +182,63 @@ describe(heading('A | Setup'), () => {
         // expect(typeof NST.#handleEmitAll).to.eq('undefined')
         // expect(typeof NST.#splitPath).to.eq('undefined')
         // expect(typeof NST.#splitPathToKey).to.eq('undefined')
+        
+    })
+
+    it.only('A.7 | Nestore registers middleware', (done) => {
+        // console.log(nestore)
+
+
+ 
+        const NST = nestore({ name: 'Andrew'}, {
+            adapter: mongoAdapter(
+                process.env.MONGO_URI, 
+                'nestore-adapter-test-collection',
+                'NST_MONGO_TEST_A'
+            )
+            // middleware: [
+                // adapters.persist(mockLocalStorage)
+                // adapters.mongo(process.env.MONGO_URI)
+            // ]
+        })
+
+        NST.on('@.*.registered', (data) => console.log('>>> REGISTERED >>>'))
+        NST.on('@.*.error', (data) => console.log('>>> ERROR >>>'))
+        NST.on('@.*.loading', (data) => console.log('>>> LOADING >>>'))
+        NST.on('@.*.loaded', (data) => console.log('>>> LOADED >>>'))
+        NST.on('@.*.saving', (data) => console.log('>>> SAVING >>>'))
+        NST.on('@.*.saved', (data) => console.log('>>> SAVED >>>'))
+        // NST.on('@.*', (data) => console.log('>>> Middleware event (@.*):', data))
+        // NST.on('@', (data) => console.log('>>> Middleware event (@):', data))
+        // NST.onAny((data) => console.log('>>>tAny event (@):', data))
+
+        setTimeout(()=>{
+            console.log(NST.get())
+        }, 2000)
+
+        setTimeout(()=>{
+            NST.set('name', 'Bobby')
+            NST.set('name', 'Charles')
+            // NST.set('name', 'Daniel')
+            // NST.set('name', 'Eric')
+            // NST.set('name', 'Frank')
+            NST.set('age', 1)
+            NST.set('age', 2)
+            NST.set('age', 3)
+            // NST.set('age', 4)
+            // NST.set('age', 5)
+        }, 3000)
+
+
+        setTimeout(()=>{
+            console.log(NST.get())
+        }, 5000)
+        
+        setTimeout(()=> {
+            console.log(NST.get())
+            console.log('DONE ----------------')
+            done()
+        }, 9000)
         
     })
 
@@ -314,6 +388,8 @@ describe(heading('C | Set'), () => {
 
 
     })
+
+    it.skip('C.6 | Emits updates for repeated matching events when preventRepeatUpdates = false')
 
 });
 
@@ -687,6 +763,53 @@ describe(heading('E | Events'), () => {
 
     })
 
+    // dont test ee2 methods
+    // it('E.7 | Emitter.once() fires correct amount', () => {
+    //     const NST = nestore({
+    //         greeting: 'hello'
+    //     })
+
+    //     let recievedEvents = []
+
+    //     //$ Register events
+    //     NST.once('greeting', (data) => recievedEvents.push(JSON.stringify(data)))
+
+
+    //     //$ set and emit events
+    //     NST.set('greeting', 'Yo')
+    //     NST.set('greeting', 'Oi')
+    //     NST.set('greeting', 'Ay')
+
+    //     NST.reset()
+
+    //     expect(recievedEvents.length).to.eq(1)
+
+    // })
+
+    // it('E.8 | Emitter.many() fires correct amount', () => {
+    //     const NST = nestore({
+    //         greeting: 'hello'
+    //     })
+
+    //     let recievedEvents = []
+
+    //     //$ Register events
+    //     NST.many('greeting', 3, (data) => recievedEvents.push(JSON.stringify(data)))
+
+
+    //     //$ set and emit events
+    //     NST.set('greeting', 'Yo')
+    //     NST.set('greeting', 'Oi')
+    //     NST.set('greeting', 'Ay')
+    //     NST.set('greeting', 'Yuh')
+    //     NST.set('greeting', 'Fuyo')
+
+    //     NST.reset()
+
+    //     expect(recievedEvents.length).to.eq(3)
+
+    // })
+
 
 });
 
@@ -885,7 +1008,7 @@ describe(heading('G | Mutability'), () => {
 });
 
 
-describe(heading('Performance'), function(){
+describe.skip(heading('Performance'), function(){
     this.timeout(60_000)
 
     after(function(){
@@ -996,8 +1119,39 @@ describe(heading('Performance'), function(){
 
     }
 
-    console.log(`\tOperation limit: ${OPERATION_LIMIT * CYCLE_LIMIT}`)
+    // console.log(`\tOperation limit: ${OPERATION_LIMIT * CYCLE_LIMIT}`)
 
+    it('PERF.0 | init', (done) => {
+        console.log('\tPERF.0 | init')
+        let NUM_OF_OPERATIONS = 0
+        let NUM_OF_CYCLES = 0
+        let TEST_START = Date.now()
+        let durationArr = []
+
+        
+        while(NUM_OF_CYCLES < CYCLE_LIMIT){
+            const CYCLE_START = Date.now()
+            NUM_OF_CYCLES++
+            NUM_OF_OPERATIONS = 0
+            
+            while(NUM_OF_OPERATIONS < OPERATION_LIMIT){
+                NUM_OF_OPERATIONS++
+                const NST = nestore()
+            }
+            let dur = Date.now() - CYCLE_START
+            durationArr.push(dur)
+
+            process.stdout.write("\r\x1b[K" +  `\tCycle ${NUM_OF_CYCLES} / ${CYCLE_LIMIT} : ${smallNum(NUM_OF_CYCLES * NUM_OF_OPERATIONS)} : ${dur} ms : ${((dur / OPERATION_LIMIT)+'').substring(0,6)} ms avg`)
+            
+        }
+        
+        const avgOpTime = average(durationArr) / OPERATION_LIMIT
+
+        expect(avgOpTime).to.be.lessThanOrEqual(MAX_AVG_OP_TIME)
+   
+        handleOutput('PERF.1', avgOpTime, TEST_START, durationArr, done)
+        
+    })
     
     it('PERF.1 | set', (done) => {
         console.log('\tPERF.1 | set')
@@ -1165,7 +1319,7 @@ describe(heading('Performance'), function(){
 
     })
 
-    it('PERF.5 | default map comparison : set => get', (done) => {
+    it('PERF.5 | default Map comparison : set => get', (done) => {
         console.log('\tPERF.5 | default map comparison : set => get')
         
         // let OPERATION_LIMIT = 1
@@ -1208,6 +1362,7 @@ describe(heading('Performance'), function(){
         handleOutput('PERF.5', avgOpTime, TEST_START, durationArr, done)
 
     })
+
 
 
   
