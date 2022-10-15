@@ -11,7 +11,9 @@
     "dist/"
   ],
   "scripts": {
-    "build": "clear && rm -rf ./dist && rm -rf ../react/nestore-react/src/nestore-dist && tsc && cp -r ./dist ../react/nestore-react/src/nestore-dist",
+    "moveto-react":"rm -rf ../react/nestore-react/src/nestore-dist && cp -r ./dist ../react/nestore-react/src/nestore-dist",
+    "moveto-next":"rm -rf ../react/nestore-next/nestore-dist && cp -r ./dist ../react/nestore-next/nestore-dist",
+    "build": "clear && rm -rf ./dist && tsc && yarn moveto-react && yarn moveto-next",
     "test": "clear && mocha --config .mocharc.cjs",
     "watch-test": "clear && tsc && nodemon",
     "test-nobuild": "clear && mocha --config .mocharc.cjs",

@@ -19,10 +19,10 @@ const createLog = (namespace:string) => debug('nestore:' + namespace)
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 export const persistAdapter: T_NestoreAdapter = (
 
-    storage: Storage,
     storageKey: string,
+    storage: Storage,
     namespace:string = 'nestore-persist', 
-    batchTime:number = 2_000
+    batchTime:number = 10_000
 
 ) => <T>(nst: T_Nestore<T>) => {
     
@@ -74,6 +74,16 @@ export const persistAdapter: T_NestoreAdapter = (
         error: `@.${namespace}.error`, // => the error
     }
     
+    log('Nestore persist adapeter registered:', namespace)
+    nst.emit(ns.registered, {
+        adapter: 'persistAdapter',
+        storageKey,
+        storage,
+        namespace, 
+        batchTime
+    })
+    
+    
     try{
         let storeLoaded = false
         let handleSave:any
@@ -81,7 +91,6 @@ export const persistAdapter: T_NestoreAdapter = (
 
       
 
-        log('MIDDLWARE REGISTERED:', namespace)
 
 
         //_                                                                                     
@@ -90,7 +99,8 @@ export const persistAdapter: T_NestoreAdapter = (
             const loadStartTime = Date.now()
             try{
                 if(storeLoaded) return;
-                log(`Loading: Time since adapter start:`, Date.now() - adapterStartTime + ` ms`)
+                // log(`Loading: Time since adapter start:`, Date.now() - adapterStartTime + ` ms`)
+                log(`Loading storage into store...`)
                 nst.emit(ns.loading, nst.store)
                 
                 let storedData = storage.getItem(storageKey) ?? '{}'
@@ -99,17 +109,17 @@ export const persistAdapter: T_NestoreAdapter = (
                 // await new Promise(res => setTimeout(res, 1500))
                 
                 if(storedData !== '{}'){
-                    nst.set(sto, null, true)
+                    nst.set(sto, null, 'quiet')
                 }else{
                     log(`Empty object returned from storage, skipping nst.set()`)
                 }
                 nst.emit(ns.loaded, sto)
-                log(`Loaded: Time since adapter start:`, Date.now() - adapterStartTime + ` ms`)
-                log(`Loaded: Time since load start:`, Date.now() - loadStartTime + ` ms`)
-                log(`loaded:`, sto)
+                // log(`Loaded: Time since adapter start:`, Date.now() - adapterStartTime + ` ms`)
+                // log(`Loaded: Time since load start:`, Date.now() - loadStartTime + ` ms`)
+                log(`Storage loaded into store:`, sto)
                 storeLoaded = true
             }catch(err){
-                log(`Error loading data with middleware:`, err)
+                log(`Error loading storage with persist adapter:`, err)
                 nst.emit(ns.error, err)
             }
         }
@@ -118,7 +128,7 @@ export const persistAdapter: T_NestoreAdapter = (
         const handleSaveFunc = () => {
             try{
                 const log = createLog('persist:save')
-                log(`Saving store`)
+                log(`Saving store to storage...`)
                 nst.emit(ns.saving, nst.store)
                 let stringStore = JSON.stringify(nst.store)
 
@@ -127,15 +137,15 @@ export const persistAdapter: T_NestoreAdapter = (
 
                 if(savedValue && savedValue === stringStore){
                     nst.emit(ns.saved, JSON.parse(savedValue))
-                    log(`Store saved`)
+                    log(`Store saved to storage`)
                 }else{
                     let msg = `Saved value does not match the current store after save was completed`
                     nst.emit(ns.error, msg)
-                    log(`Persist error:`, msg)
+                    log(`Persist adapter error:`, msg)
                 }
             }catch(err){
                 nst.emit(ns.error, err)
-                log(`Persis error:`, err)
+                log(`Persisadapter error:`, err)
             }
         }
 
@@ -151,7 +161,8 @@ export const persistAdapter: T_NestoreAdapter = (
         })
 
         loadStore()
-        
+
+       
     }catch(err){
         console.log('Nestore persist error:', err)
         nst.emit(ns.error, err)
@@ -322,7 +333,7 @@ export const mongoAdapter: T_NestoreAdapter = (
                     }
 
                     // log('db after save:', result)
-                    nst.set(result?.store ?? {}, null, true)
+                    nst.set(result?.store ?? {}, null, 'quiet')
                     nst.emit(ns.saved, nst.store)
                     log(`Store saved`)
                 }catch(err){
