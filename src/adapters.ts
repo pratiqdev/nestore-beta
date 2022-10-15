@@ -1,36 +1,42 @@
-import { T_NestoreAdapter, T_Nestore } from "./nestore";
+import { T_NestoreAdapter, T_Nestore, T_AnyStore } from "./nestore";
 import type { Model} from 'mongoose'
 import debug from 'debug'
 import { throttle } from 'lodash-es'
 const createLog = (namespace:string) => debug('nestore:' + namespace)
 
 
-export type T_AnyStore = {
-    get: (...args:any[]) => any; 
-    set: (...args:any[]) => any;
-} | {
-    getItem: (...args:any[]) => any;
-    setItem: (...args:any[]) => any;
-}
+//~                                                                                     
+//! Adapters need to all have a matching/similar interface
+//!
+//!
+//!
+//!
+//!
+//~                                                                                     
 
 
-export type T_AdapterEmit = {
-    timestamp: number;
-    action: string;
-    store: any;
-}
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 export const persistAdapter: T_NestoreAdapter = (
 
-    storage: T_AnyStore, 
+    storage: Storage,
+    storageKey: string,
     namespace:string = 'nestore-persist', 
     batchTime:number = 2_000
 
 ) => <T>(nst: T_Nestore<T>) => {
     
-    const log = createLog('mid')
+    const adapterStartTime:number = Date.now()
 
+    const log = createLog('persist')
+
+    // console.log('-'.repeat(60))
+    // console.log('storage:', {
+        // local: window.localStorage,
+        // sess: window.sessionStorage
+    // })
+    // console.log('-'.repeat(60))
+    
     if(typeof storage === 'undefined' || !storage){
         if(typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'){
             log('No storage provided, using localStorage')
@@ -40,7 +46,15 @@ export const persistAdapter: T_NestoreAdapter = (
             console.log(`Nestore persist: No storage object provided and localStorage not available.`)
             return;
         }
-
+        
+    }
+    if(typeof storage?.getItem !== 'function' || typeof storage?.setItem !== 'function'){
+        console.log(`Nestore persist: Storage object must have (getItem, setItem) methods.`)
+        return;
+    }
+    if(typeof storageKey === 'undefined' || !storageKey.length){
+        log(`Local, session and indexedDB require a storage key`)
+        return;
     }
     if(typeof namespace !== 'string' || namespace.length < 3){
         console.log('Nestore persist:: No "namespace" provided')
@@ -61,35 +75,37 @@ export const persistAdapter: T_NestoreAdapter = (
     }
     
     try{
-        let GET: any = null
-        let SET: any = null
         let storeLoaded = false
         let handleSave:any
         
-        if('get' in storage)     GET = storage.get
-        if('set' in storage)     SET = storage.set
-        if('getItem' in storage) GET = storage.getItem
-        if('setItem' in storage) SET = storage.setItem
 
-        if(!GET || !SET){
-            console.log(`Nestore persist: Storage object must have (get, set) or (getItem, setItem) methods.`)
-            return;
-        }
+      
 
         log('MIDDLWARE REGISTERED:', namespace)
 
 
         //_                                                                                     
         const loadStore = async () => {
-            const log = createLog('mid:load')
+            const log = createLog('persist:load')
+            const loadStartTime = Date.now()
             try{
                 if(storeLoaded) return;
-                nst.emit(ns.loading, 'LOADING:', GET())
-                log(`loading...`)
-                await new Promise(res => setTimeout(res, 1500))
-                let sto = GET()
-                nst.set(sto)
-                nst.emit(ns.loaded, 'LOADED:', sto)
+                log(`Loading: Time since adapter start:`, Date.now() - adapterStartTime + ` ms`)
+                nst.emit(ns.loading, nst.store)
+                
+                let storedData = storage.getItem(storageKey) ?? '{}'
+                let sto = JSON.parse(storedData)
+                
+                // await new Promise(res => setTimeout(res, 1500))
+                
+                if(storedData !== '{}'){
+                    nst.set(sto, null, true)
+                }else{
+                    log(`Empty object returned from storage, skipping nst.set()`)
+                }
+                nst.emit(ns.loaded, sto)
+                log(`Loaded: Time since adapter start:`, Date.now() - adapterStartTime + ` ms`)
+                log(`Loaded: Time since load start:`, Date.now() - loadStartTime + ` ms`)
                 log(`loaded:`, sto)
                 storeLoaded = true
             }catch(err){
@@ -101,16 +117,25 @@ export const persistAdapter: T_NestoreAdapter = (
         //_                                                                                     
         const handleSaveFunc = () => {
             try{
-                // handleSave?.cancel && handleSave.cancel()
-                const log = createLog('mid:save')
+                const log = createLog('persist:save')
                 log(`Saving store`)
-                nst.emit(ns.saving, 'SAVING:', nst.store)
-                SET(nst.store)
-                nst.emit(ns.saved, 'SAVED:', nst.store)
-                log(`Store saved`)
+                nst.emit(ns.saving, nst.store)
+                let stringStore = JSON.stringify(nst.store)
+
+                storage.setItem(storageKey, stringStore)
+                let savedValue = storage.getItem(storageKey)
+
+                if(savedValue && savedValue === stringStore){
+                    nst.emit(ns.saved, JSON.parse(savedValue))
+                    log(`Store saved`)
+                }else{
+                    let msg = `Saved value does not match the current store after save was completed`
+                    nst.emit(ns.error, msg)
+                    log(`Persist error:`, msg)
+                }
             }catch(err){
                 nst.emit(ns.error, err)
-                log(`Error saving data with middleware`)
+                log(`Persis error:`, err)
             }
         }
 
@@ -122,11 +147,7 @@ export const persistAdapter: T_NestoreAdapter = (
         
         //_                                                                                     
         nst.onAny((data:any) => {
-            // ignore middleware events '@mid-event'
-            if(data.startsWith('@')) return;
-            // createLog('middleware:event')('nst:* middleware event:', data)
-            // handleSave.cancel()
-            handleSave()
+            !data.startsWith('@') && handleSave()
         })
 
         loadStore()
@@ -143,8 +164,26 @@ export const persistAdapter: T_NestoreAdapter = (
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-export const mongoAdapter = (
+export const mongoAdapter: T_NestoreAdapter = (
 
     mongoUri: string, 
     collectionName: string,
