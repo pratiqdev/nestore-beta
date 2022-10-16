@@ -32,7 +32,11 @@
 
 ---
 
-A simple key-value store with a powerful event interface for accessing, monitoring and updating values. 
+A simple key-value store with a powerful real-time state management api. 
+
+Access, monitor and update values with events.  
+Support for persistent storage with included or custom adapters.  
+In-store mutation functions for easy to manage logic.
 
 Setup is easy - just create, and export your store!
 

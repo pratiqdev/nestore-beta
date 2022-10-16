@@ -1,31 +1,39 @@
 ![logo-banner](logo.png)
 
-<h4 align='center'>
-A simple key-value store with a powerful real-time state management api. 
-</h4>
-
 <p align='center'>
-Access, monitor and update values with events.  
+<img src='https://img.shields.io/badge/license_MIT-darkblue'>
+<img src='https://img.shields.io/badge/npm_1.0.0-darkblue'>
+<img src='https://img.shields.io/badge/tests_passing-darkblue'>
 </p>
+<h4 align='center'>A simple key-value store with a powerful real-time state management api. </h4>
+<p align='center'>Access, monitor and update values with events.</p>
+<p align='center'>Support for persistent storage with included or custom adapters.</p>
+<p align='center'>In-store mutation functions for easy to manage logic.</p>
 
-<p align='center'>
-Support for persistent storage with included or custom adapters.  
-</p>
 
-<p align='center'>
-In-store mutation functions for easy to manage logic.
-</p>
+
 
 <br />
 <br />
 
 # Installation
 
-Install using a package manager like npm or yarn:
+Install using a package manager like npm or yarn, or import from a cdn:
 
 ```bash
 yarn add nestore
 ```
+
+```html
+<script src="https://unpkg.com/nestore"></script>
+```
+
+
+
+
+
+
+
 
 
 
@@ -33,6 +41,46 @@ yarn add nestore
 <br />
 
 ## Basic Usage
+
+Import nestore and create a store
+
+```ts
+import nestore from 'nestore'
+
+const myStore = nestore({ 
+    current_time: Date.now(),
+    logged_in: false,
+    user_name: null,
+    setUserName: (nst, [name]) => nst.store.user_name = name
+})
+
+export default myStore
+```
+
+Use the `get` and `set` methods to interact with the store, or custom in-store functions
+
+```ts
+import myStore from './my-store.ts'
+
+myStore.set('current_time', Date.now())
+myStore.setUserName('Alice')
+```
+
+
+
+
+
+
+
+
+
+
+
+
+<br />
+
+
+## Advanced Usage
 
 Import nestore and create a store
 
@@ -63,7 +111,8 @@ const myStore = nestore({
 export default myStore
 ```
 
-In your application, use the `get` and `set` methods to interact with the store
+In your application, use the `get` and `set` methods to interact with the store, or call custom 
+in-store functions
 
 ```ts
 import myStore from './my-store.ts'
@@ -75,7 +124,7 @@ myStore.set('current_time', Date.now())
 Then register event listeners on a key to watch for updates and trigger a callback:
 
 ```ts
-myStore.on('user.**', ({ timestamp, path, key, value }) => {
+myStore.on('user.**', ({ path, key, value }) => {
     console.log(`Path ${path} was changed to ${value}`)
 })
 ```
@@ -92,6 +141,9 @@ Updates to the store emit events containing which path and key was changed, the 
 > **Nestore extends the EventEmitter2 API**  
 > Documentation for all `EE2` methods can be found [here](https://www.npmjs.com/package/eventemitter2)
 
+
+<br />
+
 ## Event Listeners
 
 Register event listeners on a key to watch for updates and trigger a callback. 
@@ -107,6 +159,8 @@ myStore.on('user.**', ({ path, key, value }) => {
 
 
 
+<br />
+
 ## Manual Emit
 
 You can also manually emit events to force update a listener. The value provided to the emit method *should* be an object with the type `T_NestoreEmit`, but any values / types provided will be emitted.
@@ -121,6 +175,18 @@ myStore.emit('address', {
 
 myStore.emit('greeting', 'Well, hello there...')
 ```
+
+
+
+
+
+
+
+
+
+
+
+
 
 <br />
 <br />
@@ -193,11 +259,48 @@ export type T_NestoreEmitStruct = { // example
 }
 ```
 
-## Contributing
 
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change and make sure all tests pass before making a pull request.
 
-Please make sure to update tests as appropriate.
+
+
+
+
+<br />
+<br />
+
+
+# About
+
+An exploration of event based datastore management for JavaScript/TypeScript applications. Initially created to manage state and update the display of long-running nodejs CLI programs
+
+**Inspired by Zustand**  - API inspired by the vanilla implementation of [Zustand](https://github.com/pmndrs/zustand)
+
+
+
+
+
+
+
+
+
+
+
+
+<br />
+<br />
+
+
+# Contributing
+
+This state-management solutions still requires at least:
+- more / advanced test cases
+- performance imporovements
+- footprint reduction
+- better documentation
+
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change and make sure all tests pass locally before making a pull request.
+
+Please make sure to update tests as appropriate, or suggest new test cases.
 
 ### [GitHub Repository](https://github.com/pratiqdev/nestore)
 ### [GitHub Issues](https://github.com/pratiqdev/nestore/issues)
@@ -207,6 +310,6 @@ Please make sure to update tests as appropriate.
 
 
 ---
-## License
+# License
 
 MIT
