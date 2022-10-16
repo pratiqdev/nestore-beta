@@ -1,13 +1,13 @@
-![logo-banner](https://raw.githubusercontent.com/pratiqdev/nestore/main/logo.png?token=GHSAT0AAAAAABW3JECEDZIGZAEN6HLG2O34YZM4VIQ)
+![logo-banner](logo.png)
 
+<h3 align='center'>
 A simple ESMap based store with a powerful event interface. Setup is easy with Nestore, just import, create, and export your store!
+</h3>
 
-<!-- > **Inspired by Zustand**  
-> An exploration of event based datastore management for JavaScript/TypeScript applications.  
-> API inspired by the vanilla implementation of [Zustand](https://github.com/pmndrs/zustand)
- -->
+<br />
 
-> Nestore extends the EventEmitter2 API - Documentation for all methods can be found [here](https://www.npmjs.com/package/eventemitter2)
+> ### Nestore extends the EventEmitter2 API.  
+> Documentation for all `EE2` methods can be found [here](https://www.npmjs.com/package/eventemitter2)
 
 
 <br />
@@ -26,7 +26,7 @@ yarn add nestore
 
 <br />
 
-# Basic Usage
+## Basic Usage
 
 Import nestore and create a store
 
@@ -34,7 +34,9 @@ Import nestore and create a store
 import nestore from 'nestore'
 
 const myStore = nestore({ 
-    hello: 'there' 
+    greeting: 'Hello, there...',
+    name: null,
+    setName: (newName) =>
 })
 
 export default myStore
