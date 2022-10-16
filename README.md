@@ -1,12 +1,12 @@
 ![logo-banner](logo.png)
 
-<h3 align='center'>
+<h4 align='center'>
 A simple ESMap based store with a powerful event interface. Setup is easy with Nestore, just import, create, and export your store!
-</h3>
+</h4>
 
 <br />
 
-> ### Nestore extends the EventEmitter2 API.  
+> **Nestore extends the EventEmitter2 API**  
 > Documentation for all `EE2` methods can be found [here](https://www.npmjs.com/package/eventemitter2)
 
 
