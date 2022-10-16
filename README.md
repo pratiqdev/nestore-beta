@@ -1,14 +1,20 @@
 ![logo-banner](logo.png)
 
 <h4 align='center'>
-A simple ESMap based store with a powerful event interface. Setup is easy with Nestore, just import, create, and export your store!
+A simple key-value store with a powerful real-time state management api. 
 </h4>
 
-<br />
+<p align='center'>
+Access, monitor and update values with events.  
+</p>
 
-> **Nestore extends the EventEmitter2 API**  
-> Documentation for all `EE2` methods can be found [here](https://www.npmjs.com/package/eventemitter2)
+<p align='center'>
+Support for persistent storage with included or custom adapters.  
+</p>
 
+<p align='center'>
+In-store mutation functions for easy to manage logic.
+</p>
 
 <br />
 <br />
@@ -34,9 +40,24 @@ Import nestore and create a store
 import nestore from 'nestore'
 
 const myStore = nestore({ 
-    greeting: 'Hello, there...',
-    name: null,
-    setName: (newName) =>
+    current_time: Date.now(),
+    logged_in: false,
+    user_name: null,
+    user_data: null,
+
+    setLoggedIn: (nst, args) => {
+        set('logged_in', true)
+        set('user_name', args[0])
+        nst.getUserData()
+    },
+
+    getUserData: async (nst, args) => {
+        const { data } = await axios.get(`/api/user-data/${nst.store.user_name}`)
+        nst.set('user_data', data)
+        return data
+    },
+
+    // ...
 })
 
 export default myStore
@@ -47,73 +68,69 @@ In your application, use the `get` and `set` methods to interact with the store
 ```ts
 import myStore from './my-store.ts'
 
-let value = myStore.get('hello')  // => "there"
-myStore.set('hello', 'World!')    // => true; 
+myStore.setLoggedIn('Johnny68')
+myStore.set('current_time', Date.now())
 ```
 
 Then register event listeners on a key to watch for updates and trigger a callback:
 
-```ts 
-myStore.on('hello', (data) => {
-    console.log(data)
-    // data.path:  "hello"
-    // data.key:   "hello"
-    // data.value: "World!"
+```ts
+myStore.on('user.**', ({ timestamp, path, key, value }) => {
+    console.log(`Path ${path} was changed to ${value}`)
 })
 ```
 
 
 
 <br />
+<br />
 
 # Store Events 
 
+Updates to the store emit events containing which path and key was changed, the new value and a timestamp of the event.
 
+> **Nestore extends the EventEmitter2 API**  
+> Documentation for all `EE2` methods can be found [here](https://www.npmjs.com/package/eventemitter2)
 
+## Event Listeners
 
-## On Updates
-
+Register event listeners on a key to watch for updates and trigger a callback. 
 The `set` method causes the store to emit an event containing the key, value and path that was updated.
 
 ```ts
-import nestore from 'nestore'
-
-const myStore = nestore({ 
-    user: {
-        name: 'Alice',
-        email: 'AliceA.@email.com'
-    }
+myStore.on('user.**', ({ path, key, value }) => {
+    console.log(`Path ${path} was changed to ${value}`)
 })
-
-// Register a listener on the value
-myStore.on('hello', ({key, value}) => console.log(`The key ${key} was changed to:`, value))
-
-myStore.set('hello', 'World!')
 ```
+
+
 
 
 
 ## Manual Emit
 
-You can also manually emit events to force update a listener. The value provided to the emit method should be an object with the type `T_NestoreEmit`.
+You can also manually emit events to force update a listener. The value provided to the emit method *should* be an object with the type `T_NestoreEmit`, but any values / types provided will be emitted.
 
 
 ```ts
 myStore.emit('address', {
     key: 'address',
     path: 'user.location.address',
-    value: '1234 Street Lane'
+    value: '1234 Street Lane',
 })
+
+myStore.emit('greeting', 'Well, hello there...')
 ```
 
-
+<br />
+<br />
 
 # TypeScript
 
 Nestore was built with and supports ts out of the box. Types are automatically inferred from `initialStore`.
 
 
-You can optionally provide a type definition when creating the store:
+You can optionally provide a type definition when creating the store
 
 ```ts
 export interface I_MyStore {

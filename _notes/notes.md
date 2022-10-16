@@ -30,18 +30,24 @@
 - what if localStorage and db are desynced
 
 
+---
+
+A simple key-value store with a powerful event interface for accessing, monitoring and updating values. 
+
+Setup is easy - just create, and export your store!
+
+
+
+
+
 # Readme - cool stuff to note in the readme intro section
 
 > **Inspired by Zustand**  
 > An exploration of event based datastore management for JavaScript/TypeScript applications.  
 > API inspired by the vanilla implementation of [Zustand](https://github.com/pmndrs/zustand)
 
-- Flux-like store architecture with decentralized dispatcher
-- Flux-like store
 
-- Key:value store
-- Easy access to deeply nested state
-- Listen for changes to the store with EE2 event methods
-- Extend nestore with custom adapters (or use the included persist / mongo adapters)
-- Use zustand-style in-store setters for easy to manage logic
-- 
+## Easy to access, monitor and update deeply nested state
+## Listen for changes to the store with EE2 event methods
+## Extend nestore with custom adapters (or use the included persist / mongo adapters)
+## Use in-store setters for easy to manage logic

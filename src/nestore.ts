@@ -18,7 +18,7 @@ export type T_NestoreOptions = {
 }
 
 export type T_NestoreEmit = {
-    timestamp: number;
+    // timestamp: number;
     path: string;
     key: string;
     value?: any;
@@ -117,7 +117,7 @@ class Nestore<T> extends EE2{
                     : 10
         })
         const log = createLog('constr')
-        console.log('>> NESTORE V4')
+        // console.log('>> NESTORE V4')
         log('Creating store...')
 
 
@@ -136,13 +136,14 @@ class Nestore<T> extends EE2{
             throw new Error("neStore | Initial store must be of type: object  eg: { myKey: 'myValue' }");
         }
         
-        
+        type T_TEST_TYPE = (this: T_Nestore<T>, args?: any[]) => any;
         
         store && Object.entries(store).forEach(([ key, val ]) => {
             if(typeof val === 'function'){
                 this.#SETTER_FUNCTIONS.push(key)
+                let SETTER: T_TEST_TYPE = val
                 //@ts-ignore
-                this[key] = (...args:any) => val(this, args)
+                this[key] = (...args:any) => SETTER(this, args) 
             }
         })
 
@@ -274,7 +275,7 @@ class Nestore<T> extends EE2{
                     path,
                     key,
                     value,
-                    timestamp: Date.now()
+                    // timestamp: Date.now()
                 })
             }
 
@@ -371,7 +372,7 @@ class Nestore<T> extends EE2{
                         path: '/',
                         key: '',
                         value: this.store,  
-                        timestamp: Date.now(),
+                        // timestamp: Date.now(),
                     })
                 }else{
                     log(`Setting with no emit "/" : "${value}"`)
@@ -408,7 +409,7 @@ class Nestore<T> extends EE2{
                 path,
                 key: this.#getLastKeyFromPathString(path),
                 value,
-                timestamp: Date.now(),
+                // timestamp: Date.now(),
 
             })
             return true
@@ -502,7 +503,7 @@ class Nestore<T> extends EE2{
             path,
             key: this.#getLastKeyFromPathString(path),
             value: undefined,
-            timestamp: Date.now(),
+            // timestamp: Date.now(),
 
         })
         //! Why is this being called here!?
@@ -513,7 +514,8 @@ class Nestore<T> extends EE2{
     get store(){
         //~                                             
         // return cloneDeep(this.#INTERNAL_STORE)
-        return {...this.#INTERNAL_STORE}
+        // return {...this.#INTERNAL_STORE}
+        return this.#INTERNAL_STORE
     }
 
 }
