@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import nestore, { T_Nestore, T_NestoreOptions } from './nestore'
-import persistAdapter from './persistAdapter'
+import persistAdapter from './adapters/persistAdapter'
 
 const createStore = <T>(initialStore:Partial<T>, options?: T_NestoreOptions) => {
     

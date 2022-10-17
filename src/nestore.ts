@@ -5,6 +5,10 @@ const createLog = (namespace:string) => debug('nestore:' + namespace)
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+export type T_Nestore<T> = Nestore<Partial<T>>
+export type T_NestoreAdapter = <T>(...args:any[]) => T_NestoreAdapterReturn;
+export type T_NestoreAdapterReturn = <T>(nestore: T_Nestore<T>) => void;
+
 export type T_NestoreOptions = {
     delimiter?: string;
     wildcard?: boolean;
@@ -23,32 +27,6 @@ export type T_NestoreEmit = {
     key: string;
     value?: any;
 }
-
-export type T_Nestore<T> = Nestore<Partial<T>>
-
-export type T_NestoreFunction = <T>(initialStore?: T, options?: T_NestoreOptions) => T_Nestore<T>
-
-export type T_NestoreAdapter = <T>(...args:any[]) => <T>(nestore: T_Nestore<T>) => void;
-export type T_NestoreAdapterReturn = <T>(nestore: T_Nestore<T>) => void;
-
-
-
-export type T_AnyStore = {
-    get: (...args:any[]) => any; 
-    set: (...args:any[]) => any;
-} | {
-    getItem: (...args:any[]) => any;
-    setItem: (...args:any[]) => any;
-} 
-
-// | (() => {
-//     get: (...args:any[]) => any; 
-//     set: (...args:any[]) => any;
-// } | {
-//     getItem: (...args:any[]) => any;
-//     setItem: (...args:any[]) => any;
-// })
-
 
 export type T_AdapterEmit = {
     timestamp: number;
@@ -97,7 +75,7 @@ const COLORS = {
 /** Nestore? */
 class Nestore<T> extends EE2{
     
-    #INTERNAL_STORE: Partial<T>; 
+    store: Partial<T>; 
     #ORIGINAL_STORE: Partial<T>;
     #DELIMITER_CHAR: string;
     #SETTER_FUNCTIONS: string[];
@@ -106,7 +84,7 @@ class Nestore<T> extends EE2{
     #DEV_EXTENSION: any;
 
 
-    constructor(store: T | Partial<T> = {}, options: T_NestoreOptions = {}){
+    constructor(initialStore: T | Partial<T> = {}, options: T_NestoreOptions = {}){
         super({
             wildcard: options.wildcard === false ? false : true,
             delimiter: typeof options.delimiter === 'string' ? options.delimiter : '.',
@@ -118,11 +96,11 @@ class Nestore<T> extends EE2{
                     : 10
         })
         const log = createLog('constr')
-        // console.log('>> NESTORE V4')
+        console.log('>> NESTORE V5')
         log('Creating store...')
 
 
-        this.#INTERNAL_STORE = {}
+        this.store = {}
         this.#ORIGINAL_STORE = {}
         this.#DELIMITER_CHAR = ''   
         this.#SETTER_FUNCTIONS = []
@@ -130,23 +108,18 @@ class Nestore<T> extends EE2{
         this.#PREVENT_REPEAT_UPDATE = true
         this.#DEV_EXTENSION = null
 
-        if(store instanceof Nestore) return store;
+        if(initialStore instanceof Nestore) return initialStore;
 
-        const thing = {
-            what: () => {},
-            $that: () => {}
-        }
         
         
-        
-        if(typeof store !== 'object' || Array.isArray(store)){
+        if(typeof initialStore !== 'object' || Array.isArray(initialStore)){
             throw new Error("neStore | Initial store must be of type: object  eg: { myKey: 'myValue' }");
         }
         
         type T_CustomMutator = (this: T_Nestore<T>, args?: any[]) => any;
         type T_ListenerMutator = any;
         
-        store && Object.entries(store).forEach(([ key, val ]) => {
+        initialStore && Object.entries(initialStore).forEach(([ key, val ]) => {
             if(typeof val === 'function'){
                 if(key.startsWith('$')){
                     this.#SETTER_LISTENERS.push(key)
@@ -157,19 +130,31 @@ class Nestore<T> extends EE2{
                 }else{
                     this.#SETTER_FUNCTIONS.push(key)
                     let SETTER: T_CustomMutator = val
+                    // this[key] = (...args:any) => SETTER(this, args)
+                    let newStruct = {
+                        loading: this.#adapter_loadingData,
+                        loaded: this.#adapter_loadedData,
+                        saving: this.#adapter_savingData,
+                        saved: this.#adapter_savedData,
+                        registered: this.#adapter_registered,
+                        error: this.#adapter_error,
+                        store: this.store,
+                        onUpdate: this.onAny
+                    }
                     //@ts-ignore
-                    this[key] = (...args:any) => SETTER(this, args) 
+                    this[key] = (...args:any) => SETTER(newStruct, args) 
+
                 }
             }
         })
 
   
 
-        let storeOmitted:Partial<T> = Object.fromEntries(Object.entries(store).filter(([KEY,VAL]:any) => !this.#SETTER_FUNCTIONS.includes(KEY) && !this.#SETTER_LISTENERS.includes(KEY) )) as Partial<T>
+        let storeOmitted:Partial<T> = Object.fromEntries(Object.entries(initialStore).filter(([KEY,VAL]:any) => !this.#SETTER_FUNCTIONS.includes(KEY) && !this.#SETTER_LISTENERS.includes(KEY) )) as Partial<T>
 
 
         this.#PREVENT_REPEAT_UPDATE = options.preventRepeatUpdates === false ? false : true
-        this.#INTERNAL_STORE = storeOmitted
+        this.store = storeOmitted
         this.#ORIGINAL_STORE = JSON.parse(JSON.stringify(storeOmitted))
         this.#DELIMITER_CHAR = typeof options.delimiter === 'string' ? options.delimiter : COMMON.DEFAULT_DELIMITER_CHAR
         
@@ -192,8 +177,8 @@ class Nestore<T> extends EE2{
                         devext = extensionConnector.connect()
                         // log(`Connected to devtools`)
                         
-                        devext.init(this.#INTERNAL_STORE);
-                        // devext.send('@@NESTORE_CONNECT', this.#INTERNAL_STORE )
+                        devext.init(this.store);
+                        // devext.send('@@NESTORE_CONNECT', this.store )
                         // devTools.send('@@NESTORE_CONNECT', { value: 'state changed' })
                         devext.subscribe((message: any) => {
                             console.log('devext message:', message)
@@ -216,7 +201,7 @@ class Nestore<T> extends EE2{
         }
 
         // log('='.repeat(80))
-        log('Store created:', store)
+        log('Store created:', initialStore)
         
         if(typeof options.adapter === 'function'){
             try{
@@ -230,6 +215,26 @@ class Nestore<T> extends EE2{
         // log('='.repeat(80))
     }
 
+    #adapter_loadingData(namespace:string){
+        this.emit(`@${namespace}.loading`, this.store) 
+    }
+    #adapter_loadedData(namespace:string, data: Partial<T>){ 
+        this.store = data; 
+        this.emit(`@${namespace}.loaded`, data) 
+    }
+    #adapter_savingData(namespace:string){ 
+        this.emit(`@${namespace}.saving`, this.store) 
+    }
+    #adapter_savedData(namespace:string, data: Partial<T>){ 
+        this.store = data; 
+        this.emit(`@${namespace}.saved`, data) 
+    }
+    #adapter_error(namespace:string, error: Error){ 
+        this.emit(`@${namespace}.error`, error) 
+    }
+    #adapter_registered(namespace:string){ 
+        this.emit(`@${namespace}.regitsered`, namespace) 
+    }
 
 
     //_                                                                                             
@@ -240,7 +245,7 @@ class Nestore<T> extends EE2{
         log(`>> Emitting  "${args.path}" =>`, args.value)
         // if(this.#DEV_EXTENSION){
         //     log('sending state to devtools:', args)
-        //     this.#DEV_EXTENSION.send(args.path, this.#INTERNAL_STORE)
+        //     this.#DEV_EXTENSION.send(args.path, this.store)
         // }else{
         //     log(`no dev ext`)
         // }
@@ -335,17 +340,17 @@ class Nestore<T> extends EE2{
 
 
     //&                                                                                             
-    set = (path:string | Partial<T>, value?:any, flag?: string) => {
+    set = (path:string | Partial<T>, value?:any, quiet?: string) => {
         try{
             const log = createLog('set')
         
             
             if(this.#PREVENT_REPEAT_UPDATE){
-                if(typeof path === 'string' && isEqual(  get(this.#INTERNAL_STORE, path),  value  )){
+                if(typeof path === 'string' && isEqual(  get(this.store, path),  value  )){
                     log(`Provided value already matches stored value, skipping...`)
                     log({
                         new: value,
-                        old: get(this.#INTERNAL_STORE, path),
+                        old: get(this.store, path),
                     })
                     return false
                 }else if(typeof path === 'object' && isEqual(this.store, path)){
@@ -369,21 +374,22 @@ class Nestore<T> extends EE2{
             // set the store directly with an object
             // NST.set({ ...newStore })
             if(typeof path === 'object'){
-                let originalValue = this.#INTERNAL_STORE
+                let originalValue = this.store
     
                 if(!Array.isArray(path)){
                     log(`Setting "store" : "${value}"`)
                     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                    // this.#INTERNAL_STORE = cloneDeep(path)
-                    this.#INTERNAL_STORE = {...path}
+                    // this.store = cloneDeep(path)
+                    this.store = {...path}
                 }
 
-                if(flag === 'devext'){
-                    log(`Set - set new store - handle emit all`)
+                if(quiet === 'devext'){
+                    log(`DEVEXT - set new store - handle emit all`)
                     this.#handleEmitAll(true)
                 }
 
-                else if(flag !== 'quiet') {
+                else if(typeof quiet === 'undefined') {
+                    log('quiet - nullish - emit "/"')
                     this.#emit({
                         path: '/',
                         key: '',
@@ -394,7 +400,8 @@ class Nestore<T> extends EE2{
                     log(`Setting with no emit "/" : "${value}"`)
                 }
 
-                if(flag !== 'devext'){
+                if(quiet !== 'devext'){
+                    log('DEVEXT')
                     this.#DEV_EXTENSION
                     && this.#DEV_EXTENSION.send({
                         type: `/: store => newStore`,
@@ -409,7 +416,7 @@ class Nestore<T> extends EE2{
             // log(`Setting "${path}" : "${value}"`)
             let originalValue = this.#DEV_EXTENSION ? this.get(path) : null
 
-            set(this.#INTERNAL_STORE, path, value)
+            set(this.store, path, value)
 
             if(this.#DEV_EXTENSION){
                 this.#DEV_EXTENSION.send({
@@ -449,7 +456,7 @@ class Nestore<T> extends EE2{
                 return path(this.store)
             }
 
-            return get(this.#INTERNAL_STORE, path)
+            return get(this.store, path)
 
         }catch(err){
             return undefined
@@ -462,29 +469,29 @@ class Nestore<T> extends EE2{
         
         log('-'.repeat(60))
         log(`current store:`)
-        log(this.#INTERNAL_STORE)
+        log(this.store)
         log('-'.repeat(60))
     
         if(this.#DEV_EXTENSION){
             this.#DEV_EXTENSION.send({
                 type: `/: store => originalStore`,
                 path: '/',
-                previousValue: this.#INTERNAL_STORE,
+                previousValue: this.store,
                 value: this.#ORIGINAL_STORE
             }, this.#ORIGINAL_STORE)
         }
 
-        this.#INTERNAL_STORE = this.#ORIGINAL_STORE
+        this.store = this.#ORIGINAL_STORE
 
             
 
         log(`reset store:`)
-        log(this.#INTERNAL_STORE)
+        log(this.store)
         log('-'.repeat(60))
         // this.#emit({
         //     path: '/',
         //     key: '/',
-        //     value: this.#INTERNAL_STORE
+        //     value: this.store
         // })
         this.#handleEmitAll()
     }
@@ -504,7 +511,7 @@ class Nestore<T> extends EE2{
             og = this.get(path)
         }
             
-        this.#INTERNAL_STORE = omit(this.#INTERNAL_STORE, [path])
+        this.store = omit(this.store, [path])
 
         if(this.#DEV_EXTENSION){
             this.#DEV_EXTENSION.send({
@@ -512,7 +519,7 @@ class Nestore<T> extends EE2{
                 previousValue: og,
                 path,
                 value: undefined,
-            }, this.#INTERNAL_STORE)
+            }, this.store)
         }
 
         this.#emit({
@@ -527,12 +534,12 @@ class Nestore<T> extends EE2{
         this.#handleEmitAll()
     }
 
-    get store(){
-        //~                                             
-        // return cloneDeep(this.#INTERNAL_STORE)
-        // return {...this.#INTERNAL_STORE}
-        return this.#INTERNAL_STORE
-    }
+    // get store(){
+    //     //~                                             
+    //     // return cloneDeep(this.store)
+    //     // return {...this.store}
+    //     return this.store
+    // }
 
 }
 

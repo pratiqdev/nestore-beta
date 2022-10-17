@@ -14,7 +14,7 @@ const persistAdapter: T_NestoreAdapter = (
     namespace:string = 'nestore-persist', 
     batchTime:number = 10_000
 
-) => <T>(nst: T_Nestore<T>) => {
+) => <T>({ registered, error, loading, loaded, saved, saving, store, onUpdate  }:any) => {
     
     const adapterStartTime:number = Date.now()
 
@@ -65,13 +65,14 @@ const persistAdapter: T_NestoreAdapter = (
     }
     
     log('Nestore persist adapeter registered:', namespace)
-    nst.emit(ns.registered, {
-        adapter: 'persistAdapter',
-        storageKey,
-        storage,
-        namespace, 
-        batchTime
-    })
+    // nst.emit(ns.registered, {
+    //     adapter: 'persistAdapter',
+    //     storageKey,
+    //     storage,
+    //     namespace, 
+    //     batchTime
+    // })
+    registered(namespace)
     
     
     try{
@@ -91,26 +92,30 @@ const persistAdapter: T_NestoreAdapter = (
                 if(storeLoaded) return;
                 // log(`Loading: Time since adapter start:`, Date.now() - adapterStartTime + ` ms`)
                 log(`Loading storage into store...`)
-                nst.emit(ns.loading, nst.store)
+                // nst.emit(ns.loading, nst.store)
+                loading(namespace)
                 
                 let storedData = storage.getItem(storageKey) ?? '{}'
                 let sto = JSON.parse(storedData)
                 
                 // await new Promise(res => setTimeout(res, 1500))
                 
-                if(storedData !== '{}'){
-                    nst.set(sto, null, 'quiet')
-                }else{
-                    log(`Empty object returned from storage, skipping nst.set()`)
-                }
-                nst.emit(ns.loaded, sto)
+                // if(storedData !== '{}'){
+                //     nst.set(sto, null, 'quiet')
+                //     // nst.store = sto
+                // }else{
+                //     log(`Empty object returned from storage, skipping nst.set()`)
+                // }
+                // nst.emit(ns.loaded, sto)
                 // log(`Loaded: Time since adapter start:`, Date.now() - adapterStartTime + ` ms`)
                 // log(`Loaded: Time since load start:`, Date.now() - loadStartTime + ` ms`)
                 log(`Storage loaded into store:`, sto)
+                loaded(namespace, sto)
                 storeLoaded = true
             }catch(err){
                 log(`Error loading storage with persist adapter:`, err)
-                nst.emit(ns.error, err)
+                // nst.emit(ns.error, err)
+                error(namespace, err)
             }
         }
 
@@ -118,23 +123,27 @@ const persistAdapter: T_NestoreAdapter = (
         const handleSaveFunc = () => {
             try{
                 const log = createLog('persist:save')
+                saving(namespace)
                 log(`Saving store to storage...`)
-                nst.emit(ns.saving, nst.store)
-                let stringStore = JSON.stringify(nst.store)
+                // nst.emit(ns.saving, nst.store)
+                let stringStore = JSON.stringify(store)
 
                 storage.setItem(storageKey, stringStore)
                 let savedValue = storage.getItem(storageKey)
 
                 if(savedValue && savedValue === stringStore){
-                    nst.emit(ns.saved, JSON.parse(savedValue))
+                    // nst.emit(ns.saved, JSON.parse(savedValue))
+                    saved(namespace, JSON.parse(savedValue))
                     log(`Store saved to storage`)
                 }else{
                     let msg = `Saved value does not match the current store after save was completed`
-                    nst.emit(ns.error, msg)
+                    // nst.emit(ns.error, msg)
+                    error(namespace, msg)
                     log(`Persist adapter error:`, msg)
                 }
             }catch(err){
-                nst.emit(ns.error, err)
+                // nst.emit(ns.error, err)
+                error(namespace, err)
                 log(`Persisadapter error:`, err)
             }
         }
@@ -146,7 +155,7 @@ const persistAdapter: T_NestoreAdapter = (
         })
         
         //_                                                                                     
-        nst.onAny((data:any) => {
+        onUpdate((data:any) => {
             !data.startsWith('@') && handleSave()
         })
 
@@ -155,7 +164,8 @@ const persistAdapter: T_NestoreAdapter = (
        
     }catch(err){
         console.log('Nestore persist error:', err)
-        nst.emit(ns.error, err)
+        // nst.emit(ns.error, err)
+        error(namespace, err)
     }
 }
 

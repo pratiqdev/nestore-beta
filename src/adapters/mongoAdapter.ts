@@ -16,7 +16,7 @@ const createLog = (namespace:string) => debug('nestore:' + namespace)
 
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-export const mongoAdapter: T_NestoreAdapter = (
+const mongoAdapter: T_NestoreAdapter = (
 
     mongoUri: string, 
     collectionName: string,
@@ -226,3 +226,6 @@ export const mongoAdapter: T_NestoreAdapter = (
         log(`-`.repeat(60))
     }
 }
+
+
+export default mongoAdapter
