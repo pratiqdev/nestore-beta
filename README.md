@@ -88,22 +88,6 @@ myStore.setUserName('Alice')
 
 
 
-Then register event listeners on a key to watch for updates and trigger a callback:
-
-```ts
-myStore.on('user.**', ({ path, key, value }) => {
-    console.log(`Path ${path} was changed to ${value}`)
-})
-```
-
-
-
-
-
-
-
-
-
 
 <br />
 <br />
