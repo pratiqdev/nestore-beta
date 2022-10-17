@@ -18,6 +18,7 @@ const heading = (text) => `${text}\n  ${'-'.repeat(text.length)}`
 
 const initialStore = {
     title: 'The Book',
+    /** The number of pages in the current book. */
     pages: 817,
     checkedOut: false,
     chapters: ['1-The Start', '2-The Middle', '3-The End'],
@@ -87,6 +88,12 @@ const initialStore = {
     mutabilityTestB: (N, args) => {
         const [newTitle] = args
         N.store.title = newTitle
+    },
+
+    $title: (N, event) => {
+        console.log(`In store listener event:`, event)
+        N.set('value-added-from-$title', 'ayooo')
+        // N.set('title', 'new title:' + event.value)
     },
 }
 
@@ -185,7 +192,7 @@ describe(heading('A | Setup'), function(){
         
     })
 
-    it.only('A.7 | Nestore registers middleware', (done) => {
+    it('A.7 | Nestore registers middleware', (done) => {
         // console.log(nestore)
 
 
@@ -337,18 +344,14 @@ describe(heading('C | Set'), () => {
 
         NST.on('title', ()=> console.log('store was updated...'))
 
-        NST.get().title = '98765'
-        NST.get().thangy = 'woop'
+        NST.store.title = '98765'
+        NST.store.thangy = 'woop'
 
         expect( NST.get('title') )
-            .to.not.eq( '98765' )
+            .to.eq( '98765' )
         
         expect( NST.get('thangy') )
-            .to.not.eq( 'woop' )
-            
-
-
-
+            .to.eq( 'woop' )
 
     })
 
@@ -389,7 +392,22 @@ describe(heading('C | Set'), () => {
 
     })
 
-    it.skip('C.6 | Emits updates for repeated matching events when preventRepeatUpdates = false')
+    it('C.6 | Emits updates for repeated matching events when preventRepeatUpdates = false', () => {
+        const NST = nestore(initialStore, {
+            preventRepeatUpdates: false
+        })
+        let count = 0
+        NST.on('title', () => count++)
+
+        NST.set('title', 'Frank')
+        NST.set('title', 'Frank')
+        NST.set('title', 'Frank')
+        NST.set('title', 'Frank')
+        NST.set('title', 'Frank')
+
+        expect(count).to.eq(5)
+
+    })
 
 });
 
@@ -932,7 +950,19 @@ describe(heading('F | Setters'), () => {
 
 });
 
-describe(heading('G | Mutability'), () => {
+describe.only(heading('G | In store listeners'), () => {
+
+    it('G.1 | $title', async () => {
+        const NST = nestore(initialStore)
+
+        NST.set('title', 'here we go')
+        let res = NST.get('value-added-from-$title')
+        console.log('>>', res)
+    })
+
+})
+
+describe(heading('G | Mutability / Silent Updates'), () => {
 
     it('G.1 | NST.get() => store.* = X', async () => {
         const NST = nestore(initialStore)
@@ -941,7 +971,7 @@ describe(heading('G | Mutability'), () => {
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
 
         NST.get().title = 'aaa'
-        expect(NST.get('title')).to.not.eq('aaa')
+        expect(NST.get('title')).to.eq('aaa')
 
         // no events should be emitted from direct mutations, if they happen
         expect( recievedEvents.length ).to.eq( 0 )
@@ -955,7 +985,7 @@ describe(heading('G | Mutability'), () => {
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
 
         NST.store.title = 'bbb'
-        expect(NST.get('title')).to.not.eq('bbb')
+        expect(NST.get('title')).to.eq('bbb')
 
         // no events should be emitted from direct mutations, if they happen
         expect( recievedEvents.length ).to.eq( 0 )
@@ -969,7 +999,7 @@ describe(heading('G | Mutability'), () => {
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
 
         NST.mutabilityTestA('ccc')
-        expect(NST.get('title')).to.not.eq('ccc')
+        expect(NST.get('title')).to.eq('ccc')
         
         // no events should be emitted from direct mutations, if they happen
         expect( recievedEvents.length ).to.eq( 0 )
@@ -983,7 +1013,7 @@ describe(heading('G | Mutability'), () => {
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
 
         NST.mutabilityTestB('ddd')
-        expect(NST.get('title')).to.not.eq('ddd')
+        expect(NST.get('title')).to.eq('ddd')
 
         // no events should be emitted from direct mutations, if they happen
         expect( recievedEvents.length ).to.eq( 0 )
@@ -996,9 +1026,8 @@ describe(heading('G | Mutability'), () => {
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
 
-        let ref = NST.get('title') 
-        ref = 'eee'
-        expect(NST.get('title')).to.not.eq('eee')
+        NST.store.title = 'eee'
+        expect(NST.get('title')).to.eq('eee')
 
         // no events should be emitted from direct mutations, if they happen
         expect( recievedEvents.length ).to.eq( 0 )
@@ -1006,7 +1035,6 @@ describe(heading('G | Mutability'), () => {
     })
 
 });
-
 
 describe.skip(heading('Performance'), function(){
     this.timeout(60_000)

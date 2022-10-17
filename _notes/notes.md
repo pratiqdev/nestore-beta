@@ -28,3 +28,30 @@
 **CONCERNS**
 
 - what if localStorage and db are desynced
+
+
+---
+
+A simple key-value store with a powerful real-time state management api. 
+
+Access, monitor and update values with events.  
+Support for persistent storage with included or custom adapters.  
+In-store mutation functions for easy to manage logic.
+
+Setup is easy - just create, and export your store!
+
+
+
+
+
+# Readme - cool stuff to note in the readme intro section
+
+> **Inspired by Zustand**  
+> An exploration of event based datastore management for JavaScript/TypeScript applications.  
+> API inspired by the vanilla implementation of [Zustand](https://github.com/pmndrs/zustand)
+
+
+## Easy to access, monitor and update deeply nested state
+## Listen for changes to the store with EE2 event methods
+## Extend nestore with custom adapters (or use the included persist / mongo adapters)
+## Use in-store setters for easy to manage logic

@@ -1,13 +1,16 @@
-![logo-banner](https://raw.githubusercontent.com/pratiqdev/nestore/main/logo.png?token=GHSAT0AAAAAABW3JECEDZIGZAEN6HLG2O34YZM4VIQ)
+![logo-banner](logo.png)
 
-A simple ESMap based store with a powerful event interface. Setup is easy with Nestore, just import, create, and export your store!
+<p align='center'>
+<img src='https://img.shields.io/badge/license_MIT-darkblue'>
+<img src='https://img.shields.io/badge/npm_1.0.0-darkblue'>
+<img src='https://img.shields.io/badge/tests_passing-darkblue'>
+</p>
+<h4 align='center'>A simple key-value store with a powerful real-time state management api. </h4>
+<p align='center'>Access, monitor and update values with events.</p>
+<p align='center'>Support for persistent storage with included or custom adapters.</p>
+<p align='center'>In-store mutator functions for easy to manage logic.</p>
 
-<!-- > **Inspired by Zustand**  
-> An exploration of event based datastore management for JavaScript/TypeScript applications.  
-> API inspired by the vanilla implementation of [Zustand](https://github.com/pmndrs/zustand)
- -->
 
-> Nestore extends the EventEmitter2 API - Documentation for all methods can be found [here](https://www.npmjs.com/package/eventemitter2)
 
 
 <br />
@@ -15,103 +18,208 @@ A simple ESMap based store with a powerful event interface. Setup is easy with N
 
 # Installation
 
-Install using a package manager like npm or yarn:
+Install using a package manager like npm or yarn, or import from a cdn:
 
 ```bash
 yarn add nestore
 ```
 
+```html
+<script src="https://unpkg.com/nestore"></script>
+```
+
+
+
+
+
+
+
+
 
 
 
 <br />
 
-# Basic Usage
+## Usage
 
-Import nestore and create a store
+Import nestore and create a store. The store is an object that contains all the state, and optionally contains in-store mutator functions
 
 ```ts
 import nestore from 'nestore'
 
 const myStore = nestore({ 
-    hello: 'there' 
+    current_time: Date.now(),
+    logged_in: false,
+    user_name: null,
+    setUserName: (nst, [name]) => nst.store.user_name = name,
+    getUserData: async (nst, args) => {
+        const { data } = await axios.get(`/api/user-data/${nst.store.user_name}`)
+        nst.set('user_data', data)
+        return data
+    },
 })
 
 export default myStore
 ```
 
-In your application, use the `get` and `set` methods to interact with the store
+Register event listeners on a key to watch for updates and trigger a callback:
+
+```ts
+myStore.on('user.**', ({ path, key, value }) => {
+    console.log(`Path ${path} was changed to ${value}`)
+})
+```
+
+Use the `get` and `set` methods to interact with the store, or custom in-store functions
 
 ```ts
 import myStore from './my-store.ts'
 
-let value = myStore.get('hello')  // => "there"
-myStore.set('hello', 'World!')    // => true; 
+myStore.set('current_time', Date.now())
+myStore.setUserName('Alice')
 ```
+
+
+
+
+
+
+
+
+
 
 Then register event listeners on a key to watch for updates and trigger a callback:
 
-```ts 
-myStore.on('hello', (data) => {
-    console.log(data)
-    // data.path:  "hello"
-    // data.key:   "hello"
-    // data.value: "World!"
+```ts
+myStore.on('user.**', ({ path, key, value }) => {
+    console.log(`Path ${path} was changed to ${value}`)
 })
 ```
+
+
+
+
+
+
+
+
+
+
+<br />
+<br />
+
+# Store Events 
+
+Updates to the store emit events containing which path and key was changed, the new value and a timestamp of the event.
+
+> **Nestore extends the EventEmitter2 API**  
+> Documentation for all `EE2` methods can be found [here](https://www.npmjs.com/package/eventemitter2)
+
+
+<br />
+
+## On Update
+
+Register event listeners on a key to watch for updates and trigger a callback. 
+The `set` method causes the store to emit an event containing the key, value and path that was updated.
+
+```ts
+myStore.on('user.**', ({ path, key, value }) => {
+    console.log(`Path ${path} was changed to ${value}`)
+})
+```
+
+You can also register listeners directly in the store with the `$` prefix. These are great for managing repeatable async operations, eg: fetching user data when a `user_name` value changes.
+
+```ts
+const myStore = nestore({
+    name: null,
+    online: false,
+
+    $name: (nst, event) => nst.set('online', event.value ? true : false)
+})
+```
+
+
 
 
 
 <br />
 
-# Store Events 
-
-
-
-
-## On Updates
-
-The `set` method causes the store to emit an event containing the key, value and path that was updated.
-
-```ts
-import nestore from 'nestore'
-
-const myStore = nestore({ 
-    user: {
-        name: 'Alice',
-        email: 'AliceA.@email.com'
-    }
-})
-
-// Register a listener on the value
-myStore.on('hello', ({key, value}) => console.log(`The key ${key} was changed to:`, value))
-
-myStore.set('hello', 'World!')
-```
-
-
-
 ## Manual Emit
 
-You can also manually emit events to force update a listener. The value provided to the emit method should be an object with the type `T_NestoreEmit`.
+You can also manually emit events to force update a listener. The value provided to the emit method *should* be an object with the type `T_NestoreEmit`, but any values / types provided will be emitted.
 
 
 ```ts
 myStore.emit('address', {
     key: 'address',
     path: 'user.location.address',
-    value: '1234 Street Lane'
+    value: '1234 Street Lane',
 })
+
+myStore.emit('greeting', 'Well, hello there...')
 ```
 
 
+
+
+
+
+
+
+
+
+
+<br />
+<br />
+
+# Custom Mutator functions
+
+Manage all store logic in a single place with custom in-store mutator functions.
+
+These can be any type of function (async/sync) and return any value. Just set the state when the 
+values are ready.
+
+
+```ts
+const myStore = nestore({
+    user_name: null,
+    user_data: null,
+
+    fetchUserData: async (nst, [name]) => {
+        const { data } = await axios.get(`/api/users/${name}`)
+        nst.set('user_data', data)
+        return data
+    }
+})
+
+// just run the function
+myStore.fetchUserData('Johnny68')
+
+// wait for the return value
+let userData = await myStore.fetchUserData('Johnny68')
+```
+
+
+
+
+
+
+
+
+
+
+
+<br />
+<br />
 
 # TypeScript
 
 Nestore was built with and supports ts out of the box. Types are automatically inferred from `initialStore`.
 
 
-You can optionally provide a type definition when creating the store:
+You can optionally provide a type definition when creating the store
 
 ```ts
 export interface I_MyStore {
@@ -174,11 +282,48 @@ export type T_NestoreEmitStruct = { // example
 }
 ```
 
-## Contributing
 
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change and make sure all tests pass before making a pull request.
 
-Please make sure to update tests as appropriate.
+
+
+
+
+<br />
+<br />
+
+
+# About
+
+An exploration of event based datastore management for JavaScript/TypeScript applications. Initially created to manage state and update the display of long-running nodejs CLI programs
+
+**Inspired by Zustand**  - API inspired by the vanilla implementation of [Zustand](https://github.com/pmndrs/zustand)
+
+
+
+
+
+
+
+
+
+
+
+
+<br />
+<br />
+
+
+# Contributing
+
+This state-management solutions still requires at least:
+- more / advanced test cases
+- performance imporovements
+- footprint reduction
+- better documentation
+
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change and make sure all tests pass locally before making a pull request.
+
+Please make sure to update tests as appropriate, or suggest new test cases.
 
 ### [GitHub Repository](https://github.com/pratiqdev/nestore)
 ### [GitHub Issues](https://github.com/pratiqdev/nestore/issues)
@@ -188,6 +333,6 @@ Please make sure to update tests as appropriate.
 
 
 ---
-## License
+# License
 
 MIT

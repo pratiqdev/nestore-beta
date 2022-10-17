@@ -18,7 +18,7 @@ export type T_NestoreOptions = {
 }
 
 export type T_NestoreEmit = {
-    timestamp: number;
+    // timestamp: number;
     path: string;
     key: string;
     value?: any;
@@ -101,6 +101,7 @@ class Nestore<T> extends EE2{
     #ORIGINAL_STORE: Partial<T>;
     #DELIMITER_CHAR: string;
     #SETTER_FUNCTIONS: string[];
+    #SETTER_LISTENERS: string[];
     #PREVENT_REPEAT_UPDATE: boolean;
     #DEV_EXTENSION: any;
 
@@ -117,7 +118,7 @@ class Nestore<T> extends EE2{
                     : 10
         })
         const log = createLog('constr')
-        console.log('>> NESTORE V4')
+        // console.log('>> NESTORE V4')
         log('Creating store...')
 
 
@@ -125,10 +126,16 @@ class Nestore<T> extends EE2{
         this.#ORIGINAL_STORE = {}
         this.#DELIMITER_CHAR = ''   
         this.#SETTER_FUNCTIONS = []
+        this.#SETTER_LISTENERS = []
         this.#PREVENT_REPEAT_UPDATE = true
         this.#DEV_EXTENSION = null
 
         if(store instanceof Nestore) return store;
+
+        const thing = {
+            what: () => {},
+            $that: () => {}
+        }
         
         
         
@@ -136,19 +143,29 @@ class Nestore<T> extends EE2{
             throw new Error("neStore | Initial store must be of type: object  eg: { myKey: 'myValue' }");
         }
         
-        
+        type T_CustomMutator = (this: T_Nestore<T>, args?: any[]) => any;
+        type T_ListenerMutator = any;
         
         store && Object.entries(store).forEach(([ key, val ]) => {
             if(typeof val === 'function'){
-                this.#SETTER_FUNCTIONS.push(key)
-                //@ts-ignore
-                this[key] = (...args:any) => val(this, args)
+                if(key.startsWith('$')){
+                    this.#SETTER_LISTENERS.push(key)
+                    let SETTER: T_ListenerMutator = val
+                    let path = key.substring(1, key.length)
+                    this.on(path, (event) => SETTER(this, event))
+
+                }else{
+                    this.#SETTER_FUNCTIONS.push(key)
+                    let SETTER: T_CustomMutator = val
+                    //@ts-ignore
+                    this[key] = (...args:any) => SETTER(this, args) 
+                }
             }
         })
 
   
 
-        let storeOmitted:Partial<T> = Object.fromEntries(Object.entries(store).filter(([KEY,VAL]:any) => !this.#SETTER_FUNCTIONS.includes(KEY) )) as Partial<T>
+        let storeOmitted:Partial<T> = Object.fromEntries(Object.entries(store).filter(([KEY,VAL]:any) => !this.#SETTER_FUNCTIONS.includes(KEY) && !this.#SETTER_LISTENERS.includes(KEY) )) as Partial<T>
 
 
         this.#PREVENT_REPEAT_UPDATE = options.preventRepeatUpdates === false ? false : true
@@ -274,7 +291,7 @@ class Nestore<T> extends EE2{
                     path,
                     key,
                     value,
-                    timestamp: Date.now()
+                    // timestamp: Date.now()
                 })
             }
 
@@ -371,7 +388,7 @@ class Nestore<T> extends EE2{
                         path: '/',
                         key: '',
                         value: this.store,  
-                        timestamp: Date.now(),
+                        // timestamp: Date.now(),
                     })
                 }else{
                     log(`Setting with no emit "/" : "${value}"`)
@@ -408,7 +425,7 @@ class Nestore<T> extends EE2{
                 path,
                 key: this.#getLastKeyFromPathString(path),
                 value,
-                timestamp: Date.now(),
+                // timestamp: Date.now(),
 
             })
             return true
@@ -502,7 +519,7 @@ class Nestore<T> extends EE2{
             path,
             key: this.#getLastKeyFromPathString(path),
             value: undefined,
-            timestamp: Date.now(),
+            // timestamp: Date.now(),
 
         })
         //! Why is this being called here!?
@@ -513,7 +530,8 @@ class Nestore<T> extends EE2{
     get store(){
         //~                                             
         // return cloneDeep(this.#INTERNAL_STORE)
-        return {...this.#INTERNAL_STORE}
+        // return {...this.#INTERNAL_STORE}
+        return this.#INTERNAL_STORE
     }
 
 }
