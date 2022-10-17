@@ -39,7 +39,7 @@ const createStore = <T>(initialStore:Partial<T>, options?: T_NestoreOptions) => 
                 }
             })
 
-        }, [])
+        }, [hasPath, path])
 
         const set = (value:any) => path ? NST.set(path, value) : NST.set(value)
 
