@@ -424,7 +424,8 @@ class Nestore<T> extends EE2{
                     value,
                 }, this.store)
             }
-            else if(flag !== 'quiet') {
+            
+            if(flag !== 'quiet') {
                 log(`Setting normally "" : "${value}"`)
 
                 this.#emit({
