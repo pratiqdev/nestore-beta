@@ -332,27 +332,7 @@ describe(heading('C | Set'), () => {
 
     // })
 
-    it('C.4 | Direct store modifications dont affect internal store', () => {
-        const NST = nestore(initialStore)
-
-        NST.on('title', ()=> console.log('store was updated...'))
-
-        NST.get().title = '98765'
-        NST.get().thangy = 'woop'
-
-        expect( NST.get('title') )
-            .to.not.eq( '98765' )
-        
-        expect( NST.get('thangy') )
-            .to.not.eq( 'woop' )
-            
-
-
-
-
-    })
-
-    it('C.5 | Object passed to set() should override internal store', () => {
+    it('C.4 | Object passed to set() should override internal store', () => {
         const NST = nestore(initialStore)
 
         NST.set({
@@ -370,7 +350,7 @@ describe(heading('C | Set'), () => {
     })
 
 
-    it('C.6 | Emits updates for repeated matching events when preventRepeatUpdates = false', () => {
+    it('C.5 | Emits updates for repeated matching events when preventRepeatUpdates = false', () => {
         const NST = nestore(initialStore, {
             preventRepeatUpdates: false
         })
@@ -384,6 +364,23 @@ describe(heading('C | Set'), () => {
         NST.set('title', 'Frank')
 
         expect(count).to.eq(5)
+
+    })
+
+
+    it('C.6 | Emits no events with "quiet" updates', () => {
+        const NST = nestore(initialStore, {
+            preventRepeatUpdates: false
+        })
+        let count = 0
+        NST.on('title', () => count++)
+
+        NST.set('title', 'Frank', 'quiet')
+        NST.set('title', 'Bob', 'quiet')
+        NST.set('title', 'Tom', 'quiet')
+        NST.set('title', 'Shawn')
+
+        expect(count).to.eq(1)
 
     })
 
@@ -940,72 +937,73 @@ describe(heading('G | In store listeners'), () => {
 
 })
 
-describe(heading('G | Mutability / Silent Updates'), () => {
 
-    it('G.1 | NST.get() => store.* = X', async () => {
+describe(heading('H | Mutability'), () => {
+
+    it('H.1 | NST.get() => store.* = X', async () => {
         const NST = nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
 
-        NST.get().title = 'aaa'
-        expect(NST.get('title')).to.eq('aaa')
+        NST.store.title = 'aaa'
+        expect(NST.get('title')).to.not.eq('aaa')
 
         // no events should be emitted from direct mutations, if they happen
         expect( recievedEvents.length ).to.eq( 0 )
         
     })
 
-    it('G.2 | NST.store.* = X', async () => {
+    it('H.2 | NST.store.* = X', async () => {
         const NST = nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
 
         NST.store.title = 'bbb'
-        expect(NST.get('title')).to.eq('bbb')
+        expect(NST.get('title')).to.not.eq('bbb')
 
         // no events should be emitted from direct mutations, if they happen
         expect( recievedEvents.length ).to.eq( 0 )
         
     })
 
-    it('G.3 | setter((x) => x.get() => .store.* = X)', async () => {
+    it('H.3 | setter((x) => x.get() => .store.* = X)', async () => {
         const NST = nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
 
         NST.mutabilityTestA('ccc')
-        expect(NST.get('title')).to.eq('ccc')
+        expect(NST.get('title')).to.not.eq('ccc')
         
         // no events should be emitted from direct mutations, if they happen
         expect( recievedEvents.length ).to.eq( 0 )
         
     })
 
-    it('G.4 | setter((x) => x.store.* = X)', async () => {
+    it('H.4 | setter((x) => x.store.* = X)', async () => {
         const NST = nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
 
         NST.mutabilityTestB('ddd')
-        expect(NST.get('title')).to.eq('ddd')
+        expect(NST.get('title')).to.not.eq('ddd')
 
         // no events should be emitted from direct mutations, if they happen
         expect( recievedEvents.length ).to.eq( 0 )
         
     })
 
-    it('G.5 | NST.get("path") = X', async () => {
+    it('H.5 | NST.get("path") = X', async () => {
         const NST = nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
 
         NST.store.title = 'eee'
-        expect(NST.get('title')).to.eq('eee')
+        expect(NST.get('title')).to.not.eq('eee')
 
         // no events should be emitted from direct mutations, if they happen
         expect( recievedEvents.length ).to.eq( 0 )

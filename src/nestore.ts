@@ -18,7 +18,6 @@ export type T_NestoreOptions = {
 }
 
 export type T_NestoreEmit = {
-    timestamp: number;
     path: string;
     key: string;
     value?: any;
@@ -101,6 +100,7 @@ class Nestore<T> extends EE2{
     #ORIGINAL_STORE: Partial<T>;
     #DELIMITER_CHAR: string;
     #SETTER_FUNCTIONS: string[];
+    #SETTER_LISTENERS: string[];
     #PREVENT_REPEAT_UPDATE: boolean;
     #DEV_EXTENSION: any;
 
@@ -117,7 +117,7 @@ class Nestore<T> extends EE2{
                     : 10
         })
         const log = createLog('constr')
-        console.log('>> NESTORE V4')
+        console.log('>> NESTORE V4 (2e893d0)')
         log('Creating store...')
 
 
@@ -125,6 +125,7 @@ class Nestore<T> extends EE2{
         this.#ORIGINAL_STORE = {}
         this.#DELIMITER_CHAR = ''   
         this.#SETTER_FUNCTIONS = []
+        this.#SETTER_LISTENERS = []
         this.#PREVENT_REPEAT_UPDATE = true
         this.#DEV_EXTENSION = null
 
@@ -137,12 +138,35 @@ class Nestore<T> extends EE2{
         }
         
         
+        type T_CustomMutator = (this: T_Nestore<T>, args?: any[]) => any;
+        type T_ListenerMutator = any;
         
         store && Object.entries(store).forEach(([ key, val ]) => {
             if(typeof val === 'function'){
-                this.#SETTER_FUNCTIONS.push(key)
-                //@ts-ignore
-                this[key] = (...args:any) => val(this, args)
+                if(key.startsWith('$')){
+                    this.#SETTER_LISTENERS.push(key)
+                    let SETTER: T_ListenerMutator = val
+                    let path = key.substring(1, key.length)
+                    this.on(path, (event) => SETTER(this, event))
+
+                }else{
+                    this.#SETTER_FUNCTIONS.push(key)
+                    let SETTER: T_CustomMutator = val
+                    // // this[key] = (...args:any) => SETTER(this, args)
+                    // let newStruct = {
+                    //     loading: this.#adapter_loadingData,
+                    //     loaded: this.#adapter_loadedData,
+                    //     saving: this.#adapter_savingData,
+                    //     saved: this.#adapter_savedData,
+                    //     registered: this.#adapter_registered,
+                    //     error: this.#adapter_error,
+                    //     store: this.store,
+                    //     onUpdate: this.onAny
+                    // }
+                    //@ts-ignore
+                    this[key] = (...args:any) => SETTER(this, args) 
+
+                }
             }
         })
 
@@ -274,7 +298,6 @@ class Nestore<T> extends EE2{
                     path,
                     key,
                     value,
-                    timestamp: Date.now()
                 })
             }
 
@@ -318,6 +341,7 @@ class Nestore<T> extends EE2{
 
 
     //&                                                                                             
+    // TODO: find a better solution for update types than flag string
     set = (path:string | Partial<T>, value?:any, flag?: string) => {
         try{
             const log = createLog('set')
@@ -355,26 +379,23 @@ class Nestore<T> extends EE2{
                 let originalValue = this.#INTERNAL_STORE
     
                 if(!Array.isArray(path)){
-                    log(`Setting "store" : "${value}"`)
-                    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                    // this.#INTERNAL_STORE = cloneDeep(path)
                     this.#INTERNAL_STORE = {...path}
                 }
 
                 if(flag === 'devext'){
-                    log(`Set - set new store - handle emit all`)
+                    log(`devext | Set - set new store - handle emit all`)
                     this.#handleEmitAll(true)
                 }
-
+                
                 else if(flag !== 'quiet') {
+                    log(`Setting normally "/" : "${value}"`)
                     this.#emit({
                         path: '/',
                         key: '',
                         value: this.store,  
-                        timestamp: Date.now(),
                     })
                 }else{
-                    log(`Setting with no emit "/" : "${value}"`)
+                    log(`Setting quietly "/" : "${value}"`)
                 }
 
                 if(flag !== 'devext'){
@@ -386,6 +407,7 @@ class Nestore<T> extends EE2{
                         value: this.store
                     }, this.store)
                 }
+
                 return true
             }
 
@@ -402,15 +424,20 @@ class Nestore<T> extends EE2{
                     value,
                 }, this.store)
             }
-                
             
-            this.#emit({
-                path,
-                key: this.#getLastKeyFromPathString(path),
-                value,
-                timestamp: Date.now(),
+            if(flag !== 'quiet') {
+                log(`Setting normally "${path}" : "${value}"`)
 
-            })
+                this.#emit({
+                    path,
+                    key: this.#getLastKeyFromPathString(path),
+                    value,
+                })
+
+            }else{
+                log(`Setting quietly "${path}" : "${value}"`)
+            }    
+            
             return true
         }catch(err){
             return false
@@ -502,7 +529,6 @@ class Nestore<T> extends EE2{
             path,
             key: this.#getLastKeyFromPathString(path),
             value: undefined,
-            timestamp: Date.now(),
 
         })
         //! Why is this being called here!?
