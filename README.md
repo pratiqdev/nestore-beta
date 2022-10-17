@@ -197,6 +197,67 @@ let userData = await myStore.fetchUserData('Johnny68')
 
 
 
+<br />
+<br />
+<br />
+
+# View integration
+
+## React / Next / Vite
+
+Nestore provides a function for creating a store that returns a react hook. Create the store and export the hook for usage in other locations.
+
+```tsx
+import { createStore } from 'nestore'
+
+const useNestore = createStore({
+    logged_in: true,
+    user: {
+        name: 'John',
+        badge: {
+            type: 'flat',
+            color: 'blue',
+        }
+    }
+})
+
+export default useNestore
+```
+
+Import the hook from your store and use it in your component.
+
+```tsx
+import useNestore from '../my-store'
+
+const UserBadge = (props:Props) => {
+    const [userName] = useNestore('user.name')
+
+    return <p>{userName}</p>
+}
+```
+
+The hook takes a single argument of the path to watch for updates (or null to return the entire store) and returns the standard `[state, setState]` for interacting with the store.
+
+```ts
+const [name, setName] = useNestore('name')
+const [entireStore, overwriteEntireStore] = useNestore()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
