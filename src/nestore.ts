@@ -340,7 +340,7 @@ class Nestore<T> extends EE2{
 
 
     //&                                                                                             
-    set = (path:string | Partial<T>, value?:any, quiet?: string) => {
+    set = (path:string | Partial<T>, value?:any, flag?: string) => {
         try{
             const log = createLog('set')
         
@@ -377,18 +377,18 @@ class Nestore<T> extends EE2{
                 let originalValue = this.store
     
                 if(!Array.isArray(path)){
-                    log(`Setting "store" : "${value}"`)
+                    log(`Setting "newstore" with set({...newStore})`)
                     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     // this.store = cloneDeep(path)
                     this.store = {...path}
                 }
 
-                if(quiet === 'devext'){
+                if(flag === 'devext'){
                     log(`DEVEXT - set new store - handle emit all`)
                     this.#handleEmitAll(true)
                 }
 
-                else if(typeof quiet === 'undefined') {
+                else if(flag !== 'quiet') {
                     log('quiet - nullish - emit "/"')
                     this.#emit({
                         path: '/',
@@ -400,7 +400,7 @@ class Nestore<T> extends EE2{
                     log(`Setting with no emit "/" : "${value}"`)
                 }
 
-                if(quiet !== 'devext'){
+                if(flag !== 'devext'){
                     log('DEVEXT')
                     this.#DEV_EXTENSION
                     && this.#DEV_EXTENSION.send({
@@ -447,10 +447,10 @@ class Nestore<T> extends EE2{
         try{
             const log = createLog('get')
             if(!path || path === ''){
-                log(`Nullish "path" argument: returning entire store.`)
+                // log(`Nullish "path" argument: returning entire store.`)
                 return this.store
             }
-            log(`Getting "${path}"`)
+            // log(`Getting "${path}"`)
             
             if(typeof path === 'function'){
                 return path(this.store)
