@@ -8,7 +8,7 @@
 <h4 align='center'>A simple key-value store with a powerful real-time state management api. </h4>
 <p align='center'>Access, monitor and update values with events.</p>
 <p align='center'>Support for persistent storage with included or custom adapters.</p>
-<p align='center'>In-store mutation functions for easy to manage logic.</p>
+<p align='center'>In-store mutator functions for easy to manage logic.</p>
 
 
 
@@ -40,9 +40,9 @@ yarn add nestore
 
 <br />
 
-## Basic Usage
+## Usage
 
-Import nestore and create a store
+Import nestore and create a store. The store is an object that contains all the state, and optionally contains in-store mutator functions
 
 ```ts
 import nestore from 'nestore'
@@ -51,10 +51,23 @@ const myStore = nestore({
     current_time: Date.now(),
     logged_in: false,
     user_name: null,
-    setUserName: (nst, [name]) => nst.store.user_name = name
+    setUserName: (nst, [name]) => nst.store.user_name = name,
+    getUserData: async (nst, args) => {
+        const { data } = await axios.get(`/api/user-data/${nst.store.user_name}`)
+        nst.set('user_data', data)
+        return data
+    },
 })
 
 export default myStore
+```
+
+Register event listeners on a key to watch for updates and trigger a callback:
+
+```ts
+myStore.on('user.**', ({ path, key, value }) => {
+    console.log(`Path ${path} was changed to ${value}`)
+})
 ```
 
 Use the `get` and `set` methods to interact with the store, or custom in-store functions
@@ -75,52 +88,6 @@ myStore.setUserName('Alice')
 
 
 
-
-
-<br />
-
-
-## Advanced Usage
-
-Import nestore and create a store
-
-```ts
-import nestore from 'nestore'
-
-const myStore = nestore({ 
-    current_time: Date.now(),
-    logged_in: false,
-    user_name: null,
-    user_data: null,
-
-    setLoggedIn: (nst, args) => {
-        set('logged_in', true)
-        set('user_name', args[0])
-        nst.getUserData()
-    },
-
-    getUserData: async (nst, args) => {
-        const { data } = await axios.get(`/api/user-data/${nst.store.user_name}`)
-        nst.set('user_data', data)
-        return data
-    },
-
-    // ...
-})
-
-export default myStore
-```
-
-In your application, use the `get` and `set` methods to interact with the store, or call custom 
-in-store functions
-
-```ts
-import myStore from './my-store.ts'
-
-myStore.setLoggedIn('Johnny68')
-myStore.set('current_time', Date.now())
-```
-
 Then register event listeners on a key to watch for updates and trigger a callback:
 
 ```ts
@@ -128,6 +95,13 @@ myStore.on('user.**', ({ path, key, value }) => {
     console.log(`Path ${path} was changed to ${value}`)
 })
 ```
+
+
+
+
+
+
+
 
 
 
@@ -144,7 +118,7 @@ Updates to the store emit events containing which path and key was changed, the 
 
 <br />
 
-## Event Listeners
+## On Update
 
 Register event listeners on a key to watch for updates and trigger a callback. 
 The `set` method causes the store to emit an event containing the key, value and path that was updated.
@@ -152,6 +126,17 @@ The `set` method causes the store to emit an event containing the key, value and
 ```ts
 myStore.on('user.**', ({ path, key, value }) => {
     console.log(`Path ${path} was changed to ${value}`)
+})
+```
+
+You can also register listeners directly in the store with the `$` prefix. These are great for managing repeatable async operations, eg: fetching user data when a `user_name` value changes.
+
+```ts
+const myStore = nestore({
+    name: null,
+    online: false,
+
+    $name: (nst, event) => nst.set('online', event.value ? true : false)
 })
 ```
 
@@ -177,6 +162,44 @@ myStore.emit('greeting', 'Well, hello there...')
 ```
 
 
+
+
+
+
+
+
+
+
+
+<br />
+<br />
+
+# Custom Mutator functions
+
+Manage all store logic in a single place with custom in-store mutator functions.
+
+These can be any type of function (async/sync) and return any value. Just set the state when the 
+values are ready.
+
+
+```ts
+const myStore = nestore({
+    user_name: null,
+    user_data: null,
+
+    fetchUserData: async (nst, [name]) => {
+        const { data } = await axios.get(`/api/users/${name}`)
+        nst.set('user_data', data)
+        return data
+    }
+})
+
+// just run the function
+myStore.fetchUserData('Johnny68')
+
+// wait for the return value
+let userData = await myStore.fetchUserData('Johnny68')
+```
 
 
 

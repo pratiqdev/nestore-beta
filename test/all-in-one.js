@@ -89,6 +89,12 @@ const initialStore = {
         const [newTitle] = args
         N.store.title = newTitle
     },
+
+    $title: (N, event) => {
+        console.log(`In store listener event:`, event)
+        N.set('value-added-from-$title', 'ayooo')
+        // N.set('title', 'new title:' + event.value)
+    },
 }
 
 const mls = () => {
@@ -943,6 +949,18 @@ describe(heading('F | Setters'), () => {
     })
 
 });
+
+describe.only(heading('G | In store listeners'), () => {
+
+    it('G.1 | $title', async () => {
+        const NST = nestore(initialStore)
+
+        NST.set('title', 'here we go')
+        let res = NST.get('value-added-from-$title')
+        console.log('>>', res)
+    })
+
+})
 
 describe(heading('G | Mutability / Silent Updates'), () => {
 

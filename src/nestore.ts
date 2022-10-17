@@ -101,6 +101,7 @@ class Nestore<T> extends EE2{
     #ORIGINAL_STORE: Partial<T>;
     #DELIMITER_CHAR: string;
     #SETTER_FUNCTIONS: string[];
+    #SETTER_LISTENERS: string[];
     #PREVENT_REPEAT_UPDATE: boolean;
     #DEV_EXTENSION: any;
 
@@ -125,10 +126,16 @@ class Nestore<T> extends EE2{
         this.#ORIGINAL_STORE = {}
         this.#DELIMITER_CHAR = ''   
         this.#SETTER_FUNCTIONS = []
+        this.#SETTER_LISTENERS = []
         this.#PREVENT_REPEAT_UPDATE = true
         this.#DEV_EXTENSION = null
 
         if(store instanceof Nestore) return store;
+
+        const thing = {
+            what: () => {},
+            $that: () => {}
+        }
         
         
         
@@ -136,20 +143,29 @@ class Nestore<T> extends EE2{
             throw new Error("neStore | Initial store must be of type: object  eg: { myKey: 'myValue' }");
         }
         
-        type T_TEST_TYPE = (this: T_Nestore<T>, args?: any[]) => any;
+        type T_CustomMutator = (this: T_Nestore<T>, args?: any[]) => any;
+        type T_ListenerMutator = any;
         
         store && Object.entries(store).forEach(([ key, val ]) => {
             if(typeof val === 'function'){
-                this.#SETTER_FUNCTIONS.push(key)
-                let SETTER: T_TEST_TYPE = val
-                //@ts-ignore
-                this[key] = (...args:any) => SETTER(this, args) 
+                if(key.startsWith('$')){
+                    this.#SETTER_LISTENERS.push(key)
+                    let SETTER: T_ListenerMutator = val
+                    let path = key.substring(1, key.length)
+                    this.on(path, (event) => SETTER(this, event))
+
+                }else{
+                    this.#SETTER_FUNCTIONS.push(key)
+                    let SETTER: T_CustomMutator = val
+                    //@ts-ignore
+                    this[key] = (...args:any) => SETTER(this, args) 
+                }
             }
         })
 
   
 
-        let storeOmitted:Partial<T> = Object.fromEntries(Object.entries(store).filter(([KEY,VAL]:any) => !this.#SETTER_FUNCTIONS.includes(KEY) )) as Partial<T>
+        let storeOmitted:Partial<T> = Object.fromEntries(Object.entries(store).filter(([KEY,VAL]:any) => !this.#SETTER_FUNCTIONS.includes(KEY) && !this.#SETTER_LISTENERS.includes(KEY) )) as Partial<T>
 
 
         this.#PREVENT_REPEAT_UPDATE = options.preventRepeatUpdates === false ? false : true
