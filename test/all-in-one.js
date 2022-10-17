@@ -950,7 +950,7 @@ describe(heading('F | Setters'), () => {
 
 });
 
-describe.only(heading('G | In store listeners'), () => {
+describe(heading('G | In store listeners'), () => {
 
     it('G.1 | $title', async () => {
         const NST = nestore(initialStore)
@@ -1036,7 +1036,7 @@ describe(heading('G | Mutability / Silent Updates'), () => {
 
 });
 
-describe.skip(heading('Performance'), function(){
+describe(heading('Performance'), function(){
     this.timeout(60_000)
 
     after(function(){
@@ -1053,9 +1053,9 @@ describe.skip(heading('Performance'), function(){
 
     let OPERATION_LIMIT = 10_000
     let CYCLE_LIMIT = 100
-    let MAX_AVG_OP_TIME = 0.02
+    let MAX_AVG_OP_TIME = 0.1
     let MAX_STAT_HISTORY = 5
-    let enableLogging = false
+    let enableLogging = true
 
 
     let set = 'ABCDEF'

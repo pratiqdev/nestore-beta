@@ -92,6 +92,7 @@ myStore.setUserName('Alice')
 
 <br />
 <br />
+<br />
 
 # Store Events 
 
@@ -102,6 +103,7 @@ Updates to the store emit events containing which path and key was changed, the 
 
 
 <br />
+<hr />
 
 ## On Update
 
@@ -130,6 +132,7 @@ const myStore = nestore({
 
 
 <br />
+<hr />
 
 ## Manual Emit
 
@@ -158,6 +161,8 @@ myStore.emit('greeting', 'Well, hello there...')
 
 <br />
 <br />
+<br />
+
 
 # Custom Mutator functions
 
@@ -195,9 +200,208 @@ let userData = await myStore.fetchUserData('Johnny68')
 
 
 
+<br />
+<br />
+<br />
+
+# Adapters
+
+Enhance the functionality of your store with the included adapters for persistent storage, or create a custom adapter.
+
+This package includes two adapters:
+- **persistAdapter** - for browser based string storage like localStorage
+- **mongoAdapter** - for interacting with MongoDB
+
+
+
+
+
+<br />
+<hr />
+
+## persistAdapter
+
+**This adapter is built for browser storage objects like localStorage**
+
+This adapter requires a key to reference the item in storage `storageKey` and will use localStorage by default.  
+You can supply any storage object that has `getItem` and `setItem` methods.
+
+
+```ts
+const storageAdapter = persistAdapter(
+    // namespace used when emitting adpater events
+    namespace:  string  = 'nestore-persist', 
+    // key used to set/retrieve data from storage
+    storageKey: string,
+    // Any storage object
+    storage:    Storage,
+    // Wait n milliseconds since the last nestore update to update storage 
+    batchTime:  number  = 10_000
+)
+
+const myStore = nestore(initialStore, { adapter: storageAdapter })
+```
+
+
+
+
+<br />
+<hr />
+
+
+## mongoAdapter
+
+**This adapter is built for MongoDB**
+
+```ts
+const storageAdapter = mongoAdapter(
+    // namespace used when emitting adpater events
+    namespace:string = 'mongo-adapter', 
+    // connection string for your mongo db
+    mongoUri: 'mongo-uri-connection-string',
+    // mongoDB collection name 
+    collectionName: 'my-mongo-collection',
+    // document key - collection name used if null
+    documentKey: 'my-document',
+    // Wait n milliseconds since the last nestore update to update storage 
+    batchTime:number = 10_000
+
+)
+
+const myStore = nestore(initialStore, { adapter: storageAdapter })
+```
+
+
+
+
+
+
+
+
+<br />
+<hr />
+
+
+## Adapter Events
+
+All adapters emit the following events when initializing or interacting with the store.
+
+### `@namespace.registered`
+
+Emitted when the adapter is registered 
+```ts
+nst.emit(`@namespace.registered`, namespace)
+```
+
+### `@namespace.loading`
+
+Emitted when the adapter is registered 
+```ts
+nst.emit(`@namespace.loading`, { ...store })
+```
+
+
+
+### `@namespace.loaded`
+
+Emitted when the adapter is registered 
+```ts
+nst.emit(`@namespace.loaded`, { ...store })
+```
+
+
+
+### `@namespace.saving`
+
+Emitted when the adapter is registered 
+```ts
+nst.emit(`@namespace.saving`, { ...store })
+```
+
+
+
+### `@namespace.saved`
+
+Emitted when the adapter is registered 
+```ts
+nst.emit(`@namespace.saved`, { ...store })
+```
+
+### `@namespace.error`
+
+Emitted when the adapter has an internal error
+```ts
+nst.emit(`@namespace.error`, error)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+<br />
+<hr />
+
+<h2>Custom Adapter</h2>
+
+- Adapters should sync after save by requesting data from storage and loaded what was returned from storage after the update (most db operations return the updated db entry after mutations)
+
+
+Example:
+```ts
+const myAdapter = (
+    MY_DB_URI: string,
+    TABLE_NAME: string,
+) => (nst) => {
+    try{
+
+        nst.emit('@my-adapter.registered', namespace)
+
+        myStorage.init(MY_DB_URI, TABLE_NAME)
+
+        const loadData = async () => {
+            nst.emit('@my-adapter.loading', nst.store)
+            const { data } = await myStorage.getData()
+            nst.set(data)
+            nst.emit('@my-adapter.loaded', nst.store)
+        }
+
+        const saveData = async () => {
+            nst.emit('@my-adapter.saving', nst.store)
+            const { data } = await myStorage.saveData(nst.store)
+            nst.set(data)
+            nst.emit('@my-adapter.saved', nst.store)
+        }
+
+        nst.onAny(saveData)
+
+        loadData()
+            
+    }catch(err){
+        nst.emit('@my-adapter.error', err)
+    }
+
+}
+```
+> ## Prevent excessive DB operations
+> This example does not include a method of throttling or checking for successful writes to the dataabase.  
+> You should provide a method for throttling read/write requests to the database on repeated store 
+> updates and a method for confirming writes / syncinc
+
+
+
+
 
 <br />
 <br />
+<br />
+
 
 # TypeScript
 
@@ -222,12 +426,6 @@ const NST = nestore<I_MyStore>({
     },
 })
 ```
-
-
-
-<br />
-
-## Interfaces
 
 ```ts
 const NST: Nestore<Partial<T>> = nestore<T>(initialStore: Partial<T>, options: T_NestoreOptions)
@@ -275,6 +473,7 @@ export type T_NestoreEmitStruct = { // example
 
 <br />
 <br />
+<br />
 
 
 # About
@@ -296,6 +495,7 @@ An exploration of event based datastore management for JavaScript/TypeScript app
 
 <br />
 <br />
+<br />
 
 
 # Contributing
@@ -305,19 +505,24 @@ This state-management solutions still requires at least:
 - performance imporovements
 - footprint reduction
 - better documentation
+- test `listenTo()` *Listens to the events emitted by an external emitter and propagate them through itself.*
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change and make sure all tests pass locally before making a pull request.
 
 Please make sure to update tests as appropriate, or suggest new test cases.
 
-### [GitHub Repository](https://github.com/pratiqdev/nestore)
-### [GitHub Issues](https://github.com/pratiqdev/nestore/issues)
-### [NPM Package](https://npmjs.com/package/nestore)
+#### [GitHub Repository](https://github.com/pratiqdev/nestore)
+#### [GitHub Issues](https://github.com/pratiqdev/nestore/issues)
+#### [NPM Package](https://npmjs.com/package/nestore)
 
 
 
 
----
+
+<br />
+<br />
+<br />
+
 # License
 
 MIT
