@@ -441,10 +441,10 @@ export type T_NestoreOptions = {    // default
     /* Set to false to disable the usage of wildcards on event listeners */
     wildcard?: boolean;             // true
 
-    /*  Error messages will contain the event name of the listener that threw the error */
+    /* Maximum number of registered listeners before memory leak error is thrown */
     maxListeners?: number;          // 10
 
-    /* Maximum number of registered listeners before memory leak error is thrown */
+    /*  Error messages will contain the event name of the listener that threw the error */
     verbose?: boolean;              // false
 
 }
