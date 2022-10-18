@@ -9,12 +9,17 @@ import {
   getTestResults,
   heading,
   getMockLocalStorage,
-  getInitialStore,
+  initialStore,
 } from './utils.js'
+
+//- Store Mutability
+//- The store should not be mutable externally, without using the `set` method.
+//- Should create a separate public method for quiet updates 
+//- like Steve Rulz "secretly" or zustands "transient updates"
 
 describe(heading('H | Store Mutability'), () => {
   it('H.1 | NST.get() => store.* = X', async () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
     const recievedEvents = []
     NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -27,46 +32,46 @@ describe(heading('H | Store Mutability'), () => {
   })
 
   it('H.2 | NST.store.* = X', async () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
     const recievedEvents = []
     NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
 
     NST.store.title = 'bbb'
-    expect(NST.get('title')).to.eq('bbb')
+    expect(NST.get('title')).to.not.eq('bbb')
 
     // no events should be emitted from direct mutations, if they happen
     expect(recievedEvents.length).to.eq(0)
   })
 
   it('H.3 | setter((x) => x.get() => .store.* = X)', async () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
     const recievedEvents = []
     NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
 
     NST.mutabilityTestA('ccc')
-    expect(NST.get('title')).to.eq('ccc')
+    expect(NST.get('title')).to.not.eq('ccc')
 
     // no events should be emitted from direct mutations, if they happen
     expect(recievedEvents.length).to.eq(0)
   })
 
   it('H.4 | setter((x) => x.store.* = X)', async () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
     const recievedEvents = []
     NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
 
     NST.mutabilityTestB('ddd')
-    expect(NST.get('title')).to.eq('ddd')
+    expect(NST.get('title')).to.not.eq('ddd')
 
     // no events should be emitted from direct mutations, if they happen
     expect(recievedEvents.length).to.eq(0)
   })
 
   it('H.5 | NST.get("path") = X', async () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
     const recievedEvents = []
     NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))

@@ -9,7 +9,7 @@ import {
   getTestResults,
   heading,
   getMockLocalStorage,
-  getInitialStore,
+  initialStore,
 } from './utils.js'
 
 

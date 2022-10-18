@@ -15,7 +15,7 @@ const { expect } = chai
 
 const heading = (text) => `${text}\n  ${'-'.repeat(text.length)}`
 
-const getInitialStore = () => ({
+const initialStore = {
   title: 'The Book',
   /** The number of pages in the current book. */
   pages: 817,
@@ -85,7 +85,7 @@ const getInitialStore = () => ({
     N.set('value-added-from-$title', 'ayooo')
     // N.set('title', 'new title:' + event.value)
   }
-})
+}
 
 const getMockLocalStorage = () => {
   let store = JSON.stringify({ thisValue: 'is from mockLocalStorage - a mock localStorage setup' })
@@ -109,5 +109,5 @@ export {
     getTestResults,
     heading,
     getMockLocalStorage,
-    getInitialStore,
+    initialStore,
 }

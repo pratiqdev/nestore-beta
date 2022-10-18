@@ -9,24 +9,24 @@ import {
   getTestResults,
   heading,
   getMockLocalStorage,
-  getInitialStore,
+  initialStore,
 } from './utils.js'
 
 describe(heading('B | Get'), () => {
   it('B.1 | Get string method returns correct value', () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
-    expect(NST.get('title')).to.eq(getInitialStore().title)
-    expect(NST.get('pages')).to.eq(getInitialStore().pages)
-    expect(NST.get('checkedOut')).to.eq(getInitialStore().checkedOut)
-    expect(NST.get('chapters[2]')).to.eq(getInitialStore().chapters[2])
-    expect(NST.get('reviews.someGuy')).to.eq(getInitialStore().reviews.someGuy)
-    expect(NST.get('reviews["Some Guy"]')).to.eq(getInitialStore().reviews['Some Guy'])
-    expect(NST.get('reviews["Some Extra"]["Stuff Here"].find["me ?"]')).to.eq(getInitialStore().reviews['Some Extra']['Stuff Here'].find['me ?'])
+    expect(NST.get('title')).to.eq(initialStore.title)
+    expect(NST.get('pages')).to.eq(initialStore.pages)
+    expect(NST.get('checkedOut')).to.eq(initialStore.checkedOut)
+    expect(NST.get('chapters[2]')).to.eq(initialStore.chapters[2])
+    expect(NST.get('reviews.someGuy')).to.eq(initialStore.reviews.someGuy)
+    expect(NST.get('reviews["Some Guy"]')).to.eq(initialStore.reviews['Some Guy'])
+    expect(NST.get('reviews["Some Extra"]["Stuff Here"].find["me ?"]')).to.eq(initialStore.reviews['Some Extra']['Stuff Here'].find['me ?'])
   })
 
   it('B.2 | Get string method returns undefined on incorrect path', () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
     assert(typeof NST.get('frobble') === 'undefined')
     assert(typeof NST.get('pages.frizzle') === 'undefined')
@@ -34,15 +34,15 @@ describe(heading('B | Get'), () => {
   })
 
   it('B.3 | Get callback method returns correct value', () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
-    // assert(get(s => s) === getInitialStore())
-    expect(JSON.stringify(NST.get((s) => s))).to.eq(JSON.stringify(getInitialStore()))
-    // assert(get(s => s.title) === getInitialStore().title)
+    // assert(get(s => s) === initialStore)
+    expect(JSON.stringify(NST.get((s) => s))).to.eq(JSON.stringify(initialStore))
+    // assert(get(s => s.title) === initialStore.title)
   })
 
   it('B.4 | Get callback method returns undefined on incorrect path', () => {
-    const { get, set, reset, store } = nestore(getInitialStore())
+    const { get, set, reset, store } = nestore(initialStore)
 
     assert(typeof get((s) => s.brapple) === 'undefined')
     assert(typeof get((s) => s.fimble.famble) === 'undefined')
@@ -50,10 +50,10 @@ describe(heading('B | Get'), () => {
   })
 
   it('B.5 | Get method with no args returns entire store', () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
-    // assert(get() === getInitialStore())
+    // assert(get() === initialStore)
     expect(JSON.stringify(NST.get()))
-      .to.eq(JSON.stringify(getInitialStore()))
+      .to.eq(JSON.stringify(initialStore))
   })
 })

@@ -9,7 +9,7 @@ import {
   getTestResults,
   heading,
   getMockLocalStorage,
-  getInitialStore,
+  initialStore,
 } from './utils.js'
 
 
@@ -17,26 +17,26 @@ describe(heading('A | Setup'), function () {
   this.timeout(10_000)
 
   it('A.1 | Creates a filled store that returns store and methods', () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
     assert(typeof NST.get === 'function')
     assert(typeof NST.set === 'function')
     assert(typeof NST.reset === 'function')
-    expect(JSON.stringify(NST.get())).to.eq(JSON.stringify(getInitialStore()))
+    expect(JSON.stringify(NST.get())).to.eq(JSON.stringify(initialStore))
   })
 
   it('A.2 | Creates an empty store that returns store and methods', () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
     assert(typeof NST.get === 'function')
     assert(typeof NST.set === 'function')
     assert(typeof NST.reset === 'function')
-    expect(JSON.stringify(NST.get())).to.eq(JSON.stringify(getInitialStore()))
+    expect(JSON.stringify(NST.get())).to.eq(JSON.stringify(initialStore))
   })
 
-  it('A.3 | Store matches getInitialStore() on start', () => {
-    const NST = nestore(getInitialStore())
-    expect(JSON.stringify(NST.get())).to.eq(JSON.stringify(getInitialStore()))
+  it('A.3 | Store matches initialStore on start', () => {
+    const NST = nestore(initialStore)
+    expect(JSON.stringify(NST.get())).to.eq(JSON.stringify(initialStore))
   })
 
   it('A.4 | Mutliple stores do not modify each other', () => {

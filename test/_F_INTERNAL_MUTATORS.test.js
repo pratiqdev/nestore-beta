@@ -9,13 +9,15 @@ import {
   getTestResults,
   heading,
   getMockLocalStorage,
-  getInitialStore,
+  initialStore,
 } from './utils.js'
 
 
 describe(heading('F | Internal Mutators'), () => {
   it('F.1 | setterA', async () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
+
+    // console.log('STORE:', NST)
 
     const recievedEvents = []
     NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -27,7 +29,7 @@ describe(heading('F | Internal Mutators'), () => {
   })
 
   it('F.2 | setterB', async () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
     const recievedEvents = []
     NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -39,7 +41,7 @@ describe(heading('F | Internal Mutators'), () => {
   })
 
   it('F.3 | setterC', async () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
     const recievedEvents = []
     NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -52,7 +54,7 @@ describe(heading('F | Internal Mutators'), () => {
   })
 
   it('F.4 | setterD', async () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
     const recievedEvents = []
     NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -64,7 +66,7 @@ describe(heading('F | Internal Mutators'), () => {
   })
 
   it('F.5 | setterE', async () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
     const recievedEvents = []
     NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -76,7 +78,7 @@ describe(heading('F | Internal Mutators'), () => {
   })
 
   it('F.6 | setterF', async () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
     const recievedEvents = []
     NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -91,7 +93,7 @@ describe(heading('F | Internal Mutators'), () => {
   })
 
   it('F.7 | setterG', async () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
     const recievedEvents = []
     NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -107,7 +109,7 @@ describe(heading('F | Internal Mutators'), () => {
   })
 
   it('F.8 | setterH', async () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
     const recievedEvents = []
     NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))

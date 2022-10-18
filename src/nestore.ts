@@ -114,7 +114,53 @@ class Nestore<T> extends EE2 {
     //     }
     //   }
     // })
-    this.#registerMutators()
+    // this.#registerMutators()
+    // type CustomMutator = (instance: Nestore<T>, args?: unknown[]) => unknown;
+    // type ListenerMutator = (instance: Nestore<T>, event: NestoreEmit) => unknown;
+
+    // this.#INTERNAL_STORE && Object.entries(this.#INTERNAL_STORE).forEach(([ key, val ]) => {
+    //   if (typeof val === 'function') {
+    //     if (key.startsWith('$')) {
+    //       try {
+    //         log(`Assigning internal listener "${key}"`)
+    //         this.#LISTENER_MUTATORS.push(key)
+    //         const SETTER: ListenerMutator = val as ListenerMutator
+    //         const path = key.substring(1, key.length)
+    //         this.on(path, (event) => SETTER(this, event))
+    //         log(`Assigned internal listener "${key}"`)
+    //       } catch (err) {
+    //         log(`Error assigning internal listener "${key}":`, err)
+    //       }
+    //     } else {
+    //       try {
+    //         this.#CUSTOM_MUTATORS.push(key)
+    //         const SETTER: CustomMutator = val as CustomMutator
+    //         const RESERVED_KEYS = [
+    //           'set', 'get', 'store', 'emit', 'on', 'once', 'onAny', 'prependListener'
+    //         ]
+    //         if (RESERVED_KEYS.some((reserved:string) => key === reserved)) {
+    //           log(`The key "${key}" is reserved for nestore. Please use a different name.`)
+    //         }
+    //         // let newStruct = {
+    //         //     loading: this.#adapter_loadingData,
+    //         //     loaded: this.#adapter_loadedData,
+    //         //     saving: this.#adapter_savingData,
+    //         //     saved: this.#adapter_savedData,
+    //         //     registered: this.#adapter_registered,
+    //         //     error: this.#adapter_error,
+    //         //     store: this.store,
+    //         //     onUpdate: this.onAny
+    //         // }
+    //         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    //         // @ts-ignore
+    //         this[key] = (...args:unknown) => SETTER(this, args)
+    //         log(`Assigned internal mutator "${key}"`)
+    //       } catch (err) {
+    //         log(`Error assigning mutator "${key}":`, err)
+    //       }
+    //     }
+    //   }
+    // })
 
     const storeOmitted:Partial<T> = Object.fromEntries(Object.entries(store)
       .filter(([ KEY ]:[string, unknown]) => !this.#CUSTOM_MUTATORS
@@ -161,10 +207,8 @@ class Nestore<T> extends EE2 {
     //     devlog('Devtools error:', err)
     //   }
     // }
-    this.#registerDevtools()
 
     // log('='.repeat(80))
-    log('Store created:', store)
 
     // if (typeof options.adapter === 'function') {
     //   try {
@@ -174,38 +218,59 @@ class Nestore<T> extends EE2 {
     //     console.log('Error registering adapter:', err)
     //   }
     // }
+    this.#registerMutators()
     this.#registerAdapter()
+    this.#registerDevtools()
+    log('Store created:', store)
 
     // log('='.repeat(80))
   }
 
   #registerMutators () {
+    const log = createLog('register-mutators')
     type CustomMutator = (instance: Nestore<T>, args?: unknown[]) => unknown;
     type ListenerMutator = (instance: Nestore<T>, event: NestoreEmit) => unknown;
 
     this.#INTERNAL_STORE && Object.entries(this.#INTERNAL_STORE).forEach(([ key, val ]) => {
       if (typeof val === 'function') {
         if (key.startsWith('$')) {
-          this.#LISTENER_MUTATORS.push(key)
-          const SETTER: ListenerMutator = val as ListenerMutator
-          const path = key.substring(1, key.length)
-          this.on(path, (event) => SETTER(this, event))
+          try {
+            log(`Assigning internal listener "${key}"`)
+            this.#LISTENER_MUTATORS.push(key)
+            const SETTER: ListenerMutator = val as ListenerMutator
+            const path = key.substring(1, key.length)
+            this.on(path, (event) => SETTER(this, event))
+            log(`Assigned internal listener "${key}"`)
+          } catch (err) {
+            log(`Error assigning internal listener "${key}":`, err)
+          }
         } else {
-          this.#CUSTOM_MUTATORS.push(key)
-          const SETTER: CustomMutator = val as CustomMutator
-          // let newStruct = {
-          //     loading: this.#adapter_loadingData,
-          //     loaded: this.#adapter_loadedData,
-          //     saving: this.#adapter_savingData,
-          //     saved: this.#adapter_savedData,
-          //     registered: this.#adapter_registered,
-          //     error: this.#adapter_error,
-          //     store: this.store,
-          //     onUpdate: this.onAny
-          // }
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          this[key] = (...args:unknown) => SETTER(this, args)
+          try {
+            this.#CUSTOM_MUTATORS.push(key)
+            const SETTER: CustomMutator = val as CustomMutator
+            const RESERVED_KEYS = [
+              'set', 'get', 'store', 'emit', 'on', 'once', 'onAny', 'prependListener'
+            ]
+            if (RESERVED_KEYS.some((reserved:string) => key === reserved)) {
+              log(`The key "${key}" is reserved for nestore. Please use a different name.`)
+            }
+            // let newStruct = {
+            //     loading: this.#adapter_loadingData,
+            //     loaded: this.#adapter_loadedData,
+            //     saving: this.#adapter_savingData,
+            //     saved: this.#adapter_savedData,
+            //     registered: this.#adapter_registered,
+            //     error: this.#adapter_error,
+            //     store: this.store,
+            //     onUpdate: this.onAny
+            // }
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            this[key] = (...args:unknown) => SETTER(this, args)
+            log(`Assigned internal mutator "${key}"`)
+          } catch (err) {
+            log(`Error assigning mutator "${key}":`, err)
+          }
         }
       }
     })
@@ -236,7 +301,7 @@ class Nestore<T> extends EE2 {
             log('devext message:', message)
             if (message.state) {
               // pass a flag about the expected behaviour for set
-              this.set(JSON.parse(message.state), null, 'devext')
+              this.#updateStoreFromDevtools(JSON.parse(message.state))
             }
           })
           this.#DEV_EXTENSION = devext
@@ -355,9 +420,57 @@ class Nestore<T> extends EE2 {
     return pathResult
   }
 
+  #updateDevtoolFromStore = (
+    path: string,
+    originalValue: unknown,
+    value: unknown,
+    data: unknown
+  ) => {
+    let safeOriginalValue,
+      safeValue,
+      safePath
+
+    try {
+      safePath = path.length <= 30 ? path : `${path.substring(0, 30)}...`
+      safeOriginalValue = JSON.stringify(originalValue).substring(0, 20)
+      safeValue = JSON.stringify(value).substring(0, 20)
+    } catch (err) {
+      safeOriginalValue = '[object]'
+      safeValue = '[object]'
+    }
+
+    if (this.#DEV_EXTENSION) {
+      this.#DEV_EXTENSION.send({
+        type: `${safePath}: "${safeOriginalValue}" => "${safeValue}"`,
+        previousValue: originalValue,
+        path,
+        value
+      }, data)
+    }
+  }
+
   // &
   // TODO: find a better solution for update types than flag string
-  set = (path:string | Partial<T>, value?:unknown, flag?: string) => {
+  #updateStoreFromDevtools = (path:Partial<T>) => {
+    try {
+      const log = createLog('devtools-set')
+      log('Devtools updated store')
+
+      if (typeof path !== 'object' || Array.isArray(path)) {
+        return false
+      }
+
+      this.#INTERNAL_STORE = { ...path }
+      this.#handleEmitAll(true)
+      return true
+    } catch (err) {
+      return false
+    }
+  }
+
+  // &
+  // TODO: find a better solution for update types than flag string
+  set = (path:string | Partial<T>, value?:unknown, quiet?: boolean) => {
     try {
       const log = createLog('set')
 
@@ -388,17 +501,13 @@ class Nestore<T> extends EE2 {
 
       // set the store directly with an object
       // NST.set({ ...newStore })
-      if (typeof path === 'object') {
+      // ---------------------------------------------- OBJECT
+      if (typeof path === 'object' && !Array.isArray(path)) {
         const originalValue = this.#INTERNAL_STORE
 
-        if (!Array.isArray(path)) {
-          this.#INTERNAL_STORE = { ...path }
-        }
+        this.#INTERNAL_STORE = { ...path }
 
-        if (flag === 'devext') {
-          log('devext | Set - set new store - handle emit all')
-          this.#handleEmitAll(true)
-        } else if (flag !== 'quiet') {
+        if (!quiet) {
           log(`Setting normally "/" : "${value}"`)
           this.#emit({
             path: '/',
@@ -409,43 +518,28 @@ class Nestore<T> extends EE2 {
           log(`Setting quietly "/" : "${value}"`)
         }
 
-        if (flag !== 'devext') {
-          this.#DEV_EXTENSION &&
-            this.#DEV_EXTENSION.send({
-              type: '/: store => newStore',
-              path: '/',
-              previousValue: originalValue,
-              value: this.store
-            }, this.store)
-        }
-
+        this.#updateDevtoolFromStore('/', originalValue, value, this.store)
         return true
       }
 
-      // log(`Setting "${path}" : "${value}"`)
-      const originalValue = this.#DEV_EXTENSION ? this.get(path) : null
+      if (typeof path === 'string') {
+        // ---------------------------------------------- PATH BASED
+        // log(`Setting "${path}" : "${value}"`)
+        const originalValue = this.#DEV_EXTENSION ? this.get(path) : null
 
-      set(this.#INTERNAL_STORE, path, value)
+        set(this.#INTERNAL_STORE, path, value)
+        this.#updateDevtoolFromStore(path, originalValue, value, this.store)
 
-      if (this.#DEV_EXTENSION) {
-        this.#DEV_EXTENSION.send({
-          type: `${path}: "${originalValue}" => "${value}"`,
-          previousValue: originalValue,
-          path,
-          value
-        }, this.store)
-      }
-
-      if (flag !== 'quiet') {
-        log(`Setting normally "${path}" : "${value}"`)
-
-        this.#emit({
-          path,
-          key: getLastKeyFromPathString(path),
-          value
-        })
-      } else {
-        log(`Setting quietly "/" : "${value}"`)
+        if (!quiet) {
+          log(`Setting normally "${path}" : "${value}"`)
+          this.#emit({
+            path,
+            key: getLastKeyFromPathString(path),
+            value
+          })
+        } else {
+          log(`Setting quietly "/" : "${value}"`)
+        }
       }
 
       return true
@@ -475,7 +569,7 @@ class Nestore<T> extends EE2 {
   }
 
   // &
-  reset = () => {
+  reset = (quiet?:boolean) => {
     const log = createLog('reset')
 
     log('-'.repeat(60))
@@ -483,14 +577,7 @@ class Nestore<T> extends EE2 {
     log(this.#INTERNAL_STORE)
     log('-'.repeat(60))
 
-    if (this.#DEV_EXTENSION) {
-      this.#DEV_EXTENSION.send({
-        type: '/: store => originalStore',
-        path: '/',
-        previousValue: this.#INTERNAL_STORE,
-        value: this.#ORIGINAL_STORE
-      }, this.#ORIGINAL_STORE)
-    }
+    this.#updateDevtoolFromStore('/', this.#INTERNAL_STORE, this.#ORIGINAL_STORE, this.#ORIGINAL_STORE)
 
     this.#INTERNAL_STORE = this.#ORIGINAL_STORE
 
@@ -502,12 +589,14 @@ class Nestore<T> extends EE2 {
     //     key: '/',
     //     value: this.#INTERNAL_STORE
     // })
-    this.#handleEmitAll()
+    !quiet && this.#handleEmitAll()
   }
 
   // &
-  remove = (path: string) => {
+  remove = (path: string, quiet?:boolean) => {
     const log = createLog('remove')
+    if (!path) return
+
     log(`Deleting value at path: ${path}`)
 
     //! should this delete the key and value from the table or should it set the value to undefined?
@@ -522,16 +611,17 @@ class Nestore<T> extends EE2 {
 
     this.#INTERNAL_STORE = omit(this.#INTERNAL_STORE, [ path ])
 
-    if (this.#DEV_EXTENSION) {
-      this.#DEV_EXTENSION.send({
-        type: `REMOVE: ${path}`,
-        previousValue: og,
-        path,
-        value: undefined
-      }, this.#INTERNAL_STORE)
-    }
+    // if (this.#DEV_EXTENSION) {
+    //   this.#DEV_EXTENSION.send({
+    //     type: `REMOVE: ${path}`,
+    //     previousValue: og,
+    //     path,
+    //     value: undefined
+    //   }, this.#INTERNAL_STORE)
+    // }
+    this.#updateDevtoolFromStore(path, og, undefined, this.#INTERNAL_STORE)
 
-    this.#emit({
+    !quiet && this.#emit({
       path,
       key: getLastKeyFromPathString(path),
       value: undefined
@@ -539,7 +629,7 @@ class Nestore<T> extends EE2 {
     })
     //! Why is this being called here!?
     //! Remove events should ONLY fire an event for the namespace of the key that was removed
-    this.#handleEmitAll()
+    // this.#handleEmitAll()
   }
 
   get store () {

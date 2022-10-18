@@ -9,13 +9,13 @@ import {
   getTestResults,
   heading,
   getMockLocalStorage,
-  getInitialStore,
+  initialStore,
 } from './utils.js'
 
 
 describe(heading('E | Event Emitter'), () => {
   it('E.1 | Uses all available wildcards and nested access methods', async () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
     const recievedEvents = []
 
@@ -67,7 +67,7 @@ describe(heading('E | Event Emitter'), () => {
   })
 
   it('E.2 | Changes to the store made with `set()` emit events', async () => {
-    const NST = nestore(getInitialStore())
+    const NST = nestore(initialStore)
 
     const recievedEvents = []
 
@@ -160,7 +160,7 @@ describe(heading('E | Event Emitter'), () => {
     expect(recievedEvents).to.include('E = e')
   })
 
-  it.only('E.4 | EmitAll emits events with correct paths', () => {
+  it('E.4 | EmitAll emits events with correct paths', () => {
     const recievedEvents = []
 
     const sto = {

@@ -8,7 +8,7 @@ export type NestoreObject<T> = Nestore<Partial<T>>;
 export declare class Nestore<T> extends EE2 {
   #private?
   constructor(store?: T | Partial<T>, options?: NestoreOptions);
-  set: (path: string | Partial<T>, value?: unknown, flag?: string) => boolean;
+  set: (path: string | Partial<T>, value?: unknown, quiet?: boolean) => boolean;
   get(path?: string | NestoreGetterFunction): Partial<T> | undefined;
   reset: () => void
   remove: (path: string) => void
