@@ -1,0 +1,15 @@
+dist
+node_modules
+test/*
+_notes
+
+.eslint*
+.gitignore
+.mocharc.*
+.env
+.env.*
+
+*.md
+*.json
+*.log
+*.lock

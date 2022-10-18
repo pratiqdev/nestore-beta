@@ -11,8 +11,9 @@
     "dist/"
   ],
   "scripts": {
-    "moveto-react":"rm -rf ../react/nestore-react/src/nestore-dist && cp -r ./dist ../react/nestore-react/src/nestore-dist",
-    "moveto-next":"rm -rf ../react/nestore-next/nestore-dist && cp -r ./dist ../react/nestore-next/nestore-dist",
+    "lint": "clear && eslint --fix -c .eslintrc.json .",
+    "moveto-react": "rm -rf ../react/nestore-react/src/nestore-dist && cp -r ./dist ../react/nestore-react/src/nestore-dist",
+    "moveto-next": "rm -rf ../react/nestore-next/nestore-dist && cp -r ./dist ../react/nestore-next/nestore-dist",
     "build": "clear && rm -rf ./dist && tsc && yarn moveto-react && yarn moveto-next",
     "test": "clear && mocha --config .mocharc.cjs",
     "watch-test": "clear && tsc && nodemon",
@@ -34,6 +35,7 @@
     "mongoose": "^6.6.5"
   },
   "devDependencies": {
+    "@babel/eslint-parser": "^7.19.1",
     "@open-wc/building-rollup": "^2.0.2",
     "@types/debug": "^4.1.7",
     "@types/lodash-es": "^4.17.6",
@@ -42,12 +44,21 @@
     "@types/react": "^18.0.21",
     "@types/spellchecker": "^3.5.0",
     "@types/underscore": "^1.11.4",
+    "@typescript-eslint/eslint-plugin": "^5.0.0",
+    "@typescript-eslint/parser": "^5.40.1",
     "chai": "^4.3.6",
     "deepmerge": "^4.2.2",
     "dotenv": "^16.0.3",
+    "eslint": "^8.25.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-jsx-a11y": "^6.6.1",
+    "eslint-plugin-n": "^15.3.0",
+    "eslint-plugin-promise": "^6.1.0",
+    "eslint-plugin-react": "^7.31.10",
     "mocha": "^10.0.0",
     "nodemon": "^2.0.18",
-    "typescript": "^4.8.3"
+    "typescript": "*"
   },
   "peerDependencies": {
     "mongodb": "^4.10.0",

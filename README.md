@@ -136,7 +136,7 @@ const myStore = nestore({
 
 ## Manual Emit
 
-You can also manually emit events to force update a listener. The value provided to the emit method *should* be an object with the type `T_NestoreEmit`, but any values / types provided will be emitted.
+You can also manually emit events to force update a listener. The value provided to the emit method *should* be an object with the type `NestoreEmit`, but any values / types provided will be emitted.
 
 
 ```ts
@@ -489,12 +489,12 @@ const NST = nestore<I_MyStore>({
 ```
 
 ```ts
-const NST: Nestore<Partial<T>> = nestore<T>(initialStore: Partial<T>, options: T_NestoreOptions)
+const NST: Nestore<Partial<T>> = nestore<T>(initialStore: Partial<T>, options: NestoreOptions)
 ```
 
 
 ```ts
-export type T_NestoreOptions = {    // default
+export type NestoreOptions = {    // default
 
     /* The character used to separate wildcards or nested store properties */
     delimiter?: string;             // "."
@@ -513,7 +513,7 @@ export type T_NestoreOptions = {    // default
 
 
 ```ts
-export type T_NestoreEmitStruct = { // example
+export type NestoreEmitStruct = { // example
 
     /* A full, normalized path to the nested object in the store using the provided delimiter. */
     path: string;                   // "chapter.7.title"
