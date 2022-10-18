@@ -27,7 +27,8 @@ const COMMON = {
 
 // type NodeVisitor = (path:string, value:unknown) => unknown;
 
-const splitPath = (path:string) => path.split(/\[|\]\[|\]\.|\.|\]\//g)
+const splitPath = (path:string) => path.split(/\[|\]\[|\]\.|\.|\]|\//g)
+//                                 path.split(/\[|\]\[|\]\.|\.|\]|\//g)
 
 const getLastKeyFromPathString = (path:string) => {
   const split = splitPath(path)
