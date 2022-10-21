@@ -1,6 +1,6 @@
 {
   "name": "nestore",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "",
   "main": "index.js",
   "type": "module",
@@ -12,9 +12,9 @@
   ],
   "scripts": {
     "lint": "clear && eslint --fix -c .eslintrc.json .",
-    "build-usenestore":"cd ../utils/useNestore && yarn build",
-    "build-persistAdapter":"cd ../utils/persistAdapter&& yarn build",
-    "build-mongoAdapter":"cd ../utils/mongoAdapter && yarn build",
+    "build-usenestore": "cd ../utils/useNestore && yarn build",
+    "build-persistAdapter": "cd ../utils/persistAdapter&& yarn build",
+    "build-mongoAdapter": "cd ../utils/mongoAdapter && yarn build",
     "build": "clear && rm -rf ./dist && tsc",
     "test": "clear && mocha --config .mocharc.cjs",
     "watch-test": "clear && tsc && nodemon",
@@ -24,7 +24,7 @@
     "runnit-quiet": "clear && tsc && node index.js",
     "runnit-windows": "clear && tsc && set DEBUG=nestore:** && node index.js",
     "roll": "rollup --config rollup.config.js",
-    "bump":"npm version patch --force",
+    "bump": "npm version patch --force",
     "pub": "npm publish --access public"
   },
   "keywords": [],
