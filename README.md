@@ -5,7 +5,7 @@
 <img src='https://img.shields.io/badge/version_1.4.X-darkblue'>
 <img src='https://img.shields.io/badge/tests_passing-darkblue'>
 </p>
-<h4 align='center'>A simple key-value store with a powerful real-time state management api. </h4>
+<b align='center'>A simple key-value store with a powerful real-time state management api. </b>
 <p align='center'>Access, monitor and update values with events.</p>
 <p align='center'>Support for persistent storage with included or custom adapters.</p>
 <p align='center'>In-store mutator functions for easy to manage logic.</p>
