@@ -1,6 +1,6 @@
 {
   "name": "nestore",
-  "version": "1.0.4",
+  "version": "1.4.0",
   "description": "",
   "main": "index.js",
   "type": "module",
@@ -12,9 +12,10 @@
   ],
   "scripts": {
     "lint": "clear && eslint --fix -c .eslintrc.json .",
-    "moveto-react": "rm -rf ../react/nestore-react/src/nestore-dist && cp -r ./dist ../react/nestore-react/src/nestore-dist",
-    "moveto-next": "rm -rf ../react/nestore-next/nestore-dist && cp -r ./dist ../react/nestore-next/nestore-dist",
-    "build": "clear && rm -rf ./dist && tsc && yarn moveto-react && yarn moveto-next",
+    "build-usenestore":"cd ../utils/useNestore && yarn build",
+    "build-persistAdapter":"cd ../utils/persistAdapter&& yarn build",
+    "build-mongoAdapter":"cd ../utils/mongoAdapter && yarn build",
+    "build": "clear && rm -rf ./dist && tsc",
     "test": "clear && mocha --config .mocharc.cjs",
     "watch-test": "clear && tsc && nodemon",
     "test-nobuild": "clear && mocha --config .mocharc.cjs",
@@ -23,18 +24,18 @@
     "runnit-quiet": "clear && tsc && node index.js",
     "runnit-windows": "clear && tsc && set DEBUG=nestore:** && node index.js",
     "roll": "rollup --config rollup.config.js",
-    "pub": "npm version patch --force && npm publish --access public"
+    "bump":"npm version patch --force",
+    "pub": "npm publish --access public"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "debug": "^4.3.4",
     "eventemitter2": "^6.4.7",
-    "lodash-es": "^4.17.21",
-    "mongoose": "^6.6.5"
+    "lodash-es": "^4.17.21"
   },
   "devDependencies": {
+    "debug": "^4.3.4",
     "@babel/eslint-parser": "^7.19.1",
     "@open-wc/building-rollup": "^2.0.2",
     "@types/debug": "^4.1.7",
