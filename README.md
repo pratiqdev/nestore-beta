@@ -1,8 +1,8 @@
-![logo-banner](logo.png)
+![logo-banner](https://raw.githubusercontent.com/pratiqdev/public-images/master/logo.png)
 
 <p align='center'>
 <img src='https://img.shields.io/badge/license_MIT-darkblue'>
-<img src='https://img.shields.io/badge/npm_1.0.0-darkblue'>
+<img src='https://img.shields.io/badge/version_1.4.X-darkblue'>
 <img src='https://img.shields.io/badge/tests_passing-darkblue'>
 </p>
 <h4 align='center'>A simple key-value store with a powerful real-time state management api. </h4>
