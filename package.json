@@ -1,6 +1,6 @@
 {
   "name": "nestore",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "",
   "main": "index.js",
   "type": "module",
@@ -16,6 +16,7 @@
     "build-persistAdapter": "cd ../utils/persistAdapter&& yarn build",
     "build-mongoAdapter": "cd ../utils/mongoAdapter && yarn build",
     "build": "clear && rm -rf ./dist && tsc",
+    "build-umd": "clear && rm -rf ./dist_umd && tsc -p tsconfig.umd.json",
     "test": "clear && mocha --config .mocharc.cjs",
     "watch-test": "clear && tsc && nodemon",
     "test-nobuild": "clear && mocha --config .mocharc.cjs",
