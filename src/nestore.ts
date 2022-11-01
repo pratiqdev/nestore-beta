@@ -1,10 +1,11 @@
 // /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-underscore-dangle */
-import EE2 from 'eventemitter2'
+/* eslint-disable import/no-extraneous-dependencies */
+import debug from 'debug'
 import {
   omit, set, get, isEqual
 } from 'lodash-es'
-import debug from 'debug'
+import EE2 from 'eventemitter2'
 import type {
   NestoreOptions,
   DevExtension,
@@ -645,6 +646,15 @@ function NST<T> (store?: T, options?: NestoreOptions): Nestore<Partial<T>> {
   return new Nestore<Partial<T>>(store, options)
   // let nst = new Nestore<Partial<T>>(store, options)
   // return omit(nst, nst.#CUSTOM_MUTATORS)
+}
+
+if (typeof window !== 'undefined') {
+  console.log('MOUNTING NST TO WINDOW')
+  // eslint-disable-next-line
+  // @ts-ignore
+  window.nestore = NST
+} else {
+  console.log('NO WINDOW TO ATTACH TO')
 }
 
 export default NST
