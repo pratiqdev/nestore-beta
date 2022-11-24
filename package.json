@@ -9,7 +9,7 @@
     "./index.js",
     "./README.md",
     "dist/"
-  ],
+  ],  
   "scripts": {
     "lint": "clear && eslint --fix -c .eslintrc.json .",
     "build-usenestore": "cd ../utils/useNestore && yarn build",
