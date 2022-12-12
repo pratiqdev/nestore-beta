@@ -86,8 +86,13 @@ const initialStore = {
     },
 }
 
-const testResults = JSON.parse(await fs.promises.readFile(testStatsFile, { encoding: 'utf-8'}))
+const testResults = []
 
+try{
+    testResults = JSON.parse(await fs.promises.readFile(testStatsFile, { encoding: 'utf-8'}))
+}catch(err){
+    //
+}
 
 
 
@@ -903,17 +908,20 @@ describe(heading('Performance'), function(){
     let OPERATION_LIMIT = 10_000
     let CYCLE_LIMIT = 100
     let MAX_AVG_OP_TIME = 0.02
-    let MAX_STAT_HISTORY = 5
-    let enableLogging = false
+    let MAX_STAT_HISTORY = 10
+    let enableLogging = process.env.TEST_LOG || false
 
 
-    let set = 'ABCDEF'
     const average = array => array.reduce((a, b) => a + b) / array.length;
     const min = array => Math.min(...array)
     const max = array => Math.max(...array)
-    let randStr = (val = 8) => {
+    
+    let set = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 __--#::'
+
+    let randStr = (val = 24) => {
         let str = ''
-        while(str.length < val){
+        let len = Math.ceil(Math.random() * val)
+        while(str.length < len){
             str += set[Math.floor(Math.random() * set.length)]
         }
         return str
@@ -956,9 +964,12 @@ describe(heading('Performance'), function(){
         let thisStats = testResults[test]
 
         if(thisStats.length < MAX_STAT_HISTORY){
-            console.log('\tNot enough historical data to graph...')
-            console.log('\t'+'.'.repeat(50) + '\n')
-            return done()
+            // console.log('\tNot enough historical data to graph...')
+            // console.log('\t'+'.'.repeat(50) + '\n')
+            while(thisStats.length < MAX_STAT_HISTORY){
+                thisStats.unshift(0.00000)
+            }
+            // return done()
         }
 
         let _max = Math.max(...thisStats)
@@ -982,11 +993,12 @@ describe(heading('Performance'), function(){
             i++
 
             let diff = thisStats[i] - thisStats[i - 1]
-            diff = diff > 0 ? '+' : '-'
+            diff = diff > 0 ? `+` : `-`
 
+            str += new Date().toLocaleString() + ` `
             str += `${diff} | `
             str += `${(thisStats[i] + '').substring(0,7)}  |`
-            str += `||`.repeat( ((thisStats[i] - _min) / stepSize) + 1 )
+            str += `|`.repeat( ((thisStats[i] - _min) / stepSize) + 1 )
             
             console.log(str)
         }
@@ -1016,7 +1028,7 @@ describe(heading('Performance'), function(){
             while(NUM_OF_OPERATIONS < OPERATION_LIMIT){
                 NUM_OF_OPERATIONS++
                 let key = randStr()
-                let val = 'value-' + key
+                let val = 'value=' + key
                 // console.log('set and get:', NUM_OF_OPERATIONS * NUM_OF_CYCLES)
                 NST.set(key, val)
                 // assert(NST.get(key) === val)
@@ -1054,10 +1066,15 @@ describe(heading('Performance'), function(){
             while(NUM_OF_OPERATIONS < OPERATION_LIMIT){
                 NUM_OF_OPERATIONS++
                 let key = randStr()
-                let val = 'value-' + key
+                let val = 'value=' + key
                 // console.log('set and get:', NUM_OF_OPERATIONS * NUM_OF_CYCLES)
-                NST.get(key)
-                // assert(NST.get(key) === val)
+
+                let found = NST.get(key)
+
+                if(found){
+                    expect(found).to.eq(val)
+                }
+                expect(found).to.eq(undefined)
             }
             let dur = Date.now() - CYCLE_START
             durationArr.push(dur)
