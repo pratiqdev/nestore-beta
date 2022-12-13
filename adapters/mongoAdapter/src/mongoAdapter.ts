@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 // import type { Model } from 'mongoose'
 import debug from 'debug'
 import { throttle } from 'lodash-es'

@@ -1,5 +1,5 @@
 import assert from 'assert'
-import nestore, { mongoAdapter, persistAdapter } from '../index.js'
+import Nestore, { mongoAdapter, persistAdapter } from '../../index.js'
 import chai from 'chai';
 import fs from 'fs'
 import dotenv from 'dotenv'
@@ -7,14 +7,14 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 const __dir = await fs.promises.realpath('.')
-const testStatsFile = __dir + '/test/test-results.json'
+const testStatsFile = __dir + '/test/unit/test-results.json'
 
 chai.config.truncateThreshold = 1500; // disable truncating
 const { expect } = chai
 
 const heading = (text) => `${text}\n  ${'-'.repeat(text.length)}`
 
-// const GLOBAL_NST = nestore({ global: true })
+// const GLOBAL_NST = Nestore({ global: true })
 
 const initialStore = {
     title: 'The Book',
@@ -91,7 +91,7 @@ const initialStore = {
     },
 
     $title: (N, event) => {
-        console.log(`In store listener event:`, event)
+        // console.log(`In store listener event:`, event)
         N.set('value-added-from-$title', 'ayooo')
         // N.set('title', 'new title:' + event.value)
     },
@@ -109,7 +109,12 @@ const mockLocalStorage = mls()
 
 
 
-const testResults = JSON.parse(await fs.promises.readFile(testStatsFile, { encoding: 'utf-8'}))
+const testResults = {}
+try{
+    testResults = JSON.parse(await fs.promises.readFile(testStatsFile, { encoding: 'utf-8'}))
+}catch(err){
+    //
+}
 
 
 
@@ -119,7 +124,7 @@ describe(heading('A | Setup'), function(){
     this.timeout(10_000)
 
     it('A.1 | Creates a filled store that returns store and methods', () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         assert(typeof NST.get === 'function')
         assert(typeof NST.set === 'function')
@@ -128,7 +133,7 @@ describe(heading('A | Setup'), function(){
     });
     
     it('A.2 | Creates an empty store that returns store and methods', () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         assert(typeof NST.get === 'function')
         assert(typeof NST.set === 'function')
@@ -137,13 +142,13 @@ describe(heading('A | Setup'), function(){
     });
     
     it('A.3 | Store matches initialStore on start', () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
         expect(JSON.stringify(NST.get())).to.eq(JSON.stringify(initialStore))
     })
 
     it('A.4 | Mutliple stores do not modify each other', () => {
-        const A = nestore({ name: 'Alice'})
-        const B = nestore({ name: 'Bob'})
+        const A = new Nestore({ name: 'Alice'})
+        const B = new Nestore({ name: 'Bob'})
 
         expect(A.get('name')).to.eq('Alice')
         expect(B.get().name).to.eq('Bob')
@@ -165,8 +170,8 @@ describe(heading('A | Setup'), function(){
     })
 
     it('A.5 | Passing existing nestore to nestore returns original', () => {
-        const A = nestore({ name: 'Alice'})
-        const B = nestore(A)
+        const A = new Nestore({ name: 'Alice'})
+        const B = new Nestore(A)
 
         expect(A.get().name).to.eq('Alice')
         expect(B.get().name).to.eq('Alice')
@@ -182,7 +187,7 @@ describe(heading('A | Setup'), function(){
     })
 
     it('A.6 | Nestore does not provide access to internal methods', () => {
-        const NST = nestore({ name: 'Alice'})
+        const NST = new Nestore({ name: 'Alice'})
 
         expect(typeof NST.keyCount).to.eq('undefined')
         // expect(typeof NST.#emit).to.eq('undefined')
@@ -192,69 +197,13 @@ describe(heading('A | Setup'), function(){
         
     })
 
-    it('A.7 | Nestore registers middleware', (done) => {
-        // console.log(nestore)
-
-
- 
-        const NST = nestore({ name: 'Andrew'}, {
-            adapter: mongoAdapter(
-                process.env.MONGO_URI, 
-                'nestore-adapter-test-collection',
-                'NST_MONGO_TEST_A'
-            )
-            // middleware: [
-                // adapters.persist(mockLocalStorage)
-                // adapters.mongo(process.env.MONGO_URI)
-            // ]
-        })
-
-        NST.on('@.*.registered', (data) => console.log('>>> REGISTERED >>>'))
-        NST.on('@.*.error', (data) => console.log('>>> ERROR >>>'))
-        NST.on('@.*.loading', (data) => console.log('>>> LOADING >>>'))
-        NST.on('@.*.loaded', (data) => console.log('>>> LOADED >>>'))
-        NST.on('@.*.saving', (data) => console.log('>>> SAVING >>>'))
-        NST.on('@.*.saved', (data) => console.log('>>> SAVED >>>'))
-        // NST.on('@.*', (data) => console.log('>>> Middleware event (@.*):', data))
-        // NST.on('@', (data) => console.log('>>> Middleware event (@):', data))
-        // NST.onAny((data) => console.log('>>>tAny event (@):', data))
-
-        setTimeout(()=>{
-            console.log(NST.get())
-        }, 2000)
-
-        setTimeout(()=>{
-            NST.set('name', 'Bobby')
-            NST.set('name', 'Charles')
-            // NST.set('name', 'Daniel')
-            // NST.set('name', 'Eric')
-            // NST.set('name', 'Frank')
-            NST.set('age', 1)
-            NST.set('age', 2)
-            NST.set('age', 3)
-            // NST.set('age', 4)
-            // NST.set('age', 5)
-        }, 3000)
-
-
-        setTimeout(()=>{
-            console.log(NST.get())
-        }, 5000)
-        
-        setTimeout(()=> {
-            console.log(NST.get())
-            console.log('DONE ----------------')
-            done()
-        }, 9000)
-        
-    })
 
 })
 
 describe(heading('B | Get'), () => {
 
     it('B.1 | Get string method returns correct value', () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         expect(NST.get('title') ).to.eq( initialStore.title)
         expect(NST.get('pages') ).to.eq( initialStore.pages)
@@ -266,7 +215,7 @@ describe(heading('B | Get'), () => {
     })
 
     it('B.2 | Get string method returns undefined on incorrect path', () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         assert(typeof NST.get('frobble') === 'undefined')
         assert(typeof NST.get('pages.frizzle') === 'undefined')
@@ -274,7 +223,7 @@ describe(heading('B | Get'), () => {
     })
 
     it('B.3 | Get callback method returns correct value', () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         // assert(get(s => s) === initialStore)
         expect(JSON.stringify(NST.get(s => s))).to.eq(JSON.stringify(initialStore))
@@ -283,7 +232,7 @@ describe(heading('B | Get'), () => {
     })
 
     it('B.4 | Get callback method returns undefined on incorrect path', () => {
-        const { get, set, reset, store } = nestore(initialStore)
+        const { get, set, reset, store } = new Nestore(initialStore)
 
         assert(typeof get(s => s.brapple) === 'undefined')
         assert(typeof get(s => s.fimble.famble) === 'undefined')
@@ -292,7 +241,7 @@ describe(heading('B | Get'), () => {
     })
 
     it('B.5 | Get method with no args returns entire store', () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         // assert(get() === initialStore)
         expect(JSON.stringify(NST.get()))
@@ -305,7 +254,7 @@ describe(heading('B | Get'), () => {
 describe(heading('C | Set'), () => {
 
     it('C.1 | Set method changes existing values', () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         NST.set('title', 'The Best Book Ever')
         assert(NST.get('title') === 'The Best Book Ever')
@@ -313,7 +262,7 @@ describe(heading('C | Set'), () => {
     })
     
     it('C.2 | Set method assigns new key-values', () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         NST.set('brimple', 'boop')
         expect(NST.get('brimple')).to.eq('boop')
@@ -324,7 +273,7 @@ describe(heading('C | Set'), () => {
     })
 
     it('C.3 | Set method should with no args should return false', () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         assert( NST.set() === false )
         assert( NST.set('thing') === false )
@@ -332,7 +281,7 @@ describe(heading('C | Set'), () => {
     })
 
     // it.skip('C.4 | (set cb is deprecated) Set callback method should set correct values', () => {
-    //     const { get, set, reset, store } = nestore(initialStore)
+    //     const { get, set, reset, store } = new Nestore(initialStore)
 
     //     set(s => s.title = '12345')
     //     expect(get('title')).to.eq('12345')
@@ -340,7 +289,7 @@ describe(heading('C | Set'), () => {
     // })
 
     it('C.4 | Direct store modifications dont affect internal store', () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         NST.on('title', ()=> console.log('store was updated...'))
 
@@ -356,7 +305,7 @@ describe(heading('C | Set'), () => {
     })
 
     // it('C.5 | Direct store modifications affect internal store with mutable enabled', () => {
-    //     const NST = nestore(initialStore, { mutable: true })
+    //     const NST = new Nestore(initialStore, { mutable: true })
 
     //     NST.on('title', ()=> console.log('store was updated...'))
 
@@ -376,7 +325,7 @@ describe(heading('C | Set'), () => {
     // })
 
     it('C.5 | Object passed to set() should override internal store', () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         NST.set({
             internalStore: 'override'
@@ -393,7 +342,7 @@ describe(heading('C | Set'), () => {
     })
 
     it('C.6 | Emits updates for repeated matching events when preventRepeatUpdates = false', () => {
-        const NST = nestore(initialStore, {
+        const NST = new Nestore(initialStore, {
             preventRepeatUpdates: false
         })
         let count = 0
@@ -414,13 +363,13 @@ describe(heading('C | Set'), () => {
 describe(heading('D | Remove'), () => {
 
     it('D.1 | Removing values deletes the key:value from the store', () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
         NST.remove('title')
         expect(typeof NST.get('title')).to.eq('undefined')
     })
 
     it('D.2 | Removing values emits event with undefined value', () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
         let events = null
 
         NST.on('title', (data) => {
@@ -436,7 +385,7 @@ describe(heading('D | Remove'), () => {
 describe(heading('E | Events'), () => {
 
     it('E.1 | Uses all available wildcards and nested access methods', async () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         let recievedEvents = []
 
@@ -493,7 +442,7 @@ describe(heading('E | Events'), () => {
     })
 
     it('E.2 | Changes to the store made with `set()` emit events', async () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         let recievedEvents = []
 
@@ -542,7 +491,7 @@ describe(heading('E | Events'), () => {
     })
 
     it('E.3 | Resetting store emits events for every key', () => {
-        const NST = nestore({
+        const NST = new Nestore({
             A:'a',
             B:'b',
             C:'c',
@@ -620,7 +569,7 @@ describe(heading('E | Events'), () => {
 
         }
 
-        const NST = nestore(sto, {delimiter: '/'})
+        const NST = new Nestore(sto, {delimiter: '/'})
 
         NST.on('', (d) => recievedEvents.push(d))
 
@@ -674,7 +623,7 @@ describe(heading('E | Events'), () => {
     })
 
     it('E.5 | Wildcards listen to changes of any nested state', () => {
-        const NST = nestore({
+        const NST = new Nestore({
             person: {
                 name: 'John',
                 age: 88
@@ -719,7 +668,7 @@ describe(heading('E | Events'), () => {
     })
 
     it('E.6 | Events have matching structs with normalized path', () => {
-        const NST = nestore({
+        const NST = new Nestore({
             person: {
                 name: 'John',
                 age: 88
@@ -783,7 +732,7 @@ describe(heading('E | Events'), () => {
 
     // dont test ee2 methods
     // it('E.7 | Emitter.once() fires correct amount', () => {
-    //     const NST = nestore({
+    //     const NST = new Nestore({
     //         greeting: 'hello'
     //     })
 
@@ -805,7 +754,7 @@ describe(heading('E | Events'), () => {
     // })
 
     // it('E.8 | Emitter.many() fires correct amount', () => {
-    //     const NST = nestore({
+    //     const NST = new Nestore({
     //         greeting: 'hello'
     //     })
 
@@ -834,7 +783,7 @@ describe(heading('E | Events'), () => {
 describe(heading('F | Setters'), () => {
 
     it('F.1 | setterA', async () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -847,7 +796,7 @@ describe(heading('F | Setters'), () => {
     })
 
     it('F.2 | setterB', async () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -860,7 +809,7 @@ describe(heading('F | Setters'), () => {
     })
 
     it('F.3 | setterC', async () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -874,7 +823,7 @@ describe(heading('F | Setters'), () => {
     })
 
     it('F.4 | setterD', async () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -887,7 +836,7 @@ describe(heading('F | Setters'), () => {
     })
 
     it('F.5 | setterE', async () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -900,7 +849,7 @@ describe(heading('F | Setters'), () => {
     })
 
     it('F.6 | setterF', async () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -917,7 +866,7 @@ describe(heading('F | Setters'), () => {
 
 
     it('F.7 | setterG', async () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -933,7 +882,7 @@ describe(heading('F | Setters'), () => {
     })
 
     it('F.8 | setterH', async () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -950,10 +899,10 @@ describe(heading('F | Setters'), () => {
 
 });
 
-describe.only(heading('G | In store listeners'), () => {
+describe(heading('G | In store listeners'), () => {
 
     it('G.1 | $title', async () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         NST.set('title', 'here we go')
         let res = NST.get('value-added-from-$title')
@@ -962,10 +911,71 @@ describe.only(heading('G | In store listeners'), () => {
 
 })
 
-describe(heading('G | Mutability / Silent Updates'), () => {
+describe.only(heading('H | Middleware'), function(){
+    this.timeout(60_000)
+
+    it('A.7 | Nestore registers middleware', (done) => {
+        // console.log(nestore)
+
+
+ 
+        const NST = new Nestore({ name: 'Andrew'}, {
+            adapter: mongoAdapter({
+                mongoUri: process.env.MONGO_URI, 
+                collectionName: 'nestore-adapter-test-collection',
+                documentKey: 'NST_MONGO_TEST_A'
+            })
+            // middleware: [
+                // adapters.persist(mockLocalStorage)
+                // adapters.mongo(process.env.MONGO_URI)
+            // ]
+        })
+
+        NST.on('@.*.registered', (data) => console.log('>>> REGISTERED >>>'))
+        NST.on('@.*.error', (data) => console.log('>>> ERROR >>>'))
+        NST.on('@.*.loading', (data) => console.log('>>> LOADING >>>'))
+        NST.on('@.*.loaded', (data) => console.log('>>> LOADED >>>'))
+        NST.on('@.*.saving', (data) => console.log('>>> SAVING >>>'))
+        NST.on('@.*.saved', (data) => console.log('>>> SAVED >>>'))
+        // NST.on('@.*', (data) => console.log('>>> Middleware event (@.*):', data))
+        // NST.on('@', (data) => console.log('>>> Middleware event (@):', data))
+        // NST.onAny((data) => console.log('>>>tAny event (@):', data))
+
+        setTimeout(()=>{
+            console.log(NST.get())
+        }, 2000)
+
+        setTimeout(()=>{
+            NST.set('name', 'Bobby')
+            NST.set('name', 'Charles')
+            // NST.set('name', 'Daniel')
+            // NST.set('name', 'Eric')
+            // NST.set('name', 'Frank')
+            NST.set('age', 1)
+            NST.set('age', 2)
+            NST.set('age', 3)
+            // NST.set('age', 4)
+            // NST.set('age', 5)
+        }, 3000)
+
+
+        setTimeout(()=>{
+            console.log(NST.get())
+        }, 5000)
+        
+        setTimeout(()=> {
+            console.log(NST.get())
+            console.log('DONE ----------------')
+            done()
+        }, 9000)
+        
+    })
+})
+
+describe(heading('H | Mutability / Silent Updates'), () => {
 
     it('G.1 | NST.get() => store.* = X', async () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -979,7 +989,7 @@ describe(heading('G | Mutability / Silent Updates'), () => {
     })
 
     it('G.2 | NST.store.* = X', async () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -993,7 +1003,7 @@ describe(heading('G | Mutability / Silent Updates'), () => {
     })
 
     it('G.3 | setter((x) => x.get() => .store.* = X)', async () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -1007,7 +1017,7 @@ describe(heading('G | Mutability / Silent Updates'), () => {
     })
 
     it('G.4 | setter((x) => x.store.* = X)', async () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -1021,7 +1031,7 @@ describe(heading('G | Mutability / Silent Updates'), () => {
     })
 
     it('G.5 | NST.get("path") = X', async () => {
-        const NST = nestore(initialStore)
+        const NST = new Nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -1036,7 +1046,8 @@ describe(heading('G | Mutability / Silent Updates'), () => {
 
 });
 
-describe.skip(heading('Performance'), function(){
+describe(heading('Performance'), function(){
+    if(!process.env.PERF) return;
     this.timeout(60_000)
 
     after(function(){
@@ -1164,7 +1175,7 @@ describe.skip(heading('Performance'), function(){
             
             while(NUM_OF_OPERATIONS < OPERATION_LIMIT){
                 NUM_OF_OPERATIONS++
-                const NST = nestore()
+                const NST = new Nestore()
             }
             let dur = Date.now() - CYCLE_START
             durationArr.push(dur)
@@ -1188,7 +1199,7 @@ describe.skip(heading('Performance'), function(){
         let TEST_START = Date.now()
         let durationArr = []
 
-        const NST = nestore()
+        const NST = new Nestore()
 
         while(NUM_OF_CYCLES < CYCLE_LIMIT){
             const CYCLE_START = Date.now()
@@ -1226,7 +1237,7 @@ describe.skip(heading('Performance'), function(){
         let TEST_START = Date.now()
         let durationArr = []
         
-        const NST = nestore()
+        const NST = new Nestore()
 
         while(NUM_OF_CYCLES < CYCLE_LIMIT){
             const CYCLE_START = Date.now()
@@ -1266,7 +1277,7 @@ describe.skip(heading('Performance'), function(){
         let TEST_START = Date.now()
         let durationArr = []
         
-        const NST = nestore()
+        const NST = new Nestore()
 
         while(NUM_OF_CYCLES < CYCLE_LIMIT){
             const CYCLE_START = Date.now()
@@ -1311,7 +1322,7 @@ describe.skip(heading('Performance'), function(){
         let TEST_START = Date.now()
         let durationArr = []
         
-        const NST = nestore()
+        const NST = new Nestore()
 
         while(NUM_OF_CYCLES < CYCLE_LIMIT){
             const CYCLE_START = Date.now()
