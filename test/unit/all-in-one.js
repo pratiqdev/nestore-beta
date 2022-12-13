@@ -1,5 +1,9 @@
 import assert from 'assert'
-import Nestore, { mongoAdapter, persistAdapter } from '../../index.js'
+import Nestore from '../../index.js'
+import mongoAdapter from '../../adapters/mongoAdapter/index.js'
+import persistAdapter from '../../adapters/persistAdapter/index.js'
+//! dont import here... throws react error
+// import useNestore from '../../adapters/useNestore/index.js' 
 import chai from 'chai';
 import fs from 'fs'
 import dotenv from 'dotenv'
@@ -92,7 +96,7 @@ const initialStore = {
 
     $title: (N, event) => {
         // console.log(`In store listener event:`, event)
-        N.set('value-added-from-$title', 'ayooo')
+        N.set('value-added-from-$title', 'This value was set when an in store listener ($title) was triggered by an update to "title"')
         // N.set('title', 'new title:' + event.value)
     },
 }
@@ -113,14 +117,14 @@ const testResults = {}
 try{
     testResults = JSON.parse(await fs.promises.readFile(testStatsFile, { encoding: 'utf-8'}))
 }catch(err){
-    //
+    console.log('Failed to read from "test-results.json" file:', err)
 }
 
 
 
 
 
-describe(heading('A | Setup'), function(){
+describe.only(heading('A | Setup'), function(){
     this.timeout(10_000)
 
     it('A.1 | Creates a filled store that returns store and methods', () => {
@@ -140,13 +144,51 @@ describe(heading('A | Setup'), function(){
         assert(typeof NST.reset === 'function')
         expect(JSON.stringify(NST.get())).to.eq(JSON.stringify(initialStore))
     });
+
+    it('A.3 | Throws error on incorrect store type', () => {
+        expect(() => {
+            new Nestore([])
+        }).to.throw()
+
+        expect(() => {
+            new Nestore({})
+        }).to.not.throw()
+    });
+
+    it('A.4 | Rejects or ignores incorrectly formatted config', () => {
+        const NST = new Nestore(initialStore)
+
+        let configs = [
+            {
+                'what':'is this',
+                3: () => {}
+            },
+            {'':{}},
+            {},
+            [],
+            [1,2,3],
+            3,
+            '3',
+            'a string',
+            () => {},
+            undefined,
+            null,
+        ]
+
+        configs.forEach(config => {
+            expect(() => {
+                new Nestore({}, config)
+            }).to.not.throw()
+        })
+
+    });
     
-    it('A.3 | Store matches initialStore on start', () => {
+    it('A.5 | Store matches initialStore on start', () => {
         const NST = new Nestore(initialStore)
         expect(JSON.stringify(NST.get())).to.eq(JSON.stringify(initialStore))
     })
 
-    it('A.4 | Mutliple stores do not modify each other', () => {
+    it('A.6 | Mutliple stores do not modify each other', () => {
         const A = new Nestore({ name: 'Alice'})
         const B = new Nestore({ name: 'Bob'})
 
@@ -169,7 +211,7 @@ describe(heading('A | Setup'), function(){
         
     })
 
-    it('A.5 | Passing existing nestore to nestore returns original', () => {
+    it('A.7 | Passing existing nestore to nestore returns original', () => {
         const A = new Nestore({ name: 'Alice'})
         const B = new Nestore(A)
 
@@ -186,7 +228,7 @@ describe(heading('A | Setup'), function(){
         
     })
 
-    it('A.6 | Nestore does not provide access to internal methods', () => {
+    it('A.8 | Nestore does not provide access to internal methods', () => {
         const NST = new Nestore({ name: 'Alice'})
 
         expect(typeof NST.keyCount).to.eq('undefined')
@@ -780,7 +822,7 @@ describe(heading('E | Events'), () => {
 
 });
 
-describe(heading('F | Setters'), () => {
+describe(heading('F | In Store Setters'), () => {
 
     it('F.1 | setterA', async () => {
         const NST = new Nestore(initialStore)
@@ -899,7 +941,7 @@ describe(heading('F | Setters'), () => {
 
 });
 
-describe(heading('G | In store listeners'), () => {
+describe(heading('G | In Store Listeners'), () => {
 
     it('G.1 | $title', async () => {
         const NST = new Nestore(initialStore)
@@ -911,7 +953,7 @@ describe(heading('G | In store listeners'), () => {
 
 })
 
-describe.only(heading('H | Middleware'), function(){
+describe(heading('H | Middleware'), function(){
     this.timeout(60_000)
 
     it('A.7 | Nestore registers middleware', (done) => {

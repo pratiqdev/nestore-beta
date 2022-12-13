@@ -2,8 +2,9 @@
 /* eslint-disable no-console */
 /* eslint-disable import/no-unresolved */
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import Nestore from 'nestore'
-import type { NestoreEmit, NestoreOptions } from 'nestore/dist/types'
+//@ts-ignore
+import Nestore, { TypeNestoreOptions, TypeNestoreEmit } from '../../../src/nestore' //~ DEV ONLY
+// import Nestore, { NestoreEmit, NestoreOptions } from 'nestore'
 
 // type Noop = (...args:unknown[]) => {}
 // type UseNestoreMutator = (...args:any[]) => any
@@ -30,7 +31,7 @@ type UseNestoreListener = (event: string | string[], ...values: any[]) => void;
 
 
 
-const createStore = <T>(initialStore:Partial<T>, options?: NestoreOptions): UseNestoreHook => {
+const createStore = <T>(initialStore:Partial<T>, options?: TypeNestoreOptions): UseNestoreHook => {
   const NST = new Nestore(initialStore, options) as { [key:string]: any }
 
   const useNestoreHook = (path?:string) => {
@@ -66,7 +67,7 @@ const createStore = <T>(initialStore:Partial<T>, options?: NestoreOptions): UseN
       // return early if this is an internal mutator function
       if (isMutator) return
       // if there is a path - listen on path, else listen for all store changes
-      hasPath ? NST.on(path!, (e:NestoreEmit) => setValue(e.value as Partial<T>)) : NST.on('/', (e:NestoreEmit) => setValue(e.value))
+      hasPath ? NST.on(path!, (e:TypeNestoreEmit) => setValue(e.value as Partial<T>)) : NST.on('/', (e:TypeNestoreEmit) => setValue(e.value))
 
       // if the entire store is updated - update this local state
       NST.onAny(listener)

@@ -1,3 +1,3 @@
-import useNestore from './dist/useNestore'
+import useNestore from './dist/main.js'
 
 export default useNestore

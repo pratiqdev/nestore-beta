@@ -1,19 +1,28 @@
 // import type { Model} from 'mongoose'
 import debug from 'debug'
 import { throttle } from 'lodash-es'
-import { NestoreAdapter, Nestore } from 'nestore'
+//@ts-ignore
+import Nestore, { TypeNestore, TypeNestoreAdapter, TypeNestoreClass } from '../../../src/nestore' //~ DEV ONLY
+// import { NestoreAdapter, Nestore } from 'nestore'
 
 const createLog = (namespace:string) => debug(`nestore:${namespace}`)
 
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-const persistAdapter: NestoreAdapter = (
+//- TODO
+//- convert arguments to strictly typed config object
+//- convert namespaced events to object provided by nestore that include methods:
+//  - adapter.register()
 
-  storageKey: string,
-  storage: Storage,
-  namespace = 'nestore-persist',
-  batchTime = 10_000
+export type TypePersistAdapterConfig = {
+  namespace?: string;
+  storage?: Storage,
+  storageKey: string;
+  batchTime: number;
+}
 
-) => <T>({ registered, error, loading, loaded, saved, saving, store, onUpdate }:any) => {
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+const persistAdapter: TypeNestoreAdapter = (
+  config: TypePersistAdapterConfig
+) => async <T>(nst: TypeNestoreClass<T>) => {
   const adapterStartTime:number = Date.now()
 
   const log = createLog('persist')
@@ -25,43 +34,43 @@ const persistAdapter: NestoreAdapter = (
   // })
   // console.log('-'.repeat(60))
 
-  if (typeof storage === 'undefined' || !storage) {
+  if (typeof config.storage === 'undefined' || !config.storage) {
     if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
       log('No storage provided, using localStorage')
-      storage = window.localStorage
+      config.storage = window.localStorage
     } else {
-      log('No storage provided, and localStorage not avilable')
+      log('No storage provided, and localStorage not available')
       console.log('Nestore persist: No storage object provided and localStorage not available.')
       return
     }
   }
-  if (typeof storage?.getItem !== 'function' || typeof storage?.setItem !== 'function') {
+  if (typeof config.storage?.getItem !== 'function' || typeof config.storage?.setItem !== 'function') {
     console.log('Nestore persist: Storage object must have (getItem, setItem) methods.')
     return
   }
-  if (typeof storageKey === 'undefined' || !storageKey.length) {
+  if (typeof config.storageKey === 'undefined' || !config.storageKey.length) {
     log('Local, session and indexedDB require a storage key')
     return
   }
-  if (typeof namespace !== 'string' || namespace.length < 3) {
+  if (typeof config.namespace !== 'string' || config.namespace.length < 3) {
     console.log('Nestore persist:: No "namespace" provided')
     return
   }
-  if (typeof batchTime !== 'number') {
+  if (typeof config.batchTime !== 'number') {
     console.log('Nestore persist:: No "batchTime" provided')
     return
   }
 
   const ns = {
-    registered: `@${namespace}.registered`, // => namespace
-    loading: `@${namespace}.loading`, // => store (before loaded)
-    loaded: `@${namespace}.loaded`, // => store (after loaded)
-    saving: `@${namespace}.saving`, // => store (being saved)
-    saved: `@${namespace}.saved`, // => store (what was saved)
-    error: `@${namespace}.error` // => the error
+    registered: `@${config.namespace}.registered`, // => namespace
+    loading: `@${config.namespace}.loading`, // => store (before loaded)
+    loaded: `@${config.namespace}.loaded`, // => store (after loaded)
+    saving: `@${config.namespace}.saving`, // => store (being saved)
+    saved: `@${config.namespace}.saved`, // => store (what was saved)
+    error: `@${config.namespace}.error` // => the error
   }
 
-  log('Nestore persist adapeter registered:', namespace)
+  log('Nestore persist adapter registered:', config.namespace)
   // nst.emit(ns.registered, {
   //     adapter: 'persistAdapter',
   //     storageKey,
@@ -69,7 +78,6 @@ const persistAdapter: NestoreAdapter = (
   //     namespace,
   //     batchTime
   // })
-  registered(namespace)
 
   try {
     let storeLoaded = false
@@ -84,9 +92,8 @@ const persistAdapter: NestoreAdapter = (
         // log(`Loading: Time since adapter start:`, Date.now() - adapterStartTime + ` ms`)
         log('Loading storage into store...')
         // nst.emit(ns.loading, nst.store)
-        loading(namespace)
 
-        const storedData = storage.getItem(storageKey) ?? '{}'
+        const storedData = config.storage?.getItem(config.storageKey) ?? '{}'
         const sto = JSON.parse(storedData)
 
         // await new Promise(res => setTimeout(res, 1500))
@@ -101,12 +108,12 @@ const persistAdapter: NestoreAdapter = (
         // log(`Loaded: Time since adapter start:`, Date.now() - adapterStartTime + ` ms`)
         // log(`Loaded: Time since load start:`, Date.now() - loadStartTime + ` ms`)
         log('Storage loaded into store:', sto)
-        loaded(namespace, sto)
+        //! loaded(namespace, sto)
         storeLoaded = true
       } catch (err) {
         log('Error loading storage with persist adapter:', err)
         // nst.emit(ns.error, err)
-        error(namespace, err)
+        //! error(namespace, err)
       }
     }
 
@@ -114,47 +121,47 @@ const persistAdapter: NestoreAdapter = (
     const handleSaveFunc = () => {
       try {
         const log = createLog('persist:save')
-        saving(namespace)
+        //! saving(namespace)
         log('Saving store to storage...')
         // nst.emit(ns.saving, nst.store)
-        const stringStore = JSON.stringify(store)
+        const stringStore = JSON.stringify(nst.store)
 
-        storage.setItem(storageKey, stringStore)
-        const savedValue = storage.getItem(storageKey)
+        config.storage?.setItem(config.storageKey, stringStore)
+        const savedValue = config.storage?.getItem(config.storageKey)
 
         if (savedValue && savedValue === stringStore) {
           // nst.emit(ns.saved, JSON.parse(savedValue))
-          saved(namespace, JSON.parse(savedValue))
+          //! saved(namespace, JSON.parse(savedValue))
           log('Store saved to storage')
         } else {
           const msg = 'Saved value does not match the current store after save was completed'
           // nst.emit(ns.error, msg)
-          error(namespace, msg)
+          //! error(namespace, msg)
           log('Persist adapter error:', msg)
         }
       } catch (err) {
         // nst.emit(ns.error, err)
-        error(namespace, err)
+        //! error(namespace, err)
         log('Persisadapter error:', err)
       }
     }
 
     // _
-    handleSave = throttle(handleSaveFunc, batchTime, {
+    handleSave = throttle(handleSaveFunc, config.batchTime, {
       leading: false,
       trailing: true
     })
 
     // _
-    onUpdate((data:any) => {
-      !data.startsWith('@') && handleSave()
-    })
+    //! onUpdate((data:any) => {
+    //!   !data.startsWith('@') && handleSave()
+    //! })
 
     loadStore()
   } catch (err) {
     console.log('Nestore persist error:', err)
     // nst.emit(ns.error, err)
-    error(namespace, err)
+    //! error(namespace, err)
   }
 }
 

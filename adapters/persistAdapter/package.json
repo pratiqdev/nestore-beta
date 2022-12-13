@@ -1,15 +1,35 @@
 {
-  "name": "persistAdapter",
+  "name": "nestore-persist-adapter",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/main.js",
+  "types": "dist/main.d.ts",
+  "keywords": [],
+  "author": "pratiqdev",
   "license": "MIT",
+  "description": "",
+  "type":"module",
+
+
+  "scripts": {
+    "//&                                                  ":"",
+    "//=super:lint": "Run ESLint with autofix",
+    "//~CONFIGURE_LINTING_RULES - super:lint": "eslint --fix -c .eslintrc.json .",
+    "//=super:clean": " remove the `./useNestore/dist/` directory",
+    "super:clean": "rm -rf ./dist",
+    "//=super:build": "built `useNestore` as a standard es module witt tsc",
+    "super:build": "tsc",
+
+    "//&                                                  ":"",
+    "super": "npm-run-all super:*"
+  },
   "devDependencies": {
     "@types/debug": "^4.1.7",
     "@types/lodash-es": "^4.17.6",
-    "debug": "^4.3.4"
+    "debug": "^4.3.4",
+    "npm-run-all": "^4.1.5"
   },
   "dependencies": {
     "lodash-es": "^4.17.21",
-    "nestore":"^1.0.0"
+    "nestore": "^1.0.0"
   }
 }

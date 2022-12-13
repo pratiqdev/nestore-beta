@@ -1,2 +1,2 @@
-import persistAdapter from './dist/persistAdapter.js'
+import persistAdapter from './dist/main.js'
 export default persistAdapter

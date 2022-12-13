@@ -65,6 +65,9 @@
     "noEmitOnError": true
   },
   "include": [
-    "./src/**/*.ts"
+    "./src/*.ts"
   ],
+  "exclude": [
+    "node-modules"
+  ]
 }

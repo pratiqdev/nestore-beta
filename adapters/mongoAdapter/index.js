@@ -1,2 +1,2 @@
-import mongoAdapter from './dist/mongoAdapter.js'
+import mongoAdapter from './dist/main.js'
 export default mongoAdapter

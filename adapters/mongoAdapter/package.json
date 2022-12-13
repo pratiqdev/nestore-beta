@@ -1,4 +1,25 @@
 {
+  "name": "nestore-mongo-adapter",
+  "version": "1.0.0",
+  "main": "dist/main.js",
+  "types": "dist/main.d.ts",
+  "keywords": [],
+  "author": "pratiqdev",
+  "license": "MIT",
+  "description": "",
+  "type":"module",
+  "scripts": {
+    "//&                                                  ":"",
+    "//=super:lint": "Run ESLint with autofix",
+    "//~CONFIGURE_LINTING_RULES - super:lint": "eslint --fix -c .eslintrc.json .",
+    "//=super:clean": " remove the `./useNestore/dist/` directory",
+    "super:clean": "rm -rf ./dist",
+    "//=super:build": "built `useNestore` as a standard es module witt tsc",
+    "super:build": "tsc",
+
+    "//&                                                  ":"",
+    "super": "npm-run-all super:*"
+  },
   "devDependencies": {},
   "dependencies": {
     "@types/debug": "^4.1.7",

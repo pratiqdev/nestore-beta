@@ -22,6 +22,7 @@ type NestoreMongoAdapterConfig = {
 const mongoAdapter: TypeNestoreAdapter = (
   config: NestoreMongoAdapterConfig
 ) => async <T>(nst: TypeNestoreClass<T>) => {
+
   const log = createLog('mongo')
   log('Mongo adapter initializing...')
 
@@ -49,7 +50,7 @@ const mongoAdapter: TypeNestoreAdapter = (
 
   const adapterEvents = {
     registered: () => {
-      
+
     }
   }
 
