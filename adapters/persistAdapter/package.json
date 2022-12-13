@@ -1,0 +1,15 @@
+{
+  "name": "persistAdapter",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/debug": "^4.1.7",
+    "@types/lodash-es": "^4.17.6",
+    "debug": "^4.3.4"
+  },
+  "dependencies": {
+    "lodash-es": "^4.17.21",
+    "nestore":"^1.0.0"
+  }
+}

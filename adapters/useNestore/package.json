@@ -1,0 +1,14 @@
+{
+    "name": "use-nestore",
+    "version": "1.0.0",
+    "main": "dist/useNestore.js",
+    "types": "dist/useNestore.d.ts",
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "description": "",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "build": "clear && rm -rf ./dist && tsc"
+    }
+}
