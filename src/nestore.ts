@@ -5,7 +5,8 @@ const createLog = (namespace:string) => debug('nestore:' + namespace)
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-export type NestoreOptions = {
+//&                                                                                               
+export type TypeNestoreOptions = {
     delimiter?: string;
     wildcard?: boolean;
     mutable?: boolean;
@@ -13,25 +14,25 @@ export type NestoreOptions = {
     verbose?: boolean;
     throwOnRevert?: boolean;
     timeout?: number;
-    adapter?: NestoreAdapterReturn;
+    adapter?: TypeNestoreAdapterReturn;
     preventRepeatUpdates?: boolean;
 }
 
+//&                                                                                               
 export type NestoreEmit = {
     // timestamp: number;
     path: string;
     key: string;
     value?: any;
 }
+// export type TypeNestoreFunction = <T>(initialStore?: T, options?: TypeNestoreOptions) => Nestore<Partial<T>>
 
-export type NestoreFunction = <T>(initialStore?: T, options?: NestoreOptions) => Nestore<Partial<T>>
+//&                                                                                               
+export type CustomMutator<T> = (this: Nestore<Partial<T>>, args?: any[]) => any;
+export type ListenerMutator = any;
 
-export type NestoreAdapter = <T>(...args:any[]) => <T>(nestore: Nestore<Partial<T>>) => void;
-export type NestoreAdapterReturn = <T>(nestore: Nestore<Partial<T>>) => void;
-
-
-
-export type AnyStore = {
+//&                                                                                               
+export type TypeNestoreAnyStore = {
     get: (...args:any[]) => any; 
     set: (...args:any[]) => any;
 } | {
@@ -39,19 +40,21 @@ export type AnyStore = {
     setItem: (...args:any[]) => any;
 } 
 
-export type AdapterEmit = {
+//&                                                                                               
+export type TypeNestoreAdapter = <T>(config: any) => <T>(nst: TypeNestoreClass<T>) => Promise<void>;
+export type TypeNestoreAdapterReturn = <T>(nst: Nestore<Partial<T>>) => void;
+export type TypeNestoreAdapterEmit = {
     timestamp: number;
     action: string;
     store: any;
 }
 
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 const COMMON = {
     NESTORE_ROOKEY: 'NESTORE_STORE_ROOKEY',
-    DEFAULDELIMITER_CHAR: '.'
+    DEFAULT_DELIMITER_CHAR: '.'
 }
-
 
 const COLORS = {
     reset: '\x1b[0m',
@@ -82,6 +85,16 @@ const COLORS = {
 
 
 
+
+
+
+
+
+
+
+
+
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 /** Nestore? */
 class Nestore<T> extends EE2{
@@ -95,7 +108,7 @@ class Nestore<T> extends EE2{
     #DEV_EXTENSION: any;
 
 
-    constructor(store: T | Partial<T> = {}, options: NestoreOptions = {}){
+    constructor(initialStore: T | Partial<T> = {}, options: TypeNestoreOptions = {}){
         super({
             wildcard: options.wildcard === false ? false : true,
             delimiter: typeof options.delimiter === 'string' ? options.delimiter : '.',
@@ -119,50 +132,46 @@ class Nestore<T> extends EE2{
         this.#PREVENREPEAUPDATE = true
         this.#DEV_EXTENSION = null
 
-        if(store instanceof Nestore) return store;
-
-        const thing = {
-            what: () => {},
-            $that: () => {}
-        }
+        if(initialStore instanceof Nestore) return initialStore;
         
-        
-        
-        if(typeof store !== 'object' || Array.isArray(store)){
-            throw new Error("neStore | Initial store must be of type: object  eg: { myKey: 'myValue' }");
+        if(typeof initialStore !== 'object' || Array.isArray(initialStore)){
+            throw new Error("Nestore | Initial store must be of type: object  eg: { myKey: 'myValue' }");
+            // store = {}
         }
         
         type CustomMutator = (this: Nestore<Partial<T>>, args?: any[]) => any;
         type ListenerMutator = any;
         
-        store && Object.entries(store).forEach(([ key, val ]) => {
-            if(typeof val === 'function'){
-                if(key.startsWith('$')){
-                    this.#SETTER_LISTENERS.push(key)
-                    let SETTER: ListenerMutator = val
-                    let path = key.substring(1, key.length)
-                    this.on(path, (event) => SETTER(this, event))
+        //! REGISTER IN STORE LISTENERS - could be isolated method
+        this.#registerInStoreListeners(initialStore)
+        // initialStore && Object.entries(store).forEach(([ key, val ]) => {
+        //     if(typeof val === 'function'){
+        //         if(key.startsWith('$')){
+        //             this.#SETTER_LISTENERS.push(key)
+        //             let SETTER: ListenerMutator = val
+        //             let path = key.substring(1, key.length)
+        //             this.on(path, (event) => SETTER(this, event))
 
-                }else{
-                    this.#SETTER_FUNCTIONS.push(key)
-                    let SETTER: CustomMutator = val
-                    //@ts-ignore
-                    this[key] = (...args:any) => SETTER(this, args) 
-                }
-            }
-        })
+        //         }else{
+        //             this.#SETTER_FUNCTIONS.push(key)
+        //             let SETTER: CustomMutator = val
+        //             //@ts-ignore
+        //             this[key] = (...args:any) => SETTER(this, args) 
+        //         }
+        //     }
+        // })
 
   
 
-        let storeOmitted:Partial<T> = Object.fromEntries(Object.entries(store).filter(([KEY,VAL]:any) => !this.#SETTER_FUNCTIONS.includes(KEY) && !this.#SETTER_LISTENERS.includes(KEY) )) as Partial<T>
+        let storeOmitted:Partial<T> = Object.fromEntries(Object.entries(initialStore as Object).filter(([KEY,VAL]:any) => !this.#SETTER_FUNCTIONS.includes(KEY) && !this.#SETTER_LISTENERS.includes(KEY) )) as Partial<T>
 
 
         this.#PREVENREPEAUPDATE = options.preventRepeatUpdates === false ? false : true
         this.#INTERNAL_STORE = storeOmitted
         this.#ORIGINAL_STORE = JSON.parse(JSON.stringify(storeOmitted))
-        this.#DELIMITER_CHAR = typeof options.delimiter === 'string' ? options.delimiter : COMMON.DEFAULDELIMITER_CHAR
+        this.#DELIMITER_CHAR = typeof options.delimiter === 'string' ? options.delimiter : COMMON.DEFAULT_DELIMITER_CHAR
         
-
+        //! REGISTER REDUX-DEVTOOLS - create isolated method
         // handle connecting to the redux-devtools browser extension
         if(typeof window !== 'undefined'){
             const _log = createLog('devtool')
@@ -205,8 +214,10 @@ class Nestore<T> extends EE2{
         }
 
         // log('='.repeat(80))
-        log('Store created:', store)
+        log('Store created:', initialStore)
         
+        //! REGISTER STORE ADAPTERS - could be isolated method
+        //- should allow array of adapters to use multiple
         if(typeof options.adapter === 'function'){
             try{
                 options.adapter(this)
@@ -218,6 +229,28 @@ class Nestore<T> extends EE2{
         
         // log('='.repeat(80))
     }
+
+
+
+     //_                                                                                             
+     #registerInStoreListeners(initialStore:Partial<T>) {
+        Object.entries(initialStore).forEach(([ key, val ]) => {
+            if(typeof val === 'function'){
+                if(key.startsWith('$')){
+                    this.#SETTER_LISTENERS.push(key)
+                    let SETTER: ListenerMutator = val
+                    let path = key.substring(1, key.length)
+                    this.on(path, (event) => SETTER(this, event))
+
+                }else{
+                    this.#SETTER_FUNCTIONS.push(key)
+                    let SETTER = val as CustomMutator<T>
+                    //@ts-ignore
+                    this[key] = (...args:any) => SETTER(this, args) 
+                }
+            }
+        })
+     }
 
 
 
@@ -525,6 +558,9 @@ class Nestore<T> extends EE2{
 
 }
 
-export type NestoreType = typeof Nestore
+export type TypeNestoreClass<T = void> = Nestore<T>
+
+const nst = new Nestore()
+export type TypeNestoreInstance = typeof nst
 
 export default Nestore

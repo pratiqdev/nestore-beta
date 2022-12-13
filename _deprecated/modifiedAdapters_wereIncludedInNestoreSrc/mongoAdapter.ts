@@ -1,4 +1,4 @@
-import Nestore, { NestoreAdapter } from "./nestore";
+import Nestore, { NestoreAdapter } from "../../src/nestore";
 import type { Model} from 'mongoose'
 import debug from 'debug'
 import { throttle } from 'lodash-es'
@@ -180,7 +180,7 @@ async <T>(nst: Nestore<T>) => {
 
         db = mongoose.connection;
 
-        db.once('open', () => onMongoConnect())
+        db.once('open', onMongoConnect)
         db.on('error', (err:any) => console.log(`MONGOOSE ERROR:`, err))
 
         nst.emit(ns.registered, true)

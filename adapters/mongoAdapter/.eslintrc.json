@@ -184,7 +184,7 @@
     "no-this-before-super": "warn",
     "no-throw-literal": "warn",
     "no-trailing-spaces": "warn",
-    "no-underscore-dangle": "warn",
+    "no-underscore-dangle": "never",
     "no-undef": "warn",
     "no-undef-init": "warn",
     "no-unexpected-multiline": "warn",

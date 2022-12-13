@@ -11,8 +11,8 @@
     "dist/"
   ],
   "scripts": {
-    "moveto-react":"rm -rf ../react/nestore-react/src/nestore-dist && cp -r ./dist ../react/nestore-react/src/nestore-dist",
-    "moveto-next":"rm -rf ../react/nestore-next/nestore-dist && cp -r ./dist ../react/nestore-next/nestore-dist",
+    "moveto-react": "rm -rf ../react/nestore-react/src/nestore-dist && cp -r ./dist ../react/nestore-react/src/nestore-dist",
+    "moveto-next": "rm -rf ../react/nestore-next/nestore-dist && cp -r ./dist ../react/nestore-next/nestore-dist",
     "build": "clear && rm -rf ./dist && tsc",
     "test": "clear && mocha ./test/unit --config .mocharc.cjs",
     "watch-test": "clear && tsc && nodemon",
@@ -47,6 +47,7 @@
     "dotenv": "^16.0.3",
     "mocha": "^10.0.0",
     "nodemon": "^2.0.18",
+    "npm-run-all": "^4.1.5",
     "typescript": "^4.8.3"
   },
   "peerDependencies": {
