@@ -1,6 +1,7 @@
 dist
 node_modules
 test/*
+react-test/*
 _notes
 
 .eslint*

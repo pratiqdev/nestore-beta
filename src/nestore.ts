@@ -1,6 +1,7 @@
 // /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable import/no-extraneous-dependencies */
+import { GeneralEventEmitter } from 'eventemitter2'
 import debug from 'debug'
 import {
   omit, set, get, isEqual
@@ -25,7 +26,7 @@ const COMMON = {
   NESTORE_ROOT_KEY: 'NESTORE_STORE_ROOT_KEY',
   DEFAULT_DELIMITER_CHAR: '.'
 }
-
+// whaaat
 // type NodeVisitor = (path:string, value:unknown) => unknown;
 
 const splitPath = (path:string) => path.split(/\[|\]\[|\]\.|\.|\]|\//g)
@@ -64,7 +65,9 @@ class Nestore<T> extends EE2 {
                 options.maxListeners <= Number.MAX_SAFE_INTEGER &&
                 options.maxListeners >= Number.MIN_SAFE_INTEGER
         ? options.maxListeners
-        : 10
+        : 10,
+      newListener: true,
+      removeListener: true
     })
     const log = createLog('constr')
     // console.log('>> NESTORE V4 (2e893d0)')
@@ -78,8 +81,6 @@ class Nestore<T> extends EE2 {
     this.#LISTENER_MUTATORS = []
     this.#PREVENT_REPEAT_UPDATE = true
     this.#DEV_EXTENSION = null
-
-    // if (store instanceof Nestore) { store }
 
     if (typeof store !== 'object' || Array.isArray(store)) {
       throw new Error("nestore | Initial store must be of type: object  eg: { myKey: 'myValue' }")
@@ -163,16 +164,23 @@ class Nestore<T> extends EE2 {
     //   }
     // })
 
-    const storeOmitted:Partial<T> = Object.fromEntries(Object.entries(store)
-      .filter(([ KEY ]:[string, unknown]) => !this.#CUSTOM_MUTATORS
-        .includes(KEY))) as Partial<T>
-
     this.#PREVENT_REPEAT_UPDATE = options.preventRepeatUpdates !== false
-    this.#INTERNAL_STORE = storeOmitted
-    this.#ORIGINAL_STORE = JSON.parse(JSON.stringify(storeOmitted))
     this.#DELIMITER_CHAR = typeof options.delimiter === 'string'
       ? options.delimiter
       : COMMON.DEFAULT_DELIMITER_CHAR
+
+    // if (store instanceof Nestore) {
+    //   this.listenTo(store as unknown as GeneralEventEmitter, {})
+    //   store.listenTo(this as unknown as GeneralEventEmitter, {})
+    //   this.#INTERNAL_STORE = store.store
+    //   this.#ORIGINAL_STORE = JSON.parse(JSON.stringify(store.store))
+    // } else {
+    const storeOmitted:Partial<T> = Object.fromEntries(Object.entries(store)
+      .filter(([ KEY ]:[string, unknown]) => !this.#CUSTOM_MUTATORS
+        .includes(KEY))) as Partial<T>
+    this.#INTERNAL_STORE = storeOmitted
+    this.#ORIGINAL_STORE = JSON.parse(JSON.stringify(storeOmitted))
+    // }
 
     // handle connecting to the redux-devtools browser extension
     // if (typeof window === 'object' && '__REDUX_DEVTOOLS_EXTENSION__' in window) {
@@ -475,21 +483,21 @@ class Nestore<T> extends EE2 {
     try {
       const log = createLog('set')
 
-      if (this.#PREVENT_REPEAT_UPDATE) {
-        if (typeof path === 'string' && isEqual(get(this.#INTERNAL_STORE, path), value)) {
-          log('Provided value already matches stored value, skipping...')
-          log({
-            new: value,
-            old: get(this.#INTERNAL_STORE, path)
-          })
-          return false
-        } if (typeof path === 'object' && isEqual(this.store, path)) {
-          log('Provided newStore already matches store, skipping...')
-          return false
-        }
-      } else {
-        log('"preventRepeatUpdate" disabled')
-      }
+      // if (this.#PREVENT_REPEAT_UPDATE) {
+      //   if (typeof path === 'string' && isEqual(get(this.#INTERNAL_STORE, path), value)) {
+      //     log('Provided value already matches stored value, skipping...')
+      //     log({
+      //       new: value,
+      //       old: get(this.#INTERNAL_STORE, path)
+      //     })
+      //     return false
+      //   } if (typeof path === 'object' && isEqual(this.store, path)) {
+      //     log('Provided newStore already matches store, skipping...')
+      //     return false
+      //   }
+      // } else {
+      //   log('"preventRepeatUpdate" disabled')
+      // }
 
       if (
         (typeof path === 'undefined' && typeof value === 'undefined') ||
@@ -519,17 +527,23 @@ class Nestore<T> extends EE2 {
           log(`Setting quietly "/" : "${value}"`)
         }
 
-        this.#updateDevtoolFromStore('/', originalValue, value, this.store)
+        // ~ PERFORMANCE
+        //! The `updateDevToolFromStore` method is invoked when no devtools found
+        //! This can be avoided by checking for `DEV_EXTENSION` before invoking
+        this.#DEV_EXTENSION && this.#updateDevtoolFromStore('/', originalValue, value, this.store)
         return true
       }
 
       if (typeof path === 'string') {
         // ---------------------------------------------- PATH BASED
         // log(`Setting "${path}" : "${value}"`)
-        const originalValue = this.#DEV_EXTENSION ? this.get(path) : null
 
         set(this.#INTERNAL_STORE, path, value)
-        this.#updateDevtoolFromStore(path, originalValue, value, this.store)
+        // ~ PERFORMANCE
+        //! The `updateDevToolFromStore` method is invoked when no devtools found
+        //! This can be avoided by checking for `DEV_EXTENSION` before invoking
+        //! Also moved this.get(path) into arguments as inline call
+        this.#DEV_EXTENSION && this.#updateDevtoolFromStore(path, this.get(path), value, this.store)
 
         if (!quiet) {
           log(`Setting normally "${path}" : "${value}"`)

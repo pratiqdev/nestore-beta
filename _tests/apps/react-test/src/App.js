@@ -1,16 +1,16 @@
 
-import { useEffect } from 'react';
-import './App.css';
+import { useEffect } from 'react'
+import './App.css'
 import useStore from './hook.js'
 import NST from './store.js'
 
-function App() {
+function App () {
   const store = useStore()
   const val = useStore('num')
 
-  useEffect(()=>{
+  useEffect(() => {
     console.log('store changed')
-  },[store])
+  }, [ store ])
 
   return (
     <div className="App">
@@ -21,7 +21,7 @@ function App() {
         <button onClick={() => NST.inc()}>INC</button>
       </header>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App

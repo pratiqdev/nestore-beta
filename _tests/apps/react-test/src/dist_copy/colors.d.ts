@@ -16,5 +16,5 @@ declare const colors: {
     magentaBg: string;
     cyanBg: string;
     whiteBg: string;
-};
-export default colors;
+}
+export default colors

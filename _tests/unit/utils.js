@@ -80,8 +80,9 @@ const initialStore = {
     N.store.title = newTitle
   },
 
+  /** Register a listener in store based on the `$path` provided */
   $title: (N, event) => {
-    console.log('In store listener event:', event)
+    // console.log('In store listener event:', event)
     N.set('value-added-from-$title', 'ayooo')
     // N.set('title', 'new title:' + event.value)
   }
@@ -96,8 +97,15 @@ const getMockLocalStorage = () => {
 }
 
 
-const getTestResults = async () => JSON.parse(await fs.promises.readFile(testResultsFile, { encoding: 'utf-8' }))
-
+const getTestResults = async () => {
+  let results = []
+  try{
+    results = JSON.parse(await fs.promises.readFile(testResultsFile, { encoding: 'utf-8' }))
+  }catch(err){
+    //
+  }
+  return results
+}
 
 export {
     nestore,

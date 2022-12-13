@@ -61,21 +61,21 @@ describe(heading('A | Setup'), function () {
     // assert(B.get().name === 'Becky')
   })
 
-  it.skip('A.5 | (REMOVED) Passing existing nestore to nestore returns original', () => {
-    const A = nestore({ name: 'Alice' })
-    const B = nestore(A)
+  // it('A.5 | (REMOVED) Passing existing nestore to nestore returns original', () => {
+  //   const A = nestore({ name: 'Alice' })
+  //   const B = nestore(A)
 
-    expect(A.get().name).to.eq('Alice')
-    expect(B.get().name).to.eq('Alice')
+  //   expect(A.get().name).to.eq('Alice')
+  //   expect(B.get().name).to.eq('Alice')
 
-    A.set('name', 'Andrew')
-    expect(A.get().name).to.eq('Andrew')
-    expect(B.get().name).to.eq('Andrew')
+  //   A.set('name', 'Bobby')
+  //   expect(A.get().name).to.eq('Bobby')
+  //   expect(B.get().name).to.eq('Bobby')
 
-    B.set('name', 'Becky')
-    expect(A.get().name).to.eq('Becky')
-    expect(B.get().name).to.eq('Becky')
-  })
+  //   B.set('name', 'Charlie')
+  //   expect(A.get().name).to.eq('Charlie')
+  //   expect(B.get().name).to.eq('Charlie')
+  // })
 
   it('A.6 | Nestore does not provide access to internal methods', () => {
     const NST = nestore({ name: 'Alice' })
@@ -87,7 +87,7 @@ describe(heading('A | Setup'), function () {
     // expect(typeof NST.#splitPathToKey).to.eq('undefined')
   })
 
-  it.skip('A.7 | Nestore registers adapters', (done) => {
+  it.only('A.7 | Nestore registers adapters', (done) => {
     // console.log(nestore)
 
     const NST = nestore({ name: 'Andrew' }, {

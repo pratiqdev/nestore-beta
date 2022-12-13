@@ -11,15 +11,16 @@ import {
   getMockLocalStorage,
   initialStore,
 } from './utils.js'
+import fs from 'fs'
 
 
-describe.skip(heading('Performance'), function () {
+describe(heading('Performance'), function () {
+  let testResults = getTestResults()
   this.timeout(60_000)
 
   after(() => {
-    fs.promises.writeFile(testStatsFile, JSON.stringify(testResults, null, 2))
-    console.log('\tPerformance tests complete.')
-    console.log('\tWrote result data to stat file: "test-results.json"')
+    fs.promises.writeFile(testResultsFile, JSON.stringify(testResults, null, 2))
+    console.log(`\n\tPerformance tests complete. Wrote to stat file: "${testResultsFile}"`)
   })
 
   beforeEach(() => {
@@ -28,11 +29,11 @@ describe.skip(heading('Performance'), function () {
 
   const defaultMap = new Map()
 
-  const OPERATION_LIMIT = 10_000
-  const CYCLE_LIMIT = 100
+  const OPERATION_LIMIT = 1_000
+  const CYCLE_LIMIT = 10
   const MAX_AVG_OP_TIME = 0.1
-  const MAX_STAT_HISTORY = 5
-  const enableLogging = true
+  const MAX_STAT_HISTORY = 10
+  const enableLogging = process.env.VERBOSE || false
 
   const set = 'ABCDEF'
   const average = (array) => array.reduce((a, b) => a + b) / array.length
@@ -82,9 +83,12 @@ describe.skip(heading('Performance'), function () {
     const thisStats = testResults[test]
 
     if (thisStats.length < MAX_STAT_HISTORY) {
-      console.log('\tNot enough historical data to graph...')
-      console.log(`\t${'.'.repeat(50)}\n`)
-      return done()
+      // console.log('\tNot enough historical data to graph...')
+      // console.log(`\t${'.'.repeat(50)}\n`)
+      // return done()
+      while(thisStats.length < MAX_STAT_HISTORY){
+        thisStats.unshift(0.00000)
+      }
     }
 
     const _max = Math.max(...thisStats)
@@ -110,7 +114,7 @@ describe.skip(heading('Performance'), function () {
 
       str += `${diff} | `
       str += `${(`${thisStats[i]}`).substring(0, 7)}  |`
-      str += '||'.repeat(((thisStats[i] - _min) / stepSize) + 1)
+      str += '|'.repeat(((thisStats[i] - _min) / stepSize) + 1)
 
       console.log(str)
     }
