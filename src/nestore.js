@@ -34,13 +34,13 @@ class Nestore extends EE2 {
     #DELIMITER_CHAR;
     #SETTER_FUNCTIONS;
     #SETTER_LISTENERS;
-    #PREVENREPEAUPDATE;
+    #PREVENT_REPEAT_UPDATE;
     #DEV_EXTENSION;
     #log;
     constructor(initialStore = {}, options = {}) {
         super({
             wildcard: options?.wildcard === false ? false : true,
-            delimiter: typeof options?.delimiter === 'string' ? options.delimiter : '.',
+            delimiter: typeof options?.delimiter === 'string' ? options?.delimiter : '.',
             verboseMemoryLeak: options?.verbose === true ? true : false,
             maxListeners: typeof options?.maxListeners === 'number'
                 && options?.maxListeners <= Number.MAX_SAFE_INTEGER
@@ -57,7 +57,7 @@ class Nestore extends EE2 {
         this.#DELIMITER_CHAR = '';
         this.#SETTER_FUNCTIONS = [];
         this.#SETTER_LISTENERS = [];
-        this.#PREVENREPEAUPDATE = true;
+        this.#PREVENT_REPEAT_UPDATE = true;
         this.#DEV_EXTENSION = null;
         if (initialStore instanceof Nestore)
             return initialStore;
@@ -67,7 +67,7 @@ class Nestore extends EE2 {
         let storeOmitted = Object.fromEntries(Object.entries(initialStore)
             .filter(([KEY, VAL]) => !this.#SETTER_FUNCTIONS.includes(KEY)
             && !this.#SETTER_LISTENERS.includes(KEY)));
-        this.#PREVENREPEAUPDATE = options.preventRepeatUpdates === false ? false : true;
+        this.#PREVENT_REPEAT_UPDATE = options?.preventRepeatUpdates === false ? false : true;
         this.#INTERNAL_STORE = storeOmitted;
         this.#ORIGINAL_STORE = JSON.parse(JSON.stringify(storeOmitted));
         this.#DELIMITER_CHAR = typeof options?.delimiter === 'string'
@@ -137,17 +137,14 @@ class Nestore extends EE2 {
     }
     //_                                                                                             
     #registerAdapters(options) {
-        if (!options?.adapters || !options.adapters.length)
+        if (!options?.adapters || !options?.adapters.length)
             return;
-        if ((!Array.isArray(options.adapters) || !options?.adapters?.every(a => typeof a === 'function'))) {
+        if ((!Array.isArray(options?.adapters) || !options?.adapters?.every(a => typeof a === 'function'))) {
             console.warn(`Nestore adapters must be provided as an array of one or more adapter functions`);
             return;
         }
         try {
-            options?.adapters?.forEach(adapter => {
-                let registeredAdapter = adapter(this);
-                console.log('Registered adapter:', registeredAdapter);
-            });
+            options?.adapters?.forEach((adapter) => adapter(this));
             this.#log('Adapter registered');
         }
         catch (err) {
@@ -240,7 +237,7 @@ class Nestore extends EE2 {
     set = (path, value, flag) => {
         try {
             const log = createLog('set');
-            if (this.#PREVENREPEAUPDATE) {
+            if (this.#PREVENT_REPEAT_UPDATE) {
                 if (typeof path === 'string' && isEqual(get(this.#INTERNAL_STORE, path), value)) {
                     log(`Provided value already matches stored value, skipping...`);
                     log({
@@ -398,6 +395,42 @@ class Nestore extends EE2 {
         // return cloneDeep(this.#INTERNAL_STORE)
         // return {...this.#INTERNAL_STORE}
         return this.#INTERNAL_STORE;
+    }
+    get _delimiter() {
+        return this.#DELIMITER_CHAR;
+    }
+    get _dev_extension() {
+        return this.#DEV_EXTENSION;
+    }
+    get _internal_store() {
+        return this.#INTERNAL_STORE;
+    }
+    get _original_store() {
+        return this.#ORIGINAL_STORE;
+    }
+    get _setter_functions() {
+        return this.#SETTER_FUNCTIONS;
+    }
+    get _setter_listeners() {
+        return this.#SETTER_LISTENERS;
+    }
+    get _prevent_repeat_update() {
+        return this.#PREVENT_REPEAT_UPDATE;
+    }
+    get _emit() {
+        return this.#emit;
+    }
+    get _handleEmitAll() {
+        return this.#handleEmitAll;
+    }
+    get _get_last_key_from_path_string() {
+        return this.#getLastKeyFromPathString;
+    }
+    get _split_path_string_at_known_delimiters() {
+        return this.#splitPathStringAtKnownDelimiters;
+    }
+    get _convert_string_or_array_to_normalized_path_string() {
+        return this.#convertStringOrArrayToNormalizedPathString;
     }
 }
 const nst = new Nestore();

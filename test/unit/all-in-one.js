@@ -104,16 +104,18 @@ const initialStore = {
 const mls = () => {
     let store = JSON.stringify({thisValue: 'is from mockLocalStorage - a mock localStorage setup'});
     let set = (val) => store = JSON.stringify(val)
+    let setItem = (val) => store = JSON.stringify(val)
     let get = () => JSON.parse(store)
+    let getItem = () => JSON.parse(store)
 
-    return { get, set }
+    return { get, set, getItem, setItem }
 }
 
 const mockLocalStorage = mls()
 
 
 
-const testResults = {}
+let testResults = {}
 try{
     testResults = JSON.parse(await fs.promises.readFile(testStatsFile, { encoding: 'utf-8'}))
 }catch(err){
@@ -124,7 +126,7 @@ try{
 
 
 
-describe.only(heading('A | Setup'), function(){
+describe(heading('A | Setup'), function(){
     this.timeout(10_000)
 
     it('A.1 | Creates a filled store that returns store and methods', () => {
@@ -173,12 +175,16 @@ describe.only(heading('A | Setup'), function(){
             () => {},
             undefined,
             null,
+            5 * 'not a number'
         ]
 
         configs.forEach(config => {
+            let NST
             expect(() => {
-                new Nestore({}, config)
+                NST = new Nestore({}, config)
             }).to.not.throw()
+
+            expect(NST.settings)
         })
 
     });
@@ -953,63 +959,225 @@ describe(heading('G | In Store Listeners'), () => {
 
 })
 
-describe(heading('H | Middleware'), function(){
-    this.timeout(60_000)
+describe.only(heading('H | Middleware'), function(){
+    this.timeout(10_000)
 
-    it('A.7 | Nestore registers middleware', (done) => {
+    it('H.1 | Nestore registers adapter - "mongoAdapter"', (done) => {
         // console.log(nestore)
-
-
  
         const NST = new Nestore({ name: 'Andrew'}, {
-            adapter: mongoAdapter({
-                mongoUri: process.env.MONGO_URI, 
-                collectionName: 'nestore-adapter-test-collection',
-                documentKey: 'NST_MONGO_TEST_A'
-            })
-            // middleware: [
-                // adapters.persist(mockLocalStorage)
-                // adapters.mongo(process.env.MONGO_URI)
-            // ]
+            adapters: [
+                mongoAdapter({
+                    mongoUri: process.env.MONGO_URI, 
+                    collectionName: 'nestore-adapter-test-collection',
+                    documentKey: 'NST_MONGO_TEST_A',
+                    batchTime: 500
+                })
+            ]
         })
 
-        NST.on('@.*.registered', (data) => console.log('>>> REGISTERED >>>'))
-        NST.on('@.*.error', (data) => console.log('>>> ERROR >>>'))
-        NST.on('@.*.loading', (data) => console.log('>>> LOADING >>>'))
-        NST.on('@.*.loaded', (data) => console.log('>>> LOADED >>>'))
-        NST.on('@.*.saving', (data) => console.log('>>> SAVING >>>'))
-        NST.on('@.*.saved', (data) => console.log('>>> SAVED >>>'))
-        // NST.on('@.*', (data) => console.log('>>> Middleware event (@.*):', data))
-        // NST.on('@', (data) => console.log('>>> Middleware event (@):', data))
-        // NST.onAny((data) => console.log('>>>tAny event (@):', data))
+        let EMITTED = {
+            error: false,
+            registered: false,
+            loading: false,
+            loaded: false,
+            saving: false,
+            saved: false,
+        }
 
-        setTimeout(()=>{
-            console.log(NST.get())
-        }, 2000)
+        let DATA = {
+            namespace: false,
+            error: false,
+            preLoadStore: false,
+            postLoadStore: false,
+            preSaveStore: false,
+            postSaveStore: false,
+        }
 
-        setTimeout(()=>{
-            NST.set('name', 'Bobby')
-            NST.set('name', 'Charles')
-            // NST.set('name', 'Daniel')
-            // NST.set('name', 'Eric')
-            // NST.set('name', 'Frank')
-            NST.set('age', 1)
-            NST.set('age', 2)
-            NST.set('age', 3)
-            // NST.set('age', 4)
-            // NST.set('age', 5)
-        }, 3000)
+        let required = [
+            'registered',
+            'loading',
+            'saving',
+            'loaded',
+            'saved',
+        ]
+        let events = []
+
+        let handleExit = () => {
+            if(events.includes('error')){
+                expect.fail('The adapter threw an error')
+            }else if(required.every(req => events.includes(req))){
+                done()
+            }else{
+                console.log('middleware waiting for all events:', events)
+            }
+        }
 
 
-        setTimeout(()=>{
-            console.log(NST.get())
-        }, 5000)
+
+        NST.on('@.*.registered', (data) => {
+            console.log('>>> REGISTERED >>>', data)
+            DATA.namespace = data
+            events.push('registered')
+            handleExit()
+        })
         
-        setTimeout(()=> {
-            console.log(NST.get())
-            console.log('DONE ----------------')
-            done()
-        }, 9000)
+        NST.on('@.*.error', (data) => {
+            console.log('>>> ERROR >>>', data)
+            DATA.error = data
+            events.push('error')
+            handleExit()
+        })
+
+        NST.on('@.*.loading', (data) => {
+            console.log('>>> LOADING >>>', data)
+            DATA.preLoadStore = data
+            events.push('loading')
+            handleExit()
+        })
+
+        NST.on('@.*.saving', (data) => {
+            console.log('>>> SAVING >>>', data)
+            DATA.preSaveStore = data
+            events.push('saving')
+            handleExit()
+        })
+
+        NST.on('@.*.saved', (data) => {
+            console.log('>>> SAVED >>>', data)
+            DATA.postSaveStore = data
+            events.push('saved')
+            handleExit()
+        })
+
+        NST.on('@.*.loaded', (data) => {
+            console.log('>>> LOADED >>>', data)
+            DATA.postLoadStore = data
+            events.push('loaded')
+            handleExit()
+
+            setTimeout(()=>{
+                NST.set('TRIGGER_MIDDLEWARE_SAVE_EVENT', 'now')
+            },1000)
+        })
+
+
+        
+    })
+
+    it.only('H.1 | Nestore registers adapter - "persistAdapter"', (done) => {
+        // console.log(nestore)
+
+        console.log('creating store...')
+        const NST = new Nestore({ name: 'Andrew'}, {
+            adapters: [
+                persistAdapter({
+                    namespace: 'NST-persist-adptr',
+                    storage: mockLocalStorage,
+                    storageKey: 'blappsps',
+                    batchTime: 500,
+                })
+            ]
+        })
+
+        console.log('Store:', NST.store)
+
+        expect(NST.store.name).to.eq('Andrew')
+
+        let EMITTED = {
+            error: false,
+            registered: false,
+            loading: false,
+            loaded: false,
+            saving: false,
+            saved: false,
+        }
+
+        let DATA = {
+            namespace: false,
+            error: false,
+            preLoadStore: false,
+            postLoadStore: false,
+            preSaveStore: false,
+            postSaveStore: false,
+        }
+
+        let required = [
+            'registered',
+            'loading',
+            'saving',
+            'loaded',
+            'saved',
+        ]
+        let events = []
+
+        let middlewareSavedValue = Date.now()
+
+        let handleExit = () => {
+            console.log('handleExit:',  events)
+            if(events.includes('error')){
+                expect.fail('The adapter threw an error')
+            }else if(required.every(req => events.includes(req))){
+                expect(NST.store.TRIGGER_MIDDLEWARE_SAVE_EVENT).to.eq(middlewareSavedValue)
+                done()
+            }else{
+                console.log('middleware waiting for all events...')
+            }
+        }
+        console.log('registering listeners...')
+
+        NST.onAny(data => console.log('any:', data))
+
+
+
+        NST.on('@.*.registered', (data) => {
+            console.log('>>> REGISTERED >>>', data)
+            DATA.namespace = data
+            events.push('registered')
+            handleExit()
+        })
+        
+        NST.on('@.*.error', (data) => {
+            console.log('>>> ERROR >>>', data)
+            DATA.error = data
+            events.push('error')
+            handleExit()
+        })
+
+        NST.on('@.*.loading', (data) => {
+            console.log('>>> LOADING >>>', data)
+            DATA.preLoadStore = data
+            events.push('loading')
+            handleExit()
+        })
+
+        NST.on('@.*.saving', (data) => {
+            console.log('>>> SAVING >>>', data)
+            DATA.preSaveStore = data
+            events.push('saving')
+            handleExit()
+        })
+
+        NST.on('@.*.saved', (data) => {
+            console.log('>>> SAVED >>>', data)
+            DATA.postSaveStore = data
+            events.push('saved')
+            handleExit()
+        })
+
+        NST.on('@.*.loaded', (data) => {
+            console.log('>>> LOADED >>>', data)
+            DATA.postLoadStore = data
+            events.push('loaded')
+            handleExit()
+
+            setTimeout(()=>{
+                NST.set('TRIGGER_MIDDLEWARE_SAVE_EVENT', middlewareSavedValue)
+            },1000)
+        })
+
+
+
         
     })
 })
@@ -1022,8 +1190,9 @@ describe(heading('H | Mutability / Silent Updates'), () => {
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
 
-        NST.get().title = 'aaa'
+        NST.store.title = 'aaa'
         expect(NST.get('title')).to.eq('aaa')
+        expect(NST.store.title).to.eq('aaa')
 
         // no events should be emitted from direct mutations, if they happen
         expect( recievedEvents.length ).to.eq( 0 )
@@ -1038,6 +1207,7 @@ describe(heading('H | Mutability / Silent Updates'), () => {
 
         NST.store.title = 'bbb'
         expect(NST.get('title')).to.eq('bbb')
+        expect(NST.store.title).to.eq('bbb')
 
         // no events should be emitted from direct mutations, if they happen
         expect( recievedEvents.length ).to.eq( 0 )
@@ -1052,6 +1222,7 @@ describe(heading('H | Mutability / Silent Updates'), () => {
 
         NST.mutabilityTestA('ccc')
         expect(NST.get('title')).to.eq('ccc')
+        expect(NST.store.title).to.eq('ccc')
         
         // no events should be emitted from direct mutations, if they happen
         expect( recievedEvents.length ).to.eq( 0 )
@@ -1066,6 +1237,7 @@ describe(heading('H | Mutability / Silent Updates'), () => {
 
         NST.mutabilityTestB('ddd')
         expect(NST.get('title')).to.eq('ddd')
+        expect(NST.store.title).to.eq('ddd')
 
         // no events should be emitted from direct mutations, if they happen
         expect( recievedEvents.length ).to.eq( 0 )
@@ -1080,6 +1252,7 @@ describe(heading('H | Mutability / Silent Updates'), () => {
 
         NST.store.title = 'eee'
         expect(NST.get('title')).to.eq('eee')
+        expect(NST.store.title).to.eq('eee')
 
         // no events should be emitted from direct mutations, if they happen
         expect( recievedEvents.length ).to.eq( 0 )
