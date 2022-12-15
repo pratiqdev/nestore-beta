@@ -157,9 +157,13 @@ class Nestore<T> extends EE2{
         
         this.#registerInStoreListeners(initialStore)
         this.#registerDevTools()
-        this.#registerAdapters(options)
+        //! hacky - look for real method of awaiting class instantiation
+        // added setTimeout to wait for instantiation before passing self reference to adapters
+        setTimeout(() => {
+            this.#registerAdapters(options)
+        }, 10);
         this.#log('Store created:', initialStore)
-        
+        this.emit('@ready', this.#INTERNAL_STORE)
     }
 
 

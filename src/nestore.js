@@ -75,8 +75,13 @@ class Nestore extends EE2 {
             : COMMON.DEFAULT_DELIMITER_CHAR;
         this.#registerInStoreListeners(initialStore);
         this.#registerDevTools();
-        this.#registerAdapters(options);
+        //! hacky - look for real method of awaiting class instantiation
+        // added setTimeout to wait for instantiation before passing self reference to adapters
+        setTimeout(() => {
+            this.#registerAdapters(options);
+        }, 10);
         this.#log('Store created:', initialStore);
+        this.emit('@ready', this.#INTERNAL_STORE);
     }
     //_                                                                                             
     #registerInStoreListeners(initialStore) {

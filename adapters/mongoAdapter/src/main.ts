@@ -10,7 +10,6 @@ import Nestore, { TypeNestore, TypeNestoreAdapter, TypeNestoreAdapterCallbacks, 
 // import Nestore, { NestoreType, NestoreAdapter } from 'nestore'
 
 const createLog = (namespace:string) => debug(`nestore:mongo-adapter:${namespace}`)
-debug.enable('nestore:mongo-adapter:**')
 
 type NestoreMongoAdapterConfig = {
     mongoUri: string
@@ -105,7 +104,7 @@ const mongoAdapter: TypeNestoreAdapter = (
     
     
     if (!mongoose || !mongoose.connect || typeof mongoose.connect !== 'function') {
-      const err = 'Could not import module "mongoose"'
+      const err = 'Could not find package "mongoose"'
       console.log(err)
       nst.emit(ns.error, err)
       return
