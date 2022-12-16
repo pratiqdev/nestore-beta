@@ -10,14 +10,21 @@
     "type":"module",
 
     "scripts": {
-        "//&                                                  ": "",
-        "//=super:lint": "Run ESLint with autofix",
-        "//~CONFIGURE_LINTING_RULES - super:lint": "eslint --fix -c .eslintrc.json .",
-        "//=super:clean": " remove the `./useNestore/dist/` directory",
-        "super:clean": "rm -rf ./dist",
-        "//=super:build": "built `useNestore` as a standard es module witt tsc",
-        "super:build": "tsc",
-        "super": "npm-run-all super:*"
+        "//& BUILD                                                  ":"",
+        "//>build:lint": "Run ESLint with autofix",
+        "//_CONFIGURE_LINTING_RULES - super:lint": "eslint --fix -c .eslintrc.json .",
+        "//>build:clean": " remove the `./useNestore/dist/` directory",
+        "build:clean": "rm -rf ./dist",
+        "//>build:build": "built `useNestore` as a standard es module witt tsc",
+        "build:build": "tsc",
+    
+        "//& TEST                                                  ":"",
+        "//>test:mocha": "test the adapter with mocha",
+        "test:mocha": "tsc",
+    
+        "//& COMMANDS                                              ":"",
+        "build": "npm-run-all build:*",
+        "test": "npm-run-all test:*"
     },
     "devDependencies": {
         "@types/node": "^18.11.14",

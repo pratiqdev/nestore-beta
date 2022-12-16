@@ -2,7 +2,8 @@ import {
     Nestore,
     __dir,
     heading,
-    initialStore
+    initialStore,
+    expect
 } from '../utils.js'
 
 
@@ -14,7 +15,8 @@ describe(heading('G | In Store Listeners'), () => {
 
         NST.set('title', 'here we go')
         let res = NST.get('value-added-from-$title')
-        console.log('>>', res)
+        process.env.DEBUG && console.log('>>', res)
+        expect(res).to.eq('This value was set when an in store listener ($title) was triggered by an update to "title"')
     })
 
 })

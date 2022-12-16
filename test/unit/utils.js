@@ -17,7 +17,33 @@ const testStatsFile = __dir + '/test/unit/test-results.json'
 chai.config.truncateThreshold = 1500; // disable truncating
 const { expect } = chai
 
-const heading = (text) => `${text}\n  ${'-'.repeat(text.length)}`
+
+const COLORS = {
+    reset: '\x1b[0m',
+
+    black: '\x1b[30m',
+    red: '\x1b[31m',
+    green: '\x1b[32m',
+    yellow: '\x1b[33m',
+    blue: '\x1b[34m',
+    magenta: '\x1b[35m',
+    cyan: '\x1b[36m',
+    white: '\x1b[37m',
+
+    blackBg: '\x1b[40m',
+    redBg: '\x1b[41m',
+    greenBg: '\x1b[42m',
+    yellowBg: '\x1b[43m',
+    blueBg: '\x1b[44m',
+    magentaBg: '\x1b[45m',
+    cyanBg: '\x1b[46m',
+    whiteBg: '\x1b[47m'
+}
+
+const heading = (text) => `${COLORS.blue}${text}\n  ${'-'.repeat(80)}${COLORS.reset}`
+
+
+
 
 // const GLOBAL_NST = Nestore({ global: true })
 
@@ -96,9 +122,11 @@ const initialStore = {
     },
 
     $title: (N, event) => {
-        // console.log(`In store listener event:`, event)
-        N.set('value-added-from-$title', 'This value was set when an in store listener ($title) was triggered by an update to "title"')
-        // N.set('title', 'new title:' + event.value)
+        process.env.DEBUG && console.log(`In store listener event ($title):`, event)
+        N.set(
+            'value-added-from-$title',
+            'This value was set when an in store listener ($title) was triggered by an update to "title"'
+        )
     },
 }
 
@@ -106,6 +134,10 @@ const mls = () => {
     /** All data stored as string */
     let store = JSON.stringify({  "mock": "store", "1": "one" });
     let log = debug('nestore:mock-local-storage')
+    
+    let reset = () => {
+        store = JSON.stringify({  "mock": "store", "1": "one" });
+    }
 
     /** Overwrite the old value with the new string */
     let setItem = (ignoreMockStorageKey, val) => {
@@ -120,7 +152,7 @@ const mls = () => {
         return store
     }
 
-    return { getItem, setItem }
+    return { getItem, setItem, reset }
 }
 
 const mockLocalStorage = mls()
@@ -137,6 +169,7 @@ try{
 
 export {
     Nestore,
+
     mongoAdapter,
     persistAdapter,
     mockLocalStorage,

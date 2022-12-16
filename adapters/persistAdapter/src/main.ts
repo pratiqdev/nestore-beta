@@ -19,6 +19,8 @@ export type TypePersistAdapterConfig = {
   batchTime: number;
 }
 
+debug.enable('nestore:**')
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 const persistAdapter: TypeNestoreAdapter = (
   config: TypePersistAdapterConfig
@@ -27,28 +29,11 @@ const persistAdapter: TypeNestoreAdapter = (
   const log = debug(`nestore`).extend('persist-adapter') 
   log('Adapter initializing...')
 
-  if(!nst){
-    log('No reference to nst')
-    return
-  }
-  
-  if(!nst.emit){
-    log('No emit in nst')
-    return
-  }
-  
-  if(typeof nst.emit !== 'function'){
-    log('emit is not a function')
-    return
-  }
   
   // adapters are registered within the constructor of nestore
   // so they must wait for instantiation to complete (ee2 in this case)
   // to have access to class methods like 'emit'
-  log('awaiting nst.emit available')
-  nst.on('@ready', () => {
-    console.log('NESTORE EMITTED READY!')
-  })
+
   // let inst = await new Promise((res) => {
   //   let attempts = 0
   //   let delay = 1000
@@ -87,6 +72,11 @@ const persistAdapter: TypeNestoreAdapter = (
 
   const settings:any = {}
 
+  if(!config || typeof config !== 'object' || !Object.keys(config).length){
+    console.log('Nestore persistAdapter requires a config object with at least { "storageKey": <string> }')
+    throw new Error('Nestore persistAdapter requires a config object with at least { "storageKey": <string> }')
+  }
+
   if (typeof config.storage === 'undefined' || !config.storage) {
     if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
       log('No storage provided, using localStorage')
@@ -94,7 +84,7 @@ const persistAdapter: TypeNestoreAdapter = (
     } else {
       log('No storage provided, and localStorage not available')
       console.log('nestore-persist-adapter: No storage object provided and localStorage not available.')
-      return
+      throw new Error('No storage provided, and localStorage not available')
     }
   }
   if (typeof config.storage?.getItem !== 'function' || typeof config.storage?.setItem !== 'function') {
@@ -104,8 +94,7 @@ const persistAdapter: TypeNestoreAdapter = (
   settings.storage = config.storage
 
   if (typeof config.storageKey === 'undefined' || !config.storageKey.length) {
-    log('Local, session and indexedDB require a storage key')
-    return
+    throw new Error('Local, session and indexedDB require a storage key')
   }
   settings.storageKey = config.storageKey
 
