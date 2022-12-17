@@ -1,5 +1,5 @@
 import EE2 from "eventemitter2";
-export declare type TypeNestoreOptions = {
+export declare type NSTOptions = {
     delimiter?: string;
     wildcard?: boolean;
     /**
@@ -11,29 +11,32 @@ export declare type TypeNestoreOptions = {
     verbose?: boolean;
     throwOnRevert?: boolean;
     timeout?: number;
-    adapters?: TypeNestoreAdapterReturn[];
+    adapters?: NSTAdapter[];
     preventRepeatUpdates?: boolean;
 };
-export declare type NestoreEmit = {
+export declare type NSTEmit = {
     path: string;
     key: string;
     value?: any;
 };
 export declare type CustomMutator<T> = (this: Nestore<Partial<T>>, args?: any[]) => any;
 export declare type ListenerMutator = any;
-export declare type TypeNestoreAnyStore = {
+export declare type NSTAnyStore = {
     get: (...args: any[]) => any;
     set: (...args: any[]) => any;
 } | {
     getItem: (...args: any[]) => any;
     setItem: (...args: any[]) => any;
 };
-export declare type TypeNestoreAdapter = <T>(config: any) => TypeNestoreAdapterReturn;
-export declare type TypeNestoreAdapterCallbacks = {
-    [key: string]: (...args: any[]) => any;
+export declare type NSTAdapterGenerator = <T>(config: any) => NSTAdapter;
+export declare type NSTAdapterFunctions = {
+    namespace: string;
+    load: () => Promise<boolean>;
+    save: () => Promise<boolean>;
+    disconnect?: () => Promise<any>;
 };
-export declare type TypeNestoreAdapterReturn = <T>(nst: Nestore<Partial<T>>) => Promise<void>;
-export declare type TypeNestoreAdapterEmit = {
+export declare type NSTAdapter = <T>(nst: NSTClass<T>) => Promise<NSTAdapterFunctions>;
+export declare type NSTAdapterEmit = {
     timestamp: number;
     action: string;
     store: any;
@@ -41,7 +44,10 @@ export declare type TypeNestoreAdapterEmit = {
 /** Nestore? */
 declare class Nestore<T> extends EE2 {
     #private;
-    constructor(initialStore?: T | Partial<T>, options?: TypeNestoreOptions);
+    adapters: {
+        [key: string]: NSTAdapterFunctions;
+    };
+    constructor(initialStore?: T | Partial<T>, options?: NSTOptions);
     set: (path: string | Partial<T>, value?: any, flag?: string) => boolean;
     get(path?: string | Function): any;
     reset: () => void;
@@ -54,13 +60,13 @@ declare class Nestore<T> extends EE2 {
     get _setter_functions(): string[];
     get _setter_listeners(): string[];
     get _prevent_repeat_update(): boolean;
-    get _emit(): (args: NestoreEmit) => boolean;
+    get _emit(): (args: NSTEmit) => boolean;
     get _handleEmitAll(): (ignoreRoot?: boolean | undefined) => void;
     get _get_last_key_from_path_string(): (path: string) => string;
     get _split_path_string_at_known_delimiters(): (path: string) => string[];
     get _convert_string_or_array_to_normalized_path_string(): (path: string | string[]) => string;
 }
-export declare type TypeNestoreClass<T = void> = Nestore<T>;
+export declare type NSTClass<T = void> = Nestore<T>;
 declare const nst: Nestore<unknown>;
-export declare type TypeNestoreInstance = typeof nst;
+export declare type NSTInstance = typeof nst;
 export default Nestore;

@@ -2,6 +2,7 @@ import EE2 from "eventemitter2";
 import { omit, set, get, isEqual } from 'lodash-es';
 import debug from 'debug';
 const createLog = (namespace) => debug('nestore:' + namespace);
+const LOG = debug('nestore');
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 const COMMON = {
     NESTORE_ROOKEY: 'NESTORE_STORE_ROOKEY',
@@ -36,7 +37,7 @@ class Nestore extends EE2 {
     #SETTER_LISTENERS;
     #PREVENT_REPEAT_UPDATE;
     #DEV_EXTENSION;
-    #log;
+    adapters;
     constructor(initialStore = {}, options = {}) {
         super({
             wildcard: options?.wildcard === false ? false : true,
@@ -48,8 +49,7 @@ class Nestore extends EE2 {
                 ? options?.maxListeners
                 : 10
         });
-        this.#log = createLog('main');
-        let _log = createLog('constr');
+        let _log = LOG.extend('constr');
         // console.log('>> NESTORE V4')
         _log('Creating store...');
         this.#INTERNAL_STORE = {};
@@ -59,6 +59,7 @@ class Nestore extends EE2 {
         this.#SETTER_LISTENERS = [];
         this.#PREVENT_REPEAT_UPDATE = true;
         this.#DEV_EXTENSION = null;
+        this.adapters = {};
         if (initialStore instanceof Nestore)
             return initialStore;
         if (typeof initialStore !== 'object' || Array.isArray(initialStore)) {
@@ -77,11 +78,8 @@ class Nestore extends EE2 {
         this.#registerDevTools();
         //! hacky - look for real method of awaiting class instantiation
         // added setTimeout to wait for instantiation before passing self reference to adapters
-        setTimeout(() => {
-            this.#registerAdapters(options);
-        }, 10);
-        this.#log('Store created:', initialStore);
-        this.emit('@ready', this.#INTERNAL_STORE);
+        LOG('Store created:', initialStore);
+        this.#registerAdapters(options);
     }
     //_                                                                                             
     #registerInStoreListeners(initialStore) {
@@ -142,18 +140,43 @@ class Nestore extends EE2 {
     }
     //_                                                                                             
     #registerAdapters(options) {
-        if (!options?.adapters || !options?.adapters.length)
-            return;
+        const _log = LOG.extend('register-adapters');
+        if (!options?.adapters || !options?.adapters.length) {
+            _log('No adapters provided...');
+            //! Dont emit "@ready" - just emit "@.namespace.status" => state
+            // this.emit('@ready', this.#INTERNAL_STORE)
+            return false;
+        }
+        _log('registering adapters...');
         if ((!Array.isArray(options?.adapters) || !options?.adapters?.every(a => typeof a === 'function'))) {
             console.warn(`Nestore adapters must be provided as an array of one or more adapter functions`);
-            return;
+            // this.emit('@ready', this.#INTERNAL_STORE)
+            return false;
         }
         try {
-            options?.adapters?.forEach((adapter) => adapter(this));
-            this.#log('Adapter registered');
+            let numRegistered = 0;
+            options?.adapters?.forEach(async (adapter, idx) => {
+                let adpt = await adapter(this);
+                if (!adpt
+                    || typeof adpt.namespace !== 'string'
+                    || typeof adpt.load !== 'function'
+                    || typeof adpt.save !== 'function') {
+                    throw new Error(`Adapter (index ${idx}) failed to register.`);
+                }
+                this.adapters[adpt.namespace] = adpt;
+                _log('Adapter registered:', adpt.namespace);
+                numRegistered++;
+                if (options?.adapters?.length === numRegistered) {
+                    _log('All adapters registered:', options.adapters);
+                    // this.emit('@ready', this.#INTERNAL_STORE)
+                    return true;
+                }
+            });
         }
         catch (err) {
             console.warn('Error registering adapter:', err);
+            // this.emit('@ready', this.#INTERNAL_STORE)
+            return false;
         }
     }
     //_                                                                                             

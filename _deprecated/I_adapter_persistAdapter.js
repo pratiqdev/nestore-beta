@@ -16,7 +16,7 @@ describe.only(heading('I | Adapter - persistAdapter'), function(){
 
 
     this.beforeEach(()=>{
-        mockLocalStorage.reset()
+        mockLocalStorage.clear()
     })
 
     it('I.1 | Package provides a function as the default export', (done) => {

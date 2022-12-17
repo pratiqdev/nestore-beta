@@ -132,7 +132,7 @@ const myStore = nestore({
 
 ## Manual Emit
 
-You can also manually emit events to force update a listener. The value provided to the emit method *should* be an object with the type `T_NestoreEmit`, but any values / types provided will be emitted.
+You can also manually emit events to force update a listener. The value provided to the emit method *should* be an object with the type `T_NSTEmit`, but any values / types provided will be emitted.
 
 
 ```ts
@@ -253,7 +253,7 @@ export type T_NestoreOptions = {    // default
 
 
 ```ts
-export type T_NestoreEmitStruct = { // example
+export type T_NSTEmitStruct = { // example
 
     /* A full, normalized path to the nested object in the store using the provided delimiter. */
     path: string;                   // "chapter.7.title"

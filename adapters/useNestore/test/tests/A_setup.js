@@ -1,13 +1,16 @@
 import {
     Nestore,
     debug,
-    persistAdapter,
-    mockLocalStorage,
+    // persistAdapter,
+    // mockLocalStorage,
     __dir,
     heading,
     expect,
 } from '../utils.js'
 
+import useNestore from '../../index.js'
+import persistAdapter from '../../../persistAdapter/index.js'
+import mongoAdapter from '../../../mongoAdapter/index.js'
 
 
 
@@ -16,7 +19,7 @@ describe.only(heading('I | Adapter - persistAdapter'), function(){
 
 
     this.beforeEach(()=>{
-        mockLocalStorage.reset()
+        mockLocalStorage.clear()
     })
 
     it('I.1 | Package provides a function as the default export', (done) => {

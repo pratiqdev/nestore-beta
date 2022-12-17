@@ -19,7 +19,7 @@
 
     "//& TEST                                                  ":"",
     "//>test:mocha": "test the adapter with mocha",
-    "test:mocha": "tsc",
+    "test:mocha": "mocha ./test/tests --config .mocharc.cjs",
 
     "//& COMMANDS                                              ":"",
     "build": "npm-run-all build:*",

@@ -2,7 +2,7 @@
 import debug from 'debug'
 import { throttle } from 'lodash-es'
 //@ts-ignore
-import Nestore, { TypeNestore, TypeNestoreAdapter, TypeNestoreClass } from '../../../src/nestore' //~ DEV ONLY
+import Nestore, { NSTAdapterGenerator, NSTClass, NSTAdapter } from '../../../src/nestore' //~ DEV ONLY
 // import { NestoreAdapter, Nestore } from 'nestore'
 
 
@@ -15,16 +15,12 @@ import Nestore, { TypeNestore, TypeNestoreAdapter, TypeNestoreClass } from '../.
 export type TypePersistAdapterConfig = {
   namespace?: string;
   storage?: Storage,
-  storageKey: string;
-  batchTime: number;
+  storageKey: string; 
+  batchTime?: number;
 }
 
-debug.enable('nestore:**')
-
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-const persistAdapter: TypeNestoreAdapter = (
-  config: TypePersistAdapterConfig
-) => async <T>(nst: TypeNestoreClass<T>) => {
+const persistAdapter: NSTAdapterGenerator = (config: TypePersistAdapterConfig) => {
   
   const log = debug(`nestore`).extend('persist-adapter') 
   log('Adapter initializing...')
@@ -34,39 +30,6 @@ const persistAdapter: TypeNestoreAdapter = (
   // so they must wait for instantiation to complete (ee2 in this case)
   // to have access to class methods like 'emit'
 
-  // let inst = await new Promise((res) => {
-  //   let attempts = 0
-  //   let delay = 1000
-  //   let max_wait = 10_000
-  //   let toRef:any = null
-
-  //   const checkEmit = () => {
-  //     toRef = setTimeout(() => {
-  //       attempts++
-  //       if(attempts > max_wait * delay){
-  //         clearTimeout(toRef)
-  //         res(false)
-  //       }
-
-  //       const didEmit = nst.emit('test_event_path', 'Test Value')
-  //       console.log('didEmit:',didEmit)
-
-  //       if(didEmit){
-  //         clearTimeout(toRef)
-  //         res(true)
-  //       }
-
-  //       checkEmit()
-  //     }, delay);
-  //   }
-  
-  //   checkEmit()
-  // })
-
-  // if(!inst){
-  //   console.log('nestore-persist-adapter Error: Could not access instance of Nestore during registration')
-  //   return
-  // }
 
   
 
@@ -88,8 +51,7 @@ const persistAdapter: TypeNestoreAdapter = (
     }
   }
   if (typeof config.storage?.getItem !== 'function' || typeof config.storage?.setItem !== 'function') {
-    console.log('nestore-persist-adapter: Storage object must have (getItem, setItem) methods.')
-    return
+    throw new Error('nestore-persist-adapter: Storage object must have (getItem, setItem) methods.')
   }
   settings.storage = config.storage
 
@@ -107,118 +69,128 @@ const persistAdapter: TypeNestoreAdapter = (
 
   if (typeof config.batchTime !== 'number') {
     console.log('nestore-persist-adapter: No "batchTime" provided')
-    return
   }
   settings.batchTime = config.batchTime
 
 
+  const persistAdapter: NSTAdapter = async <T>(nst: NSTClass<T>) => {
 
 
-  const ns = {
-    registered: `@.${settings.namespace}.registered`, // => namespace
-    error: `@.${settings.namespace}.error`, // => the error
-    loading: `@.${settings.namespace}.loading`, // => store (before loaded)
-    loaded: `@.${settings.namespace}.loaded`, // => store (after loaded)
-    saving: `@.${settings.namespace}.saving`, // => store (being saved)
-    saved: `@.${settings.namespace}.saved` // => store (what was saved)
-  }
+    const ns = {
+      registered: `@.${settings.namespace}.registered`, // => namespace
+      error: `@.${settings.namespace}.error`, // => the error
+      loading: `@.${settings.namespace}.loading`, // => store (before loaded)
+      loaded: `@.${settings.namespace}.loaded`, // => store (after loaded)
+      saving: `@.${settings.namespace}.saving`, // => store (being saved)
+      saved: `@.${settings.namespace}.saved` // => store (what was saved)
+    }
 
-
-  
-  try {
-    let storeLoaded = false
-    let handleSave:any
-    nst.emit(ns.registered, settings.namespace)
 
     
-    //&                                                                                             
-    const loadStore = async () => {
-      const _log = log.extend('load')
-      try {
-        if (storeLoaded){
-          _log('Store already loaded, preventing load from storage')
-          return
-        } 
-        nst.emit(ns.loading, nst.store)
-        
-        let sto = {}
-        try{
-          _log('Loading storage into store...')
-          let d = settings.storage?.getItem(settings.storageKey)
-          _log('Storage loaded. Parsing data...')
-          if(!d){
-            _log('No data in storage')
-            return
+    try {
+      nst.emit(ns.registered, settings.namespace)
+
+      
+      //&                                                                                             
+      const handleLoad = async () => {
+        const _log = log.extend('load')
+        try {
+          nst.emit(ns.loading, nst.store)
+          
+          let sto = {}
+          try{
+            _log('Loading storage into store...')
+            let d = settings.storage?.getItem(settings.storageKey)
+            _log('Storage loaded. Parsing data...')
+            if(!d){
+              _log('No data in storage')
+              return false
+            }
+            _log('Storage loaded. Parsing data...')
+            d = JSON.parse(d)
+            _log('Successfully parsed json-like data from storage')
+            sto = d
+          }catch(err){
+            _log('Error parsing json-like object from storage:', err)
+            return false
           }
-          _log('Storage loaded. Parsing data...')
-          d = JSON.parse(d)
-          _log('Successfully parsed json-like data from storage')
-          sto = d
-        }catch(err){
-          _log('Error parsing json-like object from storage:', err)
+
+
+
+          nst.set(sto)
+          nst.emit(ns.loaded, sto)
+          _log('Storage loaded into store:', sto)
+          return true
+        } catch (err) {
+          _log('Error loading storage with persist adapter:', err)
+          nst.emit(ns.error, err)
+          return false
         }
-
-
-
-        nst.set(sto)
-        nst.emit(ns.loaded, sto)
-        _log('Storage loaded into store:', sto)
-        storeLoaded = true
-      } catch (err) {
-        _log('Error loading storage with persist adapter:', err)
-        nst.emit(ns.error, err)
       }
-    }
 
-    //&                                                                                             
-    const handleSaveFunc = () => {
-      const _log = log.extend('save')
-      try {
-        _log('Saving store to storage...')
-        nst.emit(ns.saving, nst.store)
-        const currentNestoreStoreAsString = JSON.stringify(nst.store)
+      //&                                                                                             
+      const handleSave = async () => {
+        const _log = log.extend('save')
+        try {
+          _log('Saving store to storage...')
+          nst.emit(ns.saving, nst.store)
+          const currentNestoreStoreAsString = JSON.stringify(nst.store)
 
-        settings.storage?.setItem(settings.storageKey, currentNestoreStoreAsString)
-        const valueRetrievedFromMockStorageAfterSave = settings.storage?.getItem(settings.storageKey)
+          settings.storage?.setItem(settings.storageKey, currentNestoreStoreAsString)
+          const valueRetrievedFromMockStorageAfterSave = settings.storage?.getItem(settings.storageKey)
 
-        if (valueRetrievedFromMockStorageAfterSave && valueRetrievedFromMockStorageAfterSave === currentNestoreStoreAsString) {
-          _log('Store saved to storage')
-          nst.emit(ns.saved, nst.store)
-        } else {
-          // const msg = 'Saved value does not match the current store after save was completed'
-          _log('Persist adapter error:', {
-            msg: 'The value (v) was saved to storage (s) but (s != v) after saving complete',
-            s: valueRetrievedFromMockStorageAfterSave,
-            v: currentNestoreStoreAsString
-          })
-          // nst.emit(ns.error, {
-          //   msg: 'The value (v) was saved to storage (s) but (s != v) after saving complete',
-          //   s: valueRetrievedFromMockStorageAfterSave,
-          //   v: currentNestoreStoreAsString
-          // })
+          if (valueRetrievedFromMockStorageAfterSave && valueRetrievedFromMockStorageAfterSave === currentNestoreStoreAsString) {
+            _log('Store saved to storage')
+            nst.emit(ns.saved, nst.store)
+            return true
+          } else {
+            // const msg = 'Saved value does not match the current store after save was completed'
+            _log('Persist adapter error:', {
+              msg: 'The value (v) was saved to storage (s) but (s != v) after saving complete',
+              s: valueRetrievedFromMockStorageAfterSave,
+              v: currentNestoreStoreAsString
+            })
+            return false
+            // nst.emit(ns.error, {
+            //   msg: 'The value (v) was saved to storage (s) but (s != v) after saving complete',
+            //   s: valueRetrievedFromMockStorageAfterSave,
+            //   v: currentNestoreStoreAsString
+            // })
+          }
+        } catch (err) {
+          nst.emit(ns.error, err)
+          _log('Persist adapter error:', err)
+          return false
         }
-      } catch (err) {
-        nst.emit(ns.error, err)
-        _log('Persist adapter error:', err)
       }
+
+      //&                                                                                             
+      let throttledSave = throttle(handleSave, settings.batchTime, {
+        leading: false,
+        trailing: true
+      })
+
+      nst.onAny((path:any) => {
+        if(path.startsWith('@')) return
+        throttledSave()
+      })
+      // _
+      handleLoad()
+
+      return {
+        namespace: settings.namespace,
+        load: handleLoad,
+        save: handleSave
+      }
+    } catch (err) {
+      let e:any = err
+      console.log('nestore-persist-adapter Error:', e)
+      nst.emit(ns.error, e)
+      throw new Error(e.message ?? e.toString() ?? e)
     }
-
-    //&                                                                                             
-    handleSave = throttle(handleSaveFunc, settings.batchTime, {
-      leading: false,
-      trailing: true
-    })
-
-    nst.onAny((path:any) => {
-      if(path.startsWith('@')) return
-      handleSave()
-    })
-    // _
-    loadStore()
-  } catch (err) {
-    console.log('nestore-persist-adapter Error:', err)
-    nst.emit(ns.error, err)
   }
+
+  return persistAdapter
 }
 
 export default persistAdapter
@@ -228,9 +200,9 @@ export default persistAdapter
 
 /*
 
-const mongoAdapter: TypeNestoreAdapter = (
+const mongoAdapter: NSTAdapterGenerator = (
   config: NestoreMongoAdapterConfig
-) => async <T>(nst: TypeNestoreClass<T>) => {
+) => async <T>(nst: NSTClass<T>) => {
 
   const log = createLog('mongo')
   log('Initializing...')
@@ -287,7 +259,7 @@ const mongoAdapter: TypeNestoreAdapter = (
         settings.collectionName
       )
 
-      const loadStore = async () => {
+      const handleLoad = async () => {
         const log = createLog('mongo:load')
         try {
           if (storeLoaded) return
@@ -370,7 +342,7 @@ const mongoAdapter: TypeNestoreAdapter = (
         handleSave()
       })
 
-      loadStore()
+      handleLoad()
     }
 
     log('Mongoose connecting...')

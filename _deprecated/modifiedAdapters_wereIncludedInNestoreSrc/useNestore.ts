@@ -3,7 +3,7 @@
 /* eslint-disable import/no-unresolved */
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Nestore from './nestore'
-import type { NestoreEmit, NestoreOptions } from './nestore'
+import type { NSTEmit, NestoreOptions } from './nestore'
 
 // type Noop = (...args:unknown[]) => {}
 // type UseNestoreMutator = (...args:any[]) => any
@@ -66,7 +66,7 @@ const createStore = <T>(initialStore:Partial<T>, options?: NestoreOptions): UseN
       // return early if this is an internal mutator function
       if (isMutator) return
       // if there is a path - listen on path, else listen for all store changes
-      hasPath ? NST.on(path!, (e:NestoreEmit) => setValue(e.value as Partial<T>)) : NST.on('/', (e:NestoreEmit) => setValue(e.value))
+      hasPath ? NST.on(path!, (e:NSTEmit) => setValue(e.value as Partial<T>)) : NST.on('/', (e:NSTEmit) => setValue(e.value))
 
       // if the entire store is updated - update this local state
       NST.onAny(listener)

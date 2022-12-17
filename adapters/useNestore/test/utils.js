@@ -1,5 +1,5 @@
 import assert from 'assert'
-import Nestore from '../../index.js'
+import Nestore from '../../../index.js'
 
 //! dont import here... throws react error
 // import useNestore from '../../adapters/useNestore/index.js' 
@@ -130,24 +130,24 @@ const initialStore = {
 }
 
 
-let testResults = {}
-try{
-    testResults = JSON.parse(await fs.promises.readFile(testStatsFile, { encoding: 'utf-8'}))
-}catch(err){
-    console.log('Failed to read from "test-results.json" file:', err)
-}
+// let testResults = {}
+// try{
+//     testResults = JSON.parse(await fs.promises.readFile(testStatsFile, { encoding: 'utf-8'}))
+// }catch(err){
+//     console.log('Failed to read from "test-results.json" file:', err)
+// }
 
 
 export {
     Nestore,
 
     initialStore,
-    __dir,
-    testStatsFile,
+    // __dir,
+    // testStatsFile,
     heading,
     chai,
     expect,
     assert,
-    fs,
+    // fs,
     debug,
 }

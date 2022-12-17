@@ -2,11 +2,12 @@ import EE2 from "eventemitter2";
 import { omit, set, get, isEqual } from 'lodash-es'
 import debug from 'debug'
 const createLog = (namespace:string) => debug('nestore:' + namespace)
+const LOG = debug('nestore')
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //&                                                                                               
-export type TypeNestoreOptions = {
+export type NSTOptions = {
     delimiter?: string;
     wildcard?: boolean;
     /**
@@ -18,25 +19,25 @@ export type TypeNestoreOptions = {
     verbose?: boolean;
     throwOnRevert?: boolean;
     timeout?: number;
-    adapters?: TypeNestoreAdapterReturn[];
+    adapters?: NSTAdapter[];
     preventRepeatUpdates?: boolean;
 }
 
 //&                                                                                               
-export type NestoreEmit = {
+export type NSTEmit = {
     // timestamp: number;
     path: string;
     key: string;
     value?: any;
 }
-// export type TypeNestoreFunction = <T>(initialStore?: T, options?: TypeNestoreOptions) => Nestore<Partial<T>>
+// export type NSTFunction = <T>(initialStore?: T, options?: NSTOptions) => Nestore<Partial<T>>
 
 //&                                                                                               
 export type CustomMutator<T> = (this: Nestore<Partial<T>>, args?: any[]) => any;
 export type ListenerMutator = any;
 
 //&                                                                                               
-export type TypeNestoreAnyStore = {
+export type NSTAnyStore = {
     get: (...args:any[]) => any; 
     set: (...args:any[]) => any;
 } | {
@@ -45,10 +46,18 @@ export type TypeNestoreAnyStore = {
 } 
 
 //&                                                                                               
-export type TypeNestoreAdapter = <T>(config: any) => TypeNestoreAdapterReturn;
-export type TypeNestoreAdapterCallbacks = { [key:string]: (...args:any[]) => any }
-export type TypeNestoreAdapterReturn = <T>(nst: Nestore<Partial<T>>) => Promise<void>;
-export type TypeNestoreAdapterEmit = {
+export type NSTAdapterGenerator = <T>(config: any) => NSTAdapter;
+
+export type NSTAdapterFunctions = { 
+    namespace: string;
+    load: () => Promise<boolean>; 
+    save: () => Promise<boolean>;
+    disconnect?: () => Promise<any>;
+}
+
+export type NSTAdapter = <T>(nst: NSTClass<T>) => Promise<NSTAdapterFunctions>;
+
+export type NSTAdapterEmit = {
     timestamp: number;
     action: string;
     store: any;
@@ -106,10 +115,11 @@ class Nestore<T> extends EE2{
     #SETTER_LISTENERS: string[];
     #PREVENT_REPEAT_UPDATE: boolean;
     #DEV_EXTENSION: any;
-    #log: (...args:any[]) => any;
+    adapters: { [key:string]: NSTAdapterFunctions };
 
 
-    constructor(initialStore: T | Partial<T> = {}, options: TypeNestoreOptions = {}){
+
+    constructor(initialStore: T | Partial<T> = {}, options: NSTOptions = {}){
         super({
             wildcard: options?.wildcard === false ? false : true,
             delimiter: typeof options?.delimiter === 'string' ? options?.delimiter : '.',
@@ -120,8 +130,8 @@ class Nestore<T> extends EE2{
                     ? options?.maxListeners
                     : 10
         })
-        this.#log = createLog('main')
-        let _log = createLog('constr')
+
+        let _log = LOG.extend('constr')
         // console.log('>> NESTORE V4')
         _log('Creating store...')
 
@@ -133,6 +143,7 @@ class Nestore<T> extends EE2{
         this.#SETTER_LISTENERS = []
         this.#PREVENT_REPEAT_UPDATE = true
         this.#DEV_EXTENSION = null
+        this.adapters = {};
 
         if(initialStore instanceof Nestore) return initialStore;
         
@@ -154,16 +165,14 @@ class Nestore<T> extends EE2{
         this.#DELIMITER_CHAR = typeof options?.delimiter === 'string' 
             ? options?.delimiter 
             : COMMON.DEFAULT_DELIMITER_CHAR
-        
+            
         this.#registerInStoreListeners(initialStore)
         this.#registerDevTools()
         //! hacky - look for real method of awaiting class instantiation
         // added setTimeout to wait for instantiation before passing self reference to adapters
-        setTimeout(() => {
-            this.#registerAdapters(options)
-        }, 10);
-        this.#log('Store created:', initialStore)
-        this.emit('@ready', this.#INTERNAL_STORE)
+        LOG('Store created:', initialStore)
+            
+        this.#registerAdapters(options)
     }
 
 
@@ -230,26 +239,60 @@ class Nestore<T> extends EE2{
     }
 
     //_                                                                                             
-    #registerAdapters(options: TypeNestoreOptions) {
-        if(!options?.adapters || !options?.adapters.length) return
+    #registerAdapters(options: NSTOptions) {
+        const _log = LOG.extend('register-adapters')
+
+        if(!options?.adapters || !options?.adapters.length){
+            _log('No adapters provided...')
+            //! Dont emit "@ready" - just emit "@.namespace.status" => state
+            // this.emit('@ready', this.#INTERNAL_STORE)
+            return false
+        }
+        _log('registering adapters...')
 
         if((!Array.isArray(options?.adapters) || !options?.adapters?.every(a => typeof a === 'function'))){
             console.warn(`Nestore adapters must be provided as an array of one or more adapter functions`);
-            return;
+            // this.emit('@ready', this.#INTERNAL_STORE)
+            return false
         }
+
+    
         
         try{
-            options?.adapters?.forEach((adapter: TypeNestoreAdapterReturn) => adapter(this))
-            this.#log('Adapter registered')
+            let numRegistered = 0
+
+            options?.adapters?.forEach(async (adapter: NSTAdapter, idx:number) => {
+                let adpt = await adapter(this)
+                if(
+                    !adpt
+                    || typeof adpt.namespace !== 'string'
+                    || typeof adpt.load !== 'function'
+                    || typeof adpt.save !== 'function'
+                ){
+                    throw new Error(`Adapter (index ${idx}) failed to register.`)
+                }
+                this.adapters[adpt.namespace] = adpt
+                _log('Adapter registered:', adpt.namespace)
+                numRegistered++
+                if(options?.adapters?.length === numRegistered){
+                    _log('All adapters registered:', options.adapters)
+                    // this.emit('@ready', this.#INTERNAL_STORE)
+                    return true
+                }
+
+            })
+
         }catch(err){
             console.warn('Error registering adapter:', err)
+            // this.emit('@ready', this.#INTERNAL_STORE)
+            return false
         }
     }
     
     
     
     //_                                                                                             
-    #emit(args:NestoreEmit) {
+    #emit(args:NSTEmit) {
         // const log = console.log
         const log = createLog('emit')
         args.path = this.#convertStringOrArrayToNormalizedPathString(args.path)
@@ -550,10 +593,11 @@ class Nestore<T> extends EE2{
         return this.#INTERNAL_STORE
     }
 
+
+
     get _delimiter(){
         return this.#DELIMITER_CHAR
     }
-
     get _dev_extension(){
         return this.#DEV_EXTENSION
     }
@@ -593,9 +637,9 @@ class Nestore<T> extends EE2{
 
 }
 
-export type TypeNestoreClass<T = void> = Nestore<T>
+export type NSTClass<T = void> = Nestore<T>
 
 const nst = new Nestore()
-export type TypeNestoreInstance = typeof nst
+export type NSTInstance = typeof nst
 
 export default Nestore

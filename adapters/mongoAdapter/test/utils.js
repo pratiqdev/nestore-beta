@@ -1,5 +1,5 @@
 import assert from 'assert'
-import Nestore from '../../index.js'
+import Nestore from '../../../index.js'
 
 //! dont import here... throws react error
 // import useNestore from '../../adapters/useNestore/index.js' 
@@ -10,8 +10,8 @@ import debug from 'debug'
 
 dotenv.config()
 
-const __dir = await fs.promises.realpath('.')
-const testStatsFile = __dir + '/test/unit/test-results.json'
+// const __dir = await fs.promises.realpath('.')
+// const testStatsFile = __dir + '/test/unit/test-results.json'
 
 chai.config.truncateThreshold = 1500; // disable truncating
 const { expect } = chai
@@ -130,24 +130,24 @@ const initialStore = {
 }
 
 
-let testResults = {}
-try{
-    testResults = JSON.parse(await fs.promises.readFile(testStatsFile, { encoding: 'utf-8'}))
-}catch(err){
-    console.log('Failed to read from "test-results.json" file:', err)
-}
+// let testResults = {}
+// try{
+//     testResults = JSON.parse(await fs.promises.readFile(testStatsFile, { encoding: 'utf-8'}))
+// }catch(err){
+//     console.log('Failed to read from "test-results.json" file:', err)
+// }
 
 
 export {
     Nestore,
 
     initialStore,
-    __dir,
-    testStatsFile,
+    // __dir,
+    // testStatsFile,
     heading,
     chai,
     expect,
     assert,
-    fs,
+    // fs,
     debug,
 }
