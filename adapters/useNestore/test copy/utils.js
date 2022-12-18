@@ -7,11 +7,38 @@ import chai from 'chai';
 import fs from 'fs'
 import dotenv from 'dotenv'
 import debug from 'debug'
+import Conf from 'conf';
 
 dotenv.config()
 
-const __dir = await fs.promises.realpath('.')
-const testStatsFile = __dir + '/test/unit/test-results.json'
+const createMockStorage = () => {
+    let CONF = new Conf({
+        store: {
+            mockStorage: 'npm-conf'
+        }
+    })
+
+    const getItem = (key) => {
+        return JSON.stringify(CONF.get('store', {}))
+    }
+
+    const setItem = (key, val) => {
+        if(val && typeof val !== 'string'){
+            console.log('mockStorage.setTime(<string>) only accepts type string')
+            return
+        }
+        return CONF.set('store', val ?? {})
+    }
+
+    return {
+        getItem,
+        setItem,
+    }
+}
+
+
+// const __dir = await fs.promises.realpath('.')
+// const testStatsFile = __dir + '/test/unit/test-results.json'
 
 chai.config.truncateThreshold = 1500; // disable truncating
 const { expect } = chai
@@ -39,8 +66,7 @@ const COLORS = {
     whiteBg: '\x1b[47m'
 }
 
-const heading = (text) => `${COLORS.blue}${text}\n  ${'-'.repeat(80)}${COLORS.reset}`
-
+const heading = (text, color) => `${color ? COLORS[color] : COLORS.blue}${text}\n  ${'-'.repeat(80)}${COLORS.reset}`
 
 
 
@@ -137,17 +163,42 @@ const initialStore = {
 //     console.log('Failed to read from "test-results.json" file:', err)
 // }
 
+// import React from 'react'
+// import {render} from '@testing-library/react'
+// // import {ThemeProvider} from 'my-ui-lib'
+// // import {TranslationProvider} from 'my-i18n-lib'
+// // import defaultStrings from 'i18n/en-x-default'
+
+// const AllTheProviders = ({children}) => {
+//   return (
+//     <>
+//     {/* <ThemeProvider theme="light"> */}
+//        {/* <TranslationProvider messages={defaultStrings}> */}
+//         {children}
+//       {/* </TranslationProvider> */}
+//     {/* </ThemeProvider> */}
+//     </>
+//   )
+// }
+
+// const customRender = (ui, options) =>
+//   render(ui, {wrapper: AllTheProviders, ...options})
+
+// // re-export everything
+// export * from '@testing-library/react'
+
+// // override render method
+
 
 export {
     Nestore,
+    // customRender as render,
 
     initialStore,
-    // __dir,
-    // testStatsFile,
+    createMockStorage,
     heading,
     chai,
     expect,
     assert,
-    // fs,
     debug,
 }

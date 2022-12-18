@@ -10,6 +10,7 @@ const config = {
 
     /** How many times to attempt a failed test */
     // retries: 3,
+
 }
 
 module.exports = config

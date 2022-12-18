@@ -1,19 +1,106 @@
 import {
     Nestore,
-    mockLocalStorage,
+    createMockStorage,
     heading,
     expect,
 } from '../utils.js'
 
 
 // import nestore from 'nestore'
-import persistAdapter from '../../index.js'
+import createPersistAdapter from '../../index.js'
 
 
 
+describe(heading('A | Generator'), function(){
+    this.timeout(10_000)
 
 
-describe.only(heading('A | Adapter - persistAdapter'), function(){
+    it('A.1 | Package provides a function as the default export', () => {
+        expect(typeof createPersistAdapter).to.eq('function')
+    })
+
+    it('A.2 | Generator throws error when missing or malformed config', () => {
+
+        expect(() => { createPersistAdapter() }).to.throw()
+        expect(() => { createPersistAdapter({}) }).to.throw()
+        expect(() => { createPersistAdapter(false) }).to.throw()
+        expect(() => { createPersistAdapter(true) }).to.throw()
+        expect(() => { createPersistAdapter('false') }).to.throw()
+        expect(() => { createPersistAdapter('true') }).to.throw()
+        expect(() => { createPersistAdapter(55) }).to.throw()
+        expect(() => { createPersistAdapter(55.0) }).to.throw()
+        expect(() => { createPersistAdapter([]) }).to.throw()
+        expect(() => { createPersistAdapter(null) }).to.throw()
+        expect(() => { createPersistAdapter(undefined) }).to.throw()
+        expect(() => { createPersistAdapter(()=>{}) }).to.throw()
+
+    })
+    
+    it('A.3 | Generator throws error when missing required: "storageKey"', () => {
+
+        expect(() => { 
+
+            createPersistAdapter({
+                namespace: 'nst-persist-adptr',
+                storage: createMockStorage(),
+                // storageKey: 'blappsps',
+                batchTime: 500,
+            })
+            
+        }).to.throw()
+    
+    })
+
+    it('A.4 | Generator throws error when no storage available or defined', () => {
+
+        expect(() => { 
+
+            createPersistAdapter({
+                namespace: 'nst-persist-adptr',
+                // storage: createMockStorage(),
+                storageKey: 'blappsps',
+                batchTime: 500,
+            })
+            
+        }).to.throw()
+    
+    })
+
+    it('A.4 | Generator returns an adapter function when invoked with correct config', () => {
+        expect(typeof createPersistAdapter({
+            namespace: 'nst-persist-adptr',
+            storage: createMockStorage(),
+            storageKey: 'blappsps',
+            batchTime: 500,
+        })).to.eq('function')
+    })
+
+    it('A.5 | Adapter uses default namespace when no namespace provided', async () => {
+        let persistAdapter = createPersistAdapter({
+            // namespace: 'nst-persist-adptr',
+            storage: createMockStorage(),
+            storageKey: 'blappsps',
+            batchTime: 500,
+        })
+        let persistAdapterFunctions = await persistAdapter(new Nestore())
+        expect(persistAdapterFunctions.namespace).to.eq('nestore-persist-adapter')
+    })
+
+    it('A.6 | Adapter uses namespace provided', async () => {
+        let persistAdapter = createPersistAdapter({
+            namespace: '12345',
+            storage: createMockStorage(),
+            storageKey: 'blappsps',
+            batchTime: 500,
+        })
+        let persistAdapterFunctions = await persistAdapter(new Nestore())
+        expect(persistAdapterFunctions.namespace).to.eq('12345')
+    })
+
+
+})
+
+describe.only(heading('B | Adapter'), function(){
     this.timeout(30_000)
 
 
@@ -21,53 +108,71 @@ describe.only(heading('A | Adapter - persistAdapter'), function(){
     //     mockLocalStorage.clear()
     // })
 
-    it('A.1 | Package provides a function as the default export', (done) => {
-        expect(typeof persistAdapter).to.eq('function')
-        done()
-    })
+    it('B.1 | Nestore registers adapter and provides adapter properties by namespace in "NST.adapters"', (done) => {
 
-    it('A.2 | Adapter returns a function when invoked', (done) => {
-        expect(typeof persistAdapter({
-            namespace: 'nst-persist-adptr',
-            storage: mockLocalStorage,
-            storageKey: 'blappsps',
-            batchTime: 500,
-        })).to.eq('function')
-        done()
-    })
+        let ns = 'nst-pa-namespace'
 
-    it('A.3 | Adapter throws error when missing: config', (done) => {
-        expect(()=>{
-            persistAdapter()
-        }).throws()
-        done()
-    })
-    
-    it('A.4 | Adapter throws error when missing: config.storageKey', (done) => {
-    // console.log(nestore)
+        let tempVal = Date.now()
 
-        const NST = new Nestore({ name: 'Andrew'}, {
+        const NST = new Nestore({ time: tempVal }, {
+            preventRepeatUpdates: false,
             adapters: [
-                //@ts-expect-error
-                persistAdapter({
-                    namespace: 'nst-persist-adptr',
-                    storage: mockLocalStorage,
-                    // storageKey: 'blappsps',
+                createPersistAdapter({
+                    namespace: ns,
+                    storage: createMockStorage(),
+                    storageKey: 'blappsps',
                     batchTime: 500,
                 })
             ]
         })
 
-      
+        expect(typeof NST).to.eq('object')
+        expect(typeof NST.store).to.eq('object')
 
-    
+        NST.onAny(event => console.log('>> onAny:', event))
+        
+
+
+        //! Nestore will add this adapter to NST.adapters once the adapter generator resolves.
+        //! The adapter will emit the 'registered' event just before resolving.
+        //! To test NST.adapters you must wait for event "@ready"
+        NST.on(`@ready`, () => {
+            // does the adapters property exist as an object
+            console.log('NST ready. Testing:', NST.adapters)
+            expect(typeof NST.adapters).to.eq('object')
+            
+            // did the single adapter get registered
+            expect(Object.keys(NST.adapters).length).to.gte(1)
+            
+            // does the registered adapter have the correct namespace-key
+            // the key at index 0 shoud be === namespace
+            expect(Object.keys(NST.adapters)[0]).to.eq(ns)
+
+            // the value at NST.adapters[namespace] should be an object with load, save, namespace
+            expect(typeof NST.adapters[ns]).to.eq('object')
+            expect(typeof NST.adapters[ns].namespace).to.eq('string')
+            expect(typeof NST.adapters[ns].load).to.eq('function')
+            expect(typeof NST.adapters[ns].save).to.eq('function')
+            // expect(typeof NST.adapters[ns].disconnect).to.eq('function')
+            // NST.adapters[ns].disconnect()
+            console.log('done??')
+            done()
+        })
+
     })
 
-    it('A.5 | Adapter is registered and emits events', (done) => {
+
+    
+
+})
+
+describe(heading('C | Events'), () => {
+
+    it('C.a | Adapter is registered and emits events', (done) => {
 
         const NST = new Nestore({ name: 'Andrew'}, {
             adapters: [
-                persistAdapter({
+                createPersistAdapter({
                     mongoUri: process.env.MONGO_URI, 
                     collectionName: 'nestore-adapter-test-collection',
                     documentKey: 'NST_MONGO_TEST_A',
@@ -104,13 +209,24 @@ describe.only(heading('A | Adapter - persistAdapter'), function(){
         let events = []
 
         let middlewareSavedValue = Date.now()
-        let DONE = false
 
         let handleExit = () => {
             if(events.includes('error')){
                 expect.fail('The adapter emitted an error event before calling handleExit()')
-            }else if(required.every(req => events.includes(req)) && !DONE){
-                DONE = true
+            }else if(required.every(req => events.includes(req))){
+                console.log('>> All events emitted. Testing...')
+
+                expect(DATA.namespace).to.eq('nestore-persist-adapter')
+                // local data should not match data loaded into store
+                expect(DATA.preLoadStore).to.not.eq(false)
+                expect(DATA.postLoadStore).to.not.eq(false)
+                expect(DATA.preSaveStore).to.not.eq(false)
+                expect(DATA.postSaveStore).to.not.eq(false)
+                expect(DATA.error).to.eq(false)
+
+              
+                NST.adapters['nestore-mongo-adapter'].disconnect()
+                done()
                 done()
             }
         }
@@ -165,7 +281,5 @@ describe.only(heading('A | Adapter - persistAdapter'), function(){
 
         
     })
-
-    
 
 })

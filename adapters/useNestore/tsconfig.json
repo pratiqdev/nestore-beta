@@ -62,8 +62,15 @@
 
     /* Advanced Options */
     "forceConsistentCasingInFileNames": true,  /* Disallow inconsistently-cased references to the same file. */
-    "noEmitOnError": true
+    "noEmitOnError": true,
+    "jsx": "react-jsx",
+    "allowJs": false,
+    "skipLibCheck": true
   },
+  "exclude": [
+    "node_modules",
+    "test"
+  ],
   "include": [
     "./src/**/*.ts"
   ],

@@ -11,7 +11,31 @@ import Conf from 'conf';
 
 dotenv.config()
 
-const mockLocalStorage = new Conf()
+const createMockStorage = () => {
+    let CONF = new Conf({
+        store: {
+            mockStorage: 'npm-conf'
+        }
+    })
+
+    const getItem = (key) => {
+        return JSON.stringify(CONF.get('store', {}))
+    }
+
+    const setItem = (key, val) => {
+        if(val && typeof val !== 'string'){
+            console.log('mockStorage.setTime(<string>) only accepts type string')
+            return
+        }
+        return CONF.set('store', val ?? {})
+    }
+
+    return {
+        getItem,
+        setItem,
+    }
+}
+
 
 // const __dir = await fs.promises.realpath('.')
 // const testStatsFile = __dir + '/test/unit/test-results.json'
@@ -42,8 +66,7 @@ const COLORS = {
     whiteBg: '\x1b[47m'
 }
 
-const heading = (text) => `${COLORS.blue}${text}\n  ${'-'.repeat(80)}${COLORS.reset}`
-
+const heading = (text, color) => `${color ? COLORS[color] : COLORS.blue}${text}\n  ${'-'.repeat(80)}${COLORS.reset}`
 
 
 
@@ -145,13 +168,10 @@ export {
     Nestore,
 
     initialStore,
-    mockLocalStorage,
-    // __dir,
-    // testStatsFile,
+    createMockStorage,
     heading,
     chai,
     expect,
     assert,
-    // fs,
     debug,
 }

@@ -1,5 +1,5 @@
 import EE2 from "eventemitter2";
-export declare type NSTOptions = {
+export type NSTOptions = {
     delimiter?: string;
     wildcard?: boolean;
     /**
@@ -14,29 +14,29 @@ export declare type NSTOptions = {
     adapters?: NSTAdapter[];
     preventRepeatUpdates?: boolean;
 };
-export declare type NSTEmit = {
+export type NSTEmit = {
     path: string;
     key: string;
     value?: any;
 };
-export declare type CustomMutator<T> = (this: Nestore<Partial<T>>, args?: any[]) => any;
-export declare type ListenerMutator = any;
-export declare type NSTAnyStore = {
+export type CustomMutator<T> = (this: Nestore<Partial<T>>, args?: any[]) => any;
+export type ListenerMutator = any;
+export type NSTAnyStore = {
     get: (...args: any[]) => any;
     set: (...args: any[]) => any;
 } | {
     getItem: (...args: any[]) => any;
     setItem: (...args: any[]) => any;
 };
-export declare type NSTAdapterGenerator = <T>(config: any) => NSTAdapter;
-export declare type NSTAdapterFunctions = {
+export type NSTAdapterGenerator = <T>(config: any) => NSTAdapter;
+export type NSTAdapterFunctions = {
     namespace: string;
     load: () => Promise<boolean>;
     save: () => Promise<boolean>;
     disconnect?: () => Promise<any>;
 };
-export declare type NSTAdapter = <T>(nst: NSTClass<T>) => Promise<NSTAdapterFunctions>;
-export declare type NSTAdapterEmit = {
+export type NSTAdapter = <T>(nst: NSTClass<T>) => Promise<NSTAdapterFunctions>;
+export type NSTAdapterEmit = {
     timestamp: number;
     action: string;
     store: any;
@@ -66,7 +66,7 @@ declare class Nestore<T> extends EE2 {
     get _split_path_string_at_known_delimiters(): (path: string) => string[];
     get _convert_string_or_array_to_normalized_path_string(): (path: string | string[]) => string;
 }
-export declare type NSTClass<T = void> = Nestore<T>;
+export type NSTClass<T = void> = Nestore<T>;
 declare const nst: Nestore<unknown>;
-export declare type NSTInstance = typeof nst;
+export type NSTInstance = typeof nst;
 export default Nestore;

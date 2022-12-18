@@ -76,10 +76,37 @@ class Nestore extends EE2 {
             : COMMON.DEFAULT_DELIMITER_CHAR;
         this.#registerInStoreListeners(initialStore);
         this.#registerDevTools();
-        //! hacky - look for real method of awaiting class instantiation
-        // added setTimeout to wait for instantiation before passing self reference to adapters
         LOG('Store created:', initialStore);
+        //~ hacky - look for real method of awaiting class instantiation
+        //~ added setTimeout to wait for instantiation before passing self reference to adapters
+        // setTimeout(() => {
+        //     this.#registerAdapters(options)
+        // }, 10);
         this.#registerAdapters(options);
+        let checkForEmit = () => {
+            setTimeout(() => {
+                if (typeof this.emit === 'function') {
+                }
+                else {
+                    checkForEmit();
+                }
+            }, 10);
+        };
+        checkForEmit();
+    }
+    #initComplete() {
+        LOG('Nestore ready!');
+        LOG({
+            delimiter: this.#DELIMITER_CHAR,
+            preventRepeatUpdates: this.#PREVENT_REPEAT_UPDATE,
+            maxListeners: this.getMaxListeners(),
+            devExtension: this.#DEV_EXTENSION,
+            inStoreSetters: this.#SETTER_FUNCTIONS,
+            storeSetters: this.#SETTER_FUNCTIONS,
+            storeListeners: this.#SETTER_LISTENERS,
+            storeData: this.#INTERNAL_STORE,
+        });
+        this.emit('@ready', this.#INTERNAL_STORE);
     }
     //_                                                                                             
     #registerInStoreListeners(initialStore) {
@@ -143,16 +170,17 @@ class Nestore extends EE2 {
         const _log = LOG.extend('register-adapters');
         if (!options?.adapters || !options?.adapters.length) {
             _log('No adapters provided...');
-            //! Dont emit "@ready" - just emit "@.namespace.status" => state
-            // this.emit('@ready', this.#INTERNAL_STORE)
-            return false;
+            this.#initComplete();
+            return;
         }
-        _log('registering adapters...');
         if ((!Array.isArray(options?.adapters) || !options?.adapters?.every(a => typeof a === 'function'))) {
             console.warn(`Nestore adapters must be provided as an array of one or more adapter functions`);
             // this.emit('@ready', this.#INTERNAL_STORE)
             return false;
         }
+        // _log('awaiting nst.emit...')
+        // const register = () => {
+        _log('registering adapters...');
         try {
             let numRegistered = 0;
             options?.adapters?.forEach(async (adapter, idx) => {
@@ -167,17 +195,30 @@ class Nestore extends EE2 {
                 _log('Adapter registered:', adpt.namespace);
                 numRegistered++;
                 if (options?.adapters?.length === numRegistered) {
-                    _log('All adapters registered:', options.adapters);
+                    // _log('All adapters registered:', options.adapters)
                     // this.emit('@ready', this.#INTERNAL_STORE)
+                    this.#initComplete();
                     return true;
                 }
             });
         }
         catch (err) {
-            console.warn('Error registering adapter:', err);
-            // this.emit('@ready', this.#INTERNAL_STORE)
-            return false;
+            let e = err;
+            throw new Error(e);
         }
+        // }
+        // let count = 0
+        // let checkForEmit = () => {
+        //     setTimeout(() => {
+        //         if(typeof this.emit === 'function'){
+        //             register()
+        //         }else{
+        //             count++
+        //             checkForEmit()
+        //         }
+        //     }, 10);
+        // }
+        // checkForEmit()
     }
     //_                                                                                             
     #emit(args) {
