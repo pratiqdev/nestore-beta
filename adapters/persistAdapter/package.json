@@ -15,9 +15,14 @@
     "//>build:lint": "Run ESLint with autofix",
     "//_CONFIGURE_LINTING_RULES - super:lint": "eslint --fix -c .eslintrc.json .",
     "//>build:clean": " remove the `./useNestore/dist/` directory",
-    "build:clean": "rm -rf ./dist",
+    "build:clean-1": "rm -rf ./dist && rm -rf ../../_temp/persistAdapter",
+    "build:clean-2": "mkdir -p ../../_temp/persistAdapter",
     "//>build:build": "built `useNestore` as a standard es module witt tsc",
-    "build:build": "tsc",
+    "build:build": "tsc -p ./tsconfig.json",
+    "//>build:copy": "copy all relevant files to _temp/persistAdapter",
+    "build:copy-1": "cp -r ./dist ../../_temp/persistAdapter/dist",
+    "build:copy-2": "cp ./index.js ../../_temp/persistAdapter",
+
 
     "//& TEST                                                  ":"",
     "//>test:mocha": "test the adapter with mocha",

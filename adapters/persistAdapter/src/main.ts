@@ -5,7 +5,7 @@ import { throttle } from 'lodash-es'
 import Nestore, { NSTAdapterGenerator, NSTClass, NSTAdapter } from '../../../src/nestore' //~ DEV ONLY
 // import { NestoreAdapter, Nestore } from 'nestore'
 
-
+//~ use ZOD 
 
 //- TODO
 //- convert arguments to strictly typed config object
@@ -41,8 +41,9 @@ const persistAdapterGenerator: NSTAdapterGenerator = (config: TypePersistAdapter
     throw new Error('Nestore persistAdapter requires a config object with at least { "storageKey": <string> }')
   }
 
-  if (typeof config.storage === 'undefined' || !config.storage) {
-    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+  //+ if no storage object is provided, try to get localStorage
+  if (!config?.storage) {
+    if (typeof window !== 'undefined' && typeof window.localStorage === 'object') {
       log('No storage provided, using localStorage')
       settings.storage = window.localStorage
     } else {
@@ -51,10 +52,15 @@ const persistAdapterGenerator: NSTAdapterGenerator = (config: TypePersistAdapter
       throw new Error('No storage provided, and localStorage not available')
     }
   }
-  if (typeof config.storage?.getItem !== 'function' || typeof config.storage?.setItem !== 'function') {
-    throw new Error('nestore-persist-adapter: Storage object must have (getItem, setItem) methods.')
+  
+  //+ if storage provided - confirm it has getItem and setItem methods
+  else{
+    if (typeof config.storage?.getItem !== 'function' || typeof config.storage?.setItem !== 'function') {
+      log('Storage provided does not contain valid "getItem" and "setItem" methods:', config.storage)
+      throw new Error('nestore-persist-adapter: Storage object must have (getItem, setItem) methods.')
+    }
+    settings.storage = config.storage
   }
-  settings.storage = config.storage
 
   if (typeof config.storageKey === 'undefined' || !config.storageKey.length) {
     throw new Error('Local, session and indexedDB require a storage key')
@@ -70,8 +76,11 @@ const persistAdapterGenerator: NSTAdapterGenerator = (config: TypePersistAdapter
 
   if (typeof config.batchTime !== 'number') {
     console.log('nestore-persist-adapter: No "batchTime" provided')
+  }else if(config.batchTime > 0 && config.batchTime < (60_000 * 60)){
+    settings.batchTime = config.batchTime
+  }else{
+    settings.batchTime = 250
   }
-  settings.batchTime = config.batchTime
 
   settings.compareSave = config.compareSave === false ? false : true
 

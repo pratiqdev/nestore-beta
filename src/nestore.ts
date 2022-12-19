@@ -166,21 +166,21 @@ class Nestore<T> extends EE2{
             ? options?.delimiter 
             : COMMON.DEFAULT_DELIMITER_CHAR
             
-        this.#registerInStoreListeners(initialStore)
-        this.#registerDevTools()
-        LOG('Store created:', initialStore)
-
-
-        //~ hacky - look for real method of awaiting class instantiation
-        //~ added setTimeout to wait for instantiation before passing self reference to adapters
-        // setTimeout(() => {
-        //     this.#registerAdapters(options)
-        // }, 10);
-
-        this.#registerAdapters(options)
+            this.#registerDevTools()
+            LOG('Store created:', initialStore)
+            
+            
+            //~ hacky - look for real method of awaiting class instantiation
+            //~ added setTimeout to wait for instantiation before passing self reference to adapters
+            // setTimeout(() => {
+                //     this.#registerAdapters(options)
+                // }, 10);
+                
         let checkForEmit = () => {
             setTimeout(() => {
                 if(typeof this.emit === 'function'){
+                    this.#registerInStoreListeners(initialStore)
+                    this.#registerAdapters(options)
                 }else{
                     checkForEmit()
                 }
@@ -213,18 +213,18 @@ class Nestore<T> extends EE2{
     //_                                                                                             
     #registerInStoreListeners(initialStore:Partial<T>) {
         initialStore && Object.entries(initialStore).forEach(([ key, val ]) => {
-            if(typeof val === 'function'){
+            if(typeof val === 'function' && typeof this !== 'undefined'){
                 if(key.startsWith('$')){
                     this.#SETTER_LISTENERS.push(key)
                     let SETTER: ListenerMutator = val
                     let path = key.substring(1, key.length)
-                    this.on(path, (event) => SETTER(this, event))
+                    this.on(path, async (event) => await SETTER(this, event))
                     
                 }else{
                     this.#SETTER_FUNCTIONS.push(key)
                     let SETTER = val as CustomMutator<T>
                     //@ts-ignore
-                    this[key] = (...args:any) => SETTER(this, args) 
+                    this[key] = async (...args:any) => await SETTER(this, args) 
                 }
             }
         })

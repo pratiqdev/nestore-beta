@@ -74,7 +74,6 @@ class Nestore extends EE2 {
         this.#DELIMITER_CHAR = typeof options?.delimiter === 'string'
             ? options?.delimiter
             : COMMON.DEFAULT_DELIMITER_CHAR;
-        this.#registerInStoreListeners(initialStore);
         this.#registerDevTools();
         LOG('Store created:', initialStore);
         //~ hacky - look for real method of awaiting class instantiation
@@ -82,10 +81,11 @@ class Nestore extends EE2 {
         // setTimeout(() => {
         //     this.#registerAdapters(options)
         // }, 10);
-        this.#registerAdapters(options);
         let checkForEmit = () => {
             setTimeout(() => {
                 if (typeof this.emit === 'function') {
+                    this.#registerInStoreListeners(initialStore);
+                    this.#registerAdapters(options);
                 }
                 else {
                     checkForEmit();
@@ -111,18 +111,18 @@ class Nestore extends EE2 {
     //_                                                                                             
     #registerInStoreListeners(initialStore) {
         initialStore && Object.entries(initialStore).forEach(([key, val]) => {
-            if (typeof val === 'function') {
+            if (typeof val === 'function' && typeof this !== 'undefined') {
                 if (key.startsWith('$')) {
                     this.#SETTER_LISTENERS.push(key);
                     let SETTER = val;
                     let path = key.substring(1, key.length);
-                    this.on(path, (event) => SETTER(this, event));
+                    this.on(path, async (event) => await SETTER(this, event));
                 }
                 else {
                     this.#SETTER_FUNCTIONS.push(key);
                     let SETTER = val;
                     //@ts-ignore
-                    this[key] = (...args) => SETTER(this, args);
+                    this[key] = async (...args) => await SETTER(this, args);
                 }
             }
         });
