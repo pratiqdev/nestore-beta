@@ -32,12 +32,6 @@ yarn add nestore
 
 
 
-
-
-
-
-
-
 <br />
 
 ## Usage
@@ -83,16 +77,15 @@ myStore.setUserName('Alice')
 
 
 
-
-
-
-
-
-
 <br />
 <br />
 
-# Store Events 
+
+# Store Events
+
+<!-- <details><summary><b>oii</b></summary><br>
+Updates to the store emit events containing which path and key was changed, the new value and a timestamp of the event.
+</details> -->
 
 Updates to the store emit events containing which path and key was changed, the new value and a timestamp of the event.
 
@@ -123,6 +116,8 @@ const myStore = nestore({
     $name: (nst, event) => nst.set('online', event.value ? true : false)
 })
 ```
+
+
 
 
 
@@ -227,6 +222,7 @@ const NST = nestore<I_MyStore>({
 <br />
 
 ## Interfaces
+
 
 ```ts
 const NST: Nestore<Partial<T>> = nestore<T>(initialStore: Partial<T>, options: T_NestoreOptions)
