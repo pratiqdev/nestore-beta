@@ -21,11 +21,11 @@ const useNestore = createStore({
     }
 }, {
     adapters: [
-        createPersistAdapter({
-            namespace: 'nestore-persist-adapter',
-            storageKey: 'nst-hook-test-react-persist-key',
-            batchTime: 4_000,
-        })
+        // createPersistAdapter({
+        //     namespace: 'nestore-persist-adapter',
+        //     storageKey: 'nst-hook-test-react-persist-key',
+        //     batchTime: 4_000,
+        // })
     ]
 })
 

@@ -135,10 +135,10 @@ function App() {
         {/* <button onClick={() => adptr.load()}>Load Storage</button> */}
         {/* <pre>??{JSON.stringify(adptr)}</pre> */}
         <Hello />
-        <Count />
+        {/* <Count />
         <Time />
         <PersonName />
-        <PersonAge />
+        <PersonAge /> */}
         <Store />
       </header>
     </div>
