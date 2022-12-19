@@ -30,5 +30,9 @@ export default {
     '.*\.js|.*\.jsx': 'babel-jest',
     // '**/test/tests/**/*.[j]s?(x)': 'babel-jest',
     // "^.+\\.(js|jsx)$": "babel-jest",
-  }
+  },
+  transformIgnorePatterns: [
+    "/node_modules/lodash-es/.*"
+  ]
+
 };
