@@ -3,7 +3,7 @@
 /* eslint-disable import/no-unresolved */
 import { useState, useEffect, useCallback, useMemo } from 'react'
 //@ts-ignore
-import Nestore, { NSTOptions, NSTEmit } from 'nestore' //~ DEV ONLY
+import Nestore, { NSTOptions, NSTEmit } from '../../nestore/index.js' //~ DEV ONLY
 // import Nestore, { NSTEmit, NSTOptions } from 'nestore'
 import debug from 'debug'
 
@@ -36,17 +36,21 @@ const createStore = <T>(initialStore?:Partial<T>, options?: NSTOptions): UseNest
   const NST = new Nestore(initialStore, options) as { [key:string]: any }
 
   const useNestoreHook = (path?:string) => {
-    log('path:', path)
+    // log('path:', path)
 
     //$ does this call to useStore() contain a path?
     const hasPath = useMemo(() => typeof path === 'string' && path.length > 0, [ path ])
 
     //$ does this path lead to an in store mutator?
     const isMutator = useMemo(() => typeof path === 'string' && typeof NST[path] === 'function', [ path ])
+    const isRoot = useMemo(() => !path || path === '/', [ path ])
+
+    const prevVal = useMemo(() => hasPath ? NST.get(path) : NST.store, [ path ])
 
     //$ set the initial state with the value at the given path or the whole store
     // const [ value, setValue ] = useState<any>()
-    const [ value, setValue ] = useState(hasPath ? NST.get(path) : NST.store)
+    const [ value, setValue ] = useState(prevVal)
+    const [ trig, setTrig ] = useState(false)
 
 
     //$ The listener is fired every time there is a change to NST
@@ -72,12 +76,36 @@ const createStore = <T>(initialStore?:Partial<T>, options?: NSTOptions): UseNest
       // setValue('what')
 
 
-      if (path === '/' || !hasPath) {
+      if (isRoot) {
         //! any event was fired - if the whole store was updated with set({})
         //! then "/" will be emitted.
-        let store = NST.store
-        _log('path = "/" or no path | Setting value to entire store:', store)
-        setValue(store)
+        let store = NST.get()
+        _log(`path = "/" or no path | Setting value to entire store with force update trigger (${trig}):`, store)
+        //~ REACT COMPARES OBJECTS BY REFERENCE - USING Object.is()
+        //!
+        //! [object Object]<Ref*1> === [object Object]<Ref*1>
+        //! [object Object]<Ref*3> !== [object Object]<Ref*1>
+        //!
+        //! Object.is() considers the following values as the "same"
+        //! undefined === null
+        //! true === true
+        //! 'exact-string' === 'exact-string'
+        //! 1234.00 === 1234.00
+        //~ THE STORE CAN NOT BE DEREFFED BY CLONING, SPREADING, ETC.
+        //~ IT MUST MAINTAIN THE ORIGINAL REFERENCE TO THE STORE
+        //~ ACCORDING TO THE CURRENT SETUP OF MUTABILITTY IN NESTORE
+        //~
+        //~ USING AN EMPTY TRIGGER WONT WORK UNLESS IT IS RETURNED  FROM THE HOOK
+        //~ MAYBE A WHOLE OBJECT COULD BE RETURNED: [value, setValue, { updated: Date, updates: 7, path, key }]
+        setValue({ ...store })
+        // setTrig((b) => {
+        //   if(b === true) {
+        //     _log('Settting trigger to false')
+        //     return false
+        //   }
+        //   _log('Settting trigger to true')
+        //   return true
+        // })
       } else if (hasPath) {
         let val = NST.get(path)
         _log(`path = "${path}" | Setting value to NST.get(path):`, val)
@@ -87,7 +115,10 @@ const createStore = <T>(initialStore?:Partial<T>, options?: NSTOptions): UseNest
       }
     }, [ path ])
 
-    
+    const set = (_value:any, quiet?:boolean) => (
+      //~ devext flag is required for updates with no "path" - invokes emitAll()
+      hasPath ? NST.set(path, _value) : NST.set(_value, null, 'devext')
+    )
     
 
     useEffect(() => {
@@ -103,7 +134,9 @@ const createStore = <T>(initialStore?:Partial<T>, options?: NSTOptions): UseNest
           _log(`Path emitted:`, {path, value: e.value})
           setValue(e.value as Partial<T>)
         })
-      }else{
+      }
+      else{
+        NST.onAny(listener)
         NST.on('/', (e:NSTEmit) => {
           _log(`Path emitted:`, {path: '/', value: e.value})
           setValue(e.value as Partial<T>)
@@ -111,13 +144,17 @@ const createStore = <T>(initialStore?:Partial<T>, options?: NSTOptions): UseNest
       }
       //$ Listen to any changes to the store at path: "/"
       //$ if the entire store is updated - update this local state
-      NST.onAny(listener)
+
+      // return () => {
+      //   NST.off(path, (e:NSTEmit) => {
+      //     _log(`Path emitted:`, {path, value: e.value})
+      //     setValue(e.value as Partial<T>)
+      //   })
+      // }
     }, [ path ])
     
     
-    const set = (_value:any, quiet?:boolean) => (
-      hasPath ? NST.set(path, _value) : NST.set(_value, null)
-    )
+ 
 
 
 

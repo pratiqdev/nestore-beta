@@ -28,7 +28,7 @@ const COLORS = {
     whiteBg: '\x1b[47m'
 };
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-/** Nestore? */
+/** Nestore | Dec 19, 2:41 PM */
 class Nestore extends EE2 {
     #INTERNAL_STORE;
     #ORIGINAL_STORE;
@@ -129,7 +129,7 @@ class Nestore extends EE2 {
     }
     //_                                                                                             
     #registerDevTools() {
-        const _log = createLog('devtool');
+        const _log = LOG.extend('devtool');
         if (typeof window !== 'undefined') {
             _log(`Browser mode`);
             let W = window;
@@ -223,9 +223,9 @@ class Nestore extends EE2 {
     //_                                                                                             
     #emit(args) {
         // const log = console.log
-        const log = createLog('emit');
+        const _log = LOG.extend('emit');
         args.path = this.#convertStringOrArrayToNormalizedPathString(args.path);
-        log(`>> Emitting  "${args.path}" =>`, args.value);
+        _log(`>> Emitting  "${args.path}" =>`, args.value);
         // if(this.#DEV_EXTENSION){
         //     log('sending state to devtools:', args)
         //     this.#DEV_EXTENSION.send(args.path, this.#INTERNAL_STORE)
@@ -236,9 +236,9 @@ class Nestore extends EE2 {
     }
     //_                                                                                             
     #handleEmitAll(ignoreRoot) {
-        const log = createLog('emit-all');
-        log('Parsing store to emit events for every key...');
-        log(this.store);
+        const _log = LOG.extend('emit-all');
+        _log('Parsing store to emit events for every key...');
+        _log(this.store);
         let emitted = [];
         const visitNodes = (obj, visitor, stack = []) => {
             if (typeof obj === 'object') {
@@ -279,10 +279,10 @@ class Nestore extends EE2 {
     }
     //_                                                                                             
     #convertStringOrArrayToNormalizedPathString(path) {
-        const log = createLog('normPath');
+        const _log = LOG.extend('normPath');
         // log.norm(`\nbefore : ${path}`)
         if (Array.isArray(path)) {
-            log(`path is array, joining at delimiter: ${this.#DELIMITER_CHAR}`);
+            _log(`path is array, joining at delimiter: ${this.#DELIMITER_CHAR}`);
             path = path.join(this.#DELIMITER_CHAR);
         }
         if (path.trim() === '' || path.trim() === '/') {
@@ -302,28 +302,36 @@ class Nestore extends EE2 {
         let split = this.#splitPathStringAtKnownDelimiters(path);
         return split[split.length - 1];
     }
+    //~ Should change set flags to 'emit' (default) | 'emit-all' | 'none'
     //&                                                                                             
     set = (path, value, flag) => {
+        const _log = LOG.extend('set');
+        _log({
+            path,
+            value,
+            flag,
+            pathType: typeof path,
+            valueType: typeof value,
+            flagType: typeof flag,
+        });
         try {
-            const log = createLog('set');
             if (this.#PREVENT_REPEAT_UPDATE) {
                 if (typeof path === 'string' && isEqual(get(this.#INTERNAL_STORE, path), value)) {
-                    log(`Provided value already matches stored value, skipping...`);
-                    log({
+                    _log(`Provided value already matches stored value, skipping...`, {
                         new: value,
                         old: get(this.#INTERNAL_STORE, path),
                     });
                     return false;
                 }
                 else if (typeof path === 'object' && isEqual(this.store, path)) {
-                    log(`Provided newStore already matches store, skipping...`);
+                    _log(`Provided newStore already matches store, skipping...`);
                     return false;
                 }
             }
             if ((typeof path === 'undefined' && typeof value === 'undefined')
                 || (typeof path === 'undefined' && typeof value !== 'undefined')
                 || (typeof path !== 'object' && typeof value === 'undefined')) {
-                log('Incorrect args for "set()" :', { path, value });
+                _log('Incorrect args for "set()" :', { path, value });
                 return false;
             }
             // set the store directly with an object
@@ -331,7 +339,7 @@ class Nestore extends EE2 {
             if (typeof path === 'object') {
                 let originalValue = this.#INTERNAL_STORE;
                 if (!Array.isArray(path)) {
-                    log(`Setting "store" : "${value}"`);
+                    _log(`Setting "store" to new store object: "${value}"`);
                     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     // this.#INTERNAL_STORE = cloneDeep(path)
                     this.#INTERNAL_STORE = { ...path };
@@ -339,21 +347,22 @@ class Nestore extends EE2 {
                 // The devext flag provides a way for the extension to prevent an  infinite loop of 
                 // updates when manually altering data in the store
                 if (flag === 'devext') {
-                    log(`Set - set new store - handle emit all`);
+                    _log(`FLAG = "devext" - set new store - handle emit all`);
                     this.#handleEmitAll(true);
                 }
-                else if (flag !== 'quiet') {
+                if (flag !== 'quiet') {
+                    _log(`FLAG != "quiet" - emit store "/"`);
                     this.#emit({
                         path: '/',
                         key: '',
                         value: this.store,
-                        // timestamp: Date.now(),
                     });
                 }
                 else {
-                    log(`Setting with no emit "/" : "${value}"`);
+                    _log(`FLAG = "quiet" - Setting with no emit (quiet) "/" : "${value}"`);
                 }
                 if (flag !== 'devext' && this.#DEV_EXTENSION) {
+                    _log(`FLAG != "devext"`);
                     this.#DEV_EXTENSION.send({
                         type: `/: store => newStore`,
                         path: '/',
@@ -382,18 +391,19 @@ class Nestore extends EE2 {
             return true;
         }
         catch (err) {
+            _log(`Nestore.set() encountered an error:`, err);
             return false;
         }
     };
     //&                                                                                             
     get(path) {
         try {
-            const log = createLog('get');
+            const _log = LOG.extend('get');
             if (!path || path === '') {
-                log(`Nullish "path" argument: returning entire store.`);
+                _log(`Nullish "path" argument: returning entire store.`);
                 return this.store;
             }
-            log(`Getting "${path}"`);
+            _log(`Getting "${path}"`);
             if (typeof path === 'function') {
                 return path(this.store);
             }
@@ -405,11 +415,11 @@ class Nestore extends EE2 {
     }
     //&                                                                                             
     reset = () => {
-        const log = createLog('reset');
-        log('-'.repeat(60));
-        log(`current store:`);
-        log(this.#INTERNAL_STORE);
-        log('-'.repeat(60));
+        const _log = LOG.extend('reset');
+        _log('-'.repeat(60));
+        _log(`current store:`);
+        _log(this.#INTERNAL_STORE);
+        _log('-'.repeat(60));
         if (this.#DEV_EXTENSION) {
             this.#DEV_EXTENSION.send({
                 type: `/: store => originalStore`,
@@ -419,9 +429,9 @@ class Nestore extends EE2 {
             }, this.#ORIGINAL_STORE);
         }
         this.#INTERNAL_STORE = this.#ORIGINAL_STORE;
-        log(`reset store:`);
-        log(this.#INTERNAL_STORE);
-        log('-'.repeat(60));
+        _log(`reset store:`);
+        _log(this.#INTERNAL_STORE);
+        _log('-'.repeat(60));
         // this.#emit({
         //     path: '/',
         //     key: '/',
@@ -431,8 +441,8 @@ class Nestore extends EE2 {
     };
     //&                                                                                             
     remove = (path) => {
-        const log = createLog('remove');
-        log(`Deleting value at path: ${path}`);
+        const _log = LOG.extend('remove');
+        _log(`Deleting value at path: ${path}`);
         //! should this delete the key and value from the table or should it set the value to undefined?
         //! this should completely delete the key from the store object
         //! the set() method can set a key to undefined

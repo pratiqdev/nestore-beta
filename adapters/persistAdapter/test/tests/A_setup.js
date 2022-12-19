@@ -136,7 +136,7 @@ describe.only(heading('B | Adapter'), function(){
         //! Nestore will add this adapter to NST.adapters once the adapter generator resolves.
         //! The adapter will emit the 'registered' event just before resolving.
         //! To test NST.adapters you must wait for event "@ready"
-        NST.on(`@ready`, () => {
+        NST.once(`@ready`, () => {
             // does the adapters property exist as an object
             console.log('NST ready. Testing:', NST.adapters)
             expect(typeof NST.adapters).to.eq('object')

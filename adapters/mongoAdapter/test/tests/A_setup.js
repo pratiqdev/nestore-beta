@@ -139,7 +139,7 @@ describe(heading('B | mongoAdapter'), function(){
         // NST.onAny(event => console.log('>> onAny:', event))
 
 
-        NST.on(`@ready`, async () => {
+        NST.once(`@ready`, async () => {
             // does the adapters property exist as an object
             expect(typeof NST.adapters).to.eq('object')
 
