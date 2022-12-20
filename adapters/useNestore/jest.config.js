@@ -1,7 +1,7 @@
 import fs from 'fs'
 const __dir = fs.realpathSync('.')
 
-
+// FIXME - Setup jest for use with es modules ( useNestore > nestore > lodash-es | eventtemitter2 )
 
 
 export default {

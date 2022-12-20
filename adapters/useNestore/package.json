@@ -11,6 +11,7 @@
   "scripts": {
     "//& BUILD                                                  ": "",
     "//>build:lint": "Run ESLint with autofix",
+    "// [ ] - Configure linting rules for useNestore":"",
     "//_CONFIGURE_LINTING_RULES - super:lint": "eslint --fix -c .eslintrc.json .",
     "//>build:clean": " remove the `./useNestore/dist/` directory",
     "build:clean-1": "rm -rf ./dist && rm -rf ../../_temp/useNestore",
