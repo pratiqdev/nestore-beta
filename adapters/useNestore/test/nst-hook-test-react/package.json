@@ -12,7 +12,7 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "rm -rf ./src/locals && cp -r ../../../../_temp ./src/locals && react-scripts start",
+    "start": "rm -rf ./src/locals       && cd ../../../../      && yarn build-all       && cp -r ./_temp ./adapters/useNestore/test/nst-hook-test-react/src/locals       && cd ./adapters/useNestore/test/nst-hook-test-react     && BROWSER=none react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test"
   },

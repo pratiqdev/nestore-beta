@@ -3,6 +3,8 @@ import './App.css';
 
 import useNestore from './store/store';
 
+// [ ] - Add deeply nested components for update testing 
+
 // function App() {
 
 //   const [store, setStore] = useStore()
@@ -49,6 +51,22 @@ const Hello = () => {
 
 }
 
+const Store = () => {
+  const [value, setValue] = useNestore()
+
+  // useEffect(()=>{
+  //   console.log('Store component loaded store:', value)
+  // }, [value])
+  
+  return(
+    <div className='nestore-container'>
+      <pre>{JSON.stringify(value, null, 2)}</pre>
+      <button onClick={()=>setValue({hello: 'World!', count: 0, time: Date.now()})}>reset</button>
+    </div>
+  )
+
+}
+
 const Count = () => {
   const [value, setValue] = useNestore('count')
   
@@ -75,21 +93,6 @@ const Time = () => {
 
 }
 
-const Store = () => {
-  const [value, setValue] = useNestore()
-
-  useEffect(()=>{
-    console.log('Store component loaded store:', value)
-  }, [value])
-  
-  return(
-    <div className='nestore-container'>
-      <pre>{JSON.stringify(value, null, 2)}</pre>
-      <button onClick={()=>setValue({hello: 'World!', count: 0, time: Date.now()})}>reset</button>
-    </div>
-  )
-
-}
 
 const PersonName = () => {
   const [value, setValue] = useNestore('person.name')
@@ -135,7 +138,8 @@ function App() {
         {/* <button onClick={() => adptr.load()}>Load Storage</button> */}
         {/* <pre>??{JSON.stringify(adptr)}</pre> */}
         <Hello />
-        {/* <Count />
+        <Count />
+        {/* 
         <Time />
         <PersonName />
         <PersonAge /> */}

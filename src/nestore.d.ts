@@ -41,7 +41,7 @@ export declare type NSTAdapterEmit = {
     action: string;
     store: any;
 };
-/** Nestore? */
+/** Nestore | Dec 19, 2:41 PM */
 declare class Nestore<T> extends EE2 {
     #private;
     adapters: {
