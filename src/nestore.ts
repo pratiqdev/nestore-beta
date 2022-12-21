@@ -215,6 +215,7 @@ class Nestore<T> extends EE2{
 
     //_                                                                                             
     #registerInStoreListeners(initialStore:Partial<T>) {
+        const _log = LOG.extend('register-listeners')
         initialStore && Object.entries(initialStore).forEach(([ key, val ]) => {
             if(typeof val === 'function' && typeof this !== 'undefined'){
                 if(key.startsWith('$')){
@@ -708,7 +709,9 @@ export type NSTInstance = typeof nst
 // export default Nestore
 
 
-// [ ] Add documentation about awaiting adapters, mutators and listeners to be ready, or listen for '@ready' event
+// [] Add documentation about awaiting adapters, mutators and listeners to be ready, or listen for '@ready' event
+
+
 const nestore = <T>(initialStore: T | Partial<T> = {}, options: NSTOptions = {}): Promise<NSTInstance> => {
     return new Promise((res, rej) => {
         try{

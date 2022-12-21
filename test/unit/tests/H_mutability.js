@@ -42,30 +42,36 @@ describe(heading('I | Mutability / Silent Updates'), () => {
     it('I.3 | setter((x) => x.get() => .store.* = X)', async () => {
         const NST = await nestore(initialStore)
 
-        let recievedEvents = []
-        NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
-
-        NST.mutabilityTestA('ccc')
-        expect(NST.get('title')).to.eq('ccc')
-        expect(NST.store.title).to.eq('ccc')
-        
-        // no events should be emitted from direct mutations, if they happen
-        expect( recievedEvents.length ).to.eq( 0 )
+        NST.on('@ready',  () => {
+            
+            let recievedEvents = []
+            NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
+            
+            NST.mutabilityTestA('ccc')
+            expect(NST.get('title')).to.eq('ccc')
+            expect(NST.store.title).to.eq('ccc')
+            
+            // no events should be emitted from direct mutations, if they happen
+            expect( recievedEvents.length ).to.eq( 0 )
+        })
         
     })
 
     it('I.4 | setter((x) => x.store.* = X)', async () => {
         const NST = await nestore(initialStore)
 
-        let recievedEvents = []
-        NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
+        NST.on('@ready', () => {
 
-        NST.mutabilityTestB('ddd')
-        expect(NST.get('title')).to.eq('ddd')
-        expect(NST.store.title).to.eq('ddd')
-
-        // no events should be emitted from direct mutations, if they happen
-        expect( recievedEvents.length ).to.eq( 0 )
+            let recievedEvents = []
+            NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
+            
+            NST.mutabilityTestB('ddd')
+            expect(NST.get('title')).to.eq('ddd')
+            expect(NST.store.title).to.eq('ddd')
+            
+            // no events should be emitted from direct mutations, if they happen
+            expect( recievedEvents.length ).to.eq( 0 )
+        })
         
     })
 
