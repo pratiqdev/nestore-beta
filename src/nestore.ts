@@ -206,7 +206,7 @@ class Nestore<T> extends EE2{
             storeListeners: this.#SETTER_LISTENERS,
             
             storeData: this.#INTERNAL_STORE,
-        })
+        }) 
         this.emit('@ready', this.#INTERNAL_STORE)
         
     }
