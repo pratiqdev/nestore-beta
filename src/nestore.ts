@@ -691,4 +691,15 @@ export type NSTClass<T = void> = Nestore<T>
 const nst = new Nestore()
 export type NSTInstance = typeof nst
 
-export default Nestore
+// export default Nestore
+
+
+
+const nestore = <T>(initialStore: T | Partial<T> = {}, options: NSTOptions = {}): Promise<NSTInstance> => {
+    return new Promise((res, rej) => {
+        const nst = new Nestore(initialStore, options)
+        nst.on('@ready', () => res(nst))
+    })
+}
+
+export default nestore
