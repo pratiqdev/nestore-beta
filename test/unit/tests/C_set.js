@@ -1,5 +1,5 @@
 import {
-    Nestore,
+    nestore,
     __dir,
     heading,
     expect,
@@ -12,16 +12,16 @@ import {
 
 describe(heading('C | Set'), () => {
 
-    it('C.1 | Set method changes existing values', () => {
-        const NST = new Nestore(initialStore)
+    it('C.1 | Set method changes existing values', async () => {
+        const NST = await nestore(initialStore)
 
         NST.set('title', 'The Best Book Ever')
         assert(NST.get('title') === 'The Best Book Ever')
         
     })
     
-    it('C.2 | Set method assigns new key-values', () => {
-        const NST = new Nestore(initialStore)
+    it('C.2 | Set method assigns new key-values', async () => {
+        const NST = await nestore(initialStore)
 
         NST.set('brimple', 'boop')
         expect(NST.get('brimple')).to.eq('boop')
@@ -31,24 +31,24 @@ describe(heading('C | Set'), () => {
         
     })
 
-    it('C.3 | Set method should with no args should return false', () => {
-        const NST = new Nestore(initialStore)
+    it('C.3 | Set method should with no args should return false', async () => {
+        const NST = await nestore(initialStore)
 
         assert( NST.set() === false )
         assert( NST.set('thing') === false )
         assert( NST.set('thing', 'blap') === true )
     })
 
-    // it.skip('C.4 | (set cb is deprecated) Set callback method should set correct values', () => {
-    //     const { get, set, reset, store } = new Nestore(initialStore)
+    // it.skip('C.4 | (set cb is deprecated) Set callback method should set correct values', async () => {
+    //     const { get, set, reset, store } = await nestore(initialStore)
 
     //     set(s => s.title = '12345')
     //     expect(get('title')).to.eq('12345')
 
     // })
 
-    it('C.4 | Direct store modifications dont affect internal store', () => {
-        const NST = new Nestore(initialStore)
+    it('C.4 | Direct store modifications dont affect internal store', async () => {
+        const NST = await nestore(initialStore)
 
         NST.on('title', ()=> console.log('store was updated...'))
 
@@ -63,8 +63,8 @@ describe(heading('C | Set'), () => {
 
     })
 
-    // it('C.5 | Direct store modifications affect internal store with mutable enabled', () => {
-    //     const NST = new Nestore(initialStore, { mutable: true })
+    // it('C.5 | Direct store modifications affect internal store with mutable enabled', async () => {
+    //     const NST = await nestore(initialStore, { mutable: true })
 
     //     NST.on('title', ()=> console.log('store was updated...'))
 
@@ -83,8 +83,8 @@ describe(heading('C | Set'), () => {
 
     // })
 
-    it('C.5 | Object passed to set() should override internal store', () => {
-        const NST = new Nestore(initialStore)
+    it('C.5 | Object passed to set() should override internal store', async () => {
+        const NST = await nestore(initialStore)
 
         NST.set({
             internalStore: 'override'
@@ -100,12 +100,12 @@ describe(heading('C | Set'), () => {
 
     })
 
-    it('C.6 | Emits updates for repeated matching events when preventRepeatUpdates = false', () => {
-        const NST = new Nestore(initialStore, {
+    it('C.6 | Emits updates for repeated matching events when preventRepeatUpdates = false', async () => {
+        const NST = await nestore(initialStore, {
             preventRepeatUpdates: false
         })
         let count = 0
-        NST.on('title', () => count++)
+        NST.on('title', async () => count++)
 
         NST.set('title', 'Frank')
         NST.set('title', 'Frank')

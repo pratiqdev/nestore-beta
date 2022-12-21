@@ -1,5 +1,5 @@
 import {
-    Nestore,
+    nestore,
     __dir,
     heading,
     expect,
@@ -11,7 +11,7 @@ import {
 describe(heading('F | In Store Setters'), () => {
 
     it('F.1 | setterA', async () => {
-        const NST = new Nestore(initialStore)
+        const NST = await nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -24,7 +24,7 @@ describe(heading('F | In Store Setters'), () => {
     })
 
     it('F.2 | setterB', async () => {
-        const NST = new Nestore(initialStore)
+        const NST = await nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -37,7 +37,7 @@ describe(heading('F | In Store Setters'), () => {
     })
 
     it('F.3 | setterC', async () => {
-        const NST = new Nestore(initialStore)
+        const NST = await nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -51,7 +51,7 @@ describe(heading('F | In Store Setters'), () => {
     })
 
     it('F.4 | setterD', async () => {
-        const NST = new Nestore(initialStore)
+        const NST = await nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -64,7 +64,7 @@ describe(heading('F | In Store Setters'), () => {
     })
 
     it('F.5 | setterE', async () => {
-        const NST = new Nestore(initialStore)
+        const NST = await nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -77,7 +77,7 @@ describe(heading('F | In Store Setters'), () => {
     })
 
     it('F.6 | setterF', async () => {
-        const NST = new Nestore(initialStore)
+        const NST = await nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -94,7 +94,7 @@ describe(heading('F | In Store Setters'), () => {
 
 
     it('F.7 | setterG', async () => {
-        const NST = new Nestore(initialStore)
+        const NST = await nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -110,7 +110,7 @@ describe(heading('F | In Store Setters'), () => {
     })
 
     it('F.8 | setterH', async () => {
-        const NST = new Nestore(initialStore)
+        const NST = await nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))

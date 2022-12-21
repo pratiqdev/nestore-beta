@@ -1,5 +1,5 @@
 import {
-    Nestore,
+    nestore,
     __dir,
     heading,
     expect,
@@ -12,8 +12,8 @@ import {
 
 describe(heading('B | Get'), () => {
 
-    it('B.1 | Get string method returns correct value', () => {
-        const NST = new Nestore(initialStore)
+    it('B.1 | Get string method returns correct value', async () => {
+        const NST = await nestore(initialStore)
 
         expect(NST.get('title') ).to.eq( initialStore.title)
         expect(NST.get('pages') ).to.eq( initialStore.pages)
@@ -24,16 +24,16 @@ describe(heading('B | Get'), () => {
         expect(NST.get('reviews["Some Extra"]["Stuff Here"].find["me ?"]') ).to.eq( initialStore.reviews["Some Extra"]["Stuff Here"].find["me ?"])
     })
 
-    it('B.2 | Get string method returns undefined on incorrect path', () => {
-        const NST = new Nestore(initialStore)
+    it('B.2 | Get string method returns undefined on incorrect path', async () => {
+        const NST = await nestore(initialStore)
 
         assert(typeof NST.get('frobble') === 'undefined')
         assert(typeof NST.get('pages.frizzle') === 'undefined')
         assert(typeof NST.get('thingy.jimjam') === 'undefined')
     })
 
-    it('B.3 | Get callback method returns correct value', () => {
-        const NST = new Nestore(initialStore)
+    it('B.3 | Get callback method returns correct value', async () => {
+        const NST = await nestore(initialStore)
 
         // assert(get(s => s) === initialStore)
         expect(JSON.stringify(NST.get(s => s))).to.eq(JSON.stringify(initialStore))
@@ -41,8 +41,8 @@ describe(heading('B | Get'), () => {
 
     })
 
-    it('B.4 | Get callback method returns undefined on incorrect path', () => {
-        const { get, set, reset, store } = new Nestore(initialStore)
+    it('B.4 | Get callback method returns undefined on incorrect path', async () => {
+        const { get, set, reset, store } = await nestore(initialStore)
 
         assert(typeof get(s => s.brapple) === 'undefined')
         assert(typeof get(s => s.fimble.famble) === 'undefined')
@@ -50,8 +50,8 @@ describe(heading('B | Get'), () => {
 
     })
 
-    it('B.5 | Get method with no args returns entire store', () => {
-        const NST = new Nestore(initialStore)
+    it('B.5 | Get method with no args returns entire store', async () => {
+        const NST = await nestore(initialStore)
 
         // assert(get() === initialStore)
         expect(JSON.stringify(NST.get()))

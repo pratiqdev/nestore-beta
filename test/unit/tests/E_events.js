@@ -1,5 +1,5 @@
 import {
-    Nestore,
+    nestore,
     __dir,
     heading,
     expect,
@@ -13,7 +13,7 @@ import {
 describe(heading('E | Events'), () => {
 
     it('E.1 | Uses all available wildcards and nested access methods', async () => {
-        const NST = new Nestore(initialStore)
+        const NST = await nestore(initialStore)
 
         let recievedEvents = []
 
@@ -70,7 +70,7 @@ describe(heading('E | Events'), () => {
     })
 
     it('E.2 | Changes to the store made with `set()` emit events', async () => {
-        const NST = new Nestore(initialStore)
+        const NST = await nestore(initialStore)
 
         let recievedEvents = []
 
@@ -118,8 +118,8 @@ describe(heading('E | Events'), () => {
         // }, 1500)
     })
 
-    it('E.3 | Resetting store emits events for every key', () => {
-        const NST = new Nestore({
+    it('E.3 | Resetting store emits events for every key', async () => {
+        const NST = await nestore({
             A:'a',
             B:'b',
             C:'c',
@@ -171,7 +171,7 @@ describe(heading('E | Events'), () => {
 
     })
 
-    it('E.4 | EmitAll emits events with correct paths', () => {
+    it('E.4 | EmitAll emits events with correct paths', async () => {
 
         const recievedEvents = []
 
@@ -197,7 +197,7 @@ describe(heading('E | Events'), () => {
 
         }
 
-        const NST = new Nestore(sto, {delimiter: '/'})
+        const NST = await nestore(sto, {delimiter: '/'})
 
         NST.on('', (d) => recievedEvents.push(d))
 
@@ -250,8 +250,8 @@ describe(heading('E | Events'), () => {
 
     })
 
-    it('E.5 | Wildcards listen to changes of any nested state', () => {
-        const NST = new Nestore({
+    it('E.5 | Wildcards listen to changes of any nested state', async () => {
+        const NST = await nestore({
             person: {
                 name: 'John',
                 age: 88
@@ -295,8 +295,8 @@ describe(heading('E | Events'), () => {
 
     })
 
-    it('E.6 | Events have matching structs with normalized path', () => {
-        const NST = new Nestore({
+    it('E.6 | Events have matching structs with normalized path', async () => {
+        const NST = await nestore({
             person: {
                 name: 'John',
                 age: 88
@@ -359,8 +359,8 @@ describe(heading('E | Events'), () => {
     })
 
     // dont test ee2 methods
-    // it('E.7 | Emitter.once() fires correct amount', () => {
-    //     const NST = new Nestore({
+    // it('E.7 | Emitter.once() fires correct amount', async () => {
+    //     const NST = await nestore({
     //         greeting: 'hello'
     //     })
 
@@ -381,8 +381,8 @@ describe(heading('E | Events'), () => {
 
     // })
 
-    // it('E.8 | Emitter.many() fires correct amount', () => {
-    //     const NST = new Nestore({
+    // it('E.8 | Emitter.many() fires correct amount', async () => {
+    //     const NST = await nestore({
     //         greeting: 'hello'
     //     })
 

@@ -145,10 +145,7 @@ class Nestore<T> extends EE2{
         this.#DEV_EXTENSION = null
         this.adapters = {};
 
-        if(initialStore instanceof Nestore){
-            this.emit('@ready', initialStore.store)
-            return initialStore
-        }
+        if(initialStore instanceof Nestore) return initialStore;
         
         if(typeof initialStore !== 'object' || Array.isArray(initialStore)){
             throw new Error(`Initial store must be an object or map.`)
@@ -221,15 +218,13 @@ class Nestore<T> extends EE2{
                     this.#SETTER_LISTENERS.push(key)
                     let SETTER: ListenerMutator = val
                     let path = key.substring(1, key.length)
-                    // this.on(path, async (event) => await SETTER(this, event))
-                    this.on(path, (event) => SETTER(this, event))
+                    this.on(path, async (event) => await SETTER(this, event))
                     
                 }else{
                     this.#SETTER_FUNCTIONS.push(key)
                     let SETTER = val as CustomMutator<T>
                     //@ts-ignore
-                    // this[key] = async (...args:any) => await SETTER(this, args) 
-                    this[key] = (...args:any) => SETTER(this, args) 
+                    this[key] = async (...args:any) => await SETTER(this, args) 
                 }
             }
         })
@@ -711,13 +706,8 @@ export type NSTInstance = typeof nst
 // [ ] Add documentation about awaiting adapters, mutators and listeners to be ready, or listen for '@ready' event
 const nestore = <T>(initialStore: T | Partial<T> = {}, options: NSTOptions = {}): Promise<NSTInstance> => {
     return new Promise((res, rej) => {
-        try{
-            const nst = new Nestore(initialStore, options)
-            nst.on('@ready', () => res(nst))
-        }catch(err){
-            // console.log('nestore instantiator function error:', err)
-            rej(err)
-        }
+        const nst = new Nestore(initialStore, options)
+        nst.on('@ready', () => res(nst))
     })
 }
 

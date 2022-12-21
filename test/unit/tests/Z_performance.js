@@ -1,5 +1,5 @@
 import {
-    Nestore,
+    nestore,
     __dir,
     testStatsFile,
     heading,
@@ -123,7 +123,7 @@ describe(heading('Performance'), function(){
 
     // console.log(`\tOperation limit: ${OPERATION_LIMIT * CYCLE_LIMIT}`)
 
-    it('PERF.0 | init', (done) => {
+    it('PERF.0 | init', async (done) => {
         console.log('\tPERF.0 | init')
         let NUM_OF_OPERATIONS = 0
         let NUM_OF_CYCLES = 0
@@ -138,7 +138,7 @@ describe(heading('Performance'), function(){
             
             while(NUM_OF_OPERATIONS < OPERATION_LIMIT){
                 NUM_OF_OPERATIONS++
-                const NST = new Nestore()
+                const NST = await nestore()
             }
             let dur = Date.now() - CYCLE_START
             durationArr.push(dur)
@@ -155,14 +155,14 @@ describe(heading('Performance'), function(){
         
     })
     
-    it('PERF.1 | set', (done) => {
+    it('PERF.1 | set', async (done) => {
         console.log('\tPERF.1 | set')
         let NUM_OF_OPERATIONS = 0
         let NUM_OF_CYCLES = 0
         let TEST_START = Date.now()
         let durationArr = []
 
-        const NST = new Nestore()
+        const NST = await nestore()
 
         while(NUM_OF_CYCLES < CYCLE_LIMIT){
             const CYCLE_START = Date.now()
@@ -192,7 +192,7 @@ describe(heading('Performance'), function(){
         
     })
 
-    it('PERF.2 | get', (done) => {
+    it('PERF.2 | get', async (done) => {
         console.log('\tPERF.2 | get')
 
         let NUM_OF_OPERATIONS = 0
@@ -200,7 +200,7 @@ describe(heading('Performance'), function(){
         let TEST_START = Date.now()
         let durationArr = []
         
-        const NST = new Nestore()
+        const NST = await nestore()
 
         while(NUM_OF_CYCLES < CYCLE_LIMIT){
             const CYCLE_START = Date.now()
@@ -232,7 +232,7 @@ describe(heading('Performance'), function(){
 
     })
 
-    it('PERF.3 | get random', (done) => {
+    it('PERF.3 | get random', async (done) => {
         console.log('\tPERF.3 | get random')
         
         let NUM_OF_OPERATIONS = 0
@@ -240,7 +240,7 @@ describe(heading('Performance'), function(){
         let TEST_START = Date.now()
         let durationArr = []
         
-        const NST = new Nestore()
+        const NST = await nestore()
 
         while(NUM_OF_CYCLES < CYCLE_LIMIT){
             const CYCLE_START = Date.now()
@@ -275,7 +275,7 @@ describe(heading('Performance'), function(){
 
     })
 
-    it('PERF.4 | set => get', (done) => {
+    it('PERF.4 | set => get', async (done) => {
         console.log('\tPERF.4 | set => get')
         
         // let OPERATION_LIMIT = 100
@@ -285,7 +285,7 @@ describe(heading('Performance'), function(){
         let TEST_START = Date.now()
         let durationArr = []
         
-        const NST = new Nestore()
+        const NST = await nestore()
 
         while(NUM_OF_CYCLES < CYCLE_LIMIT){
             const CYCLE_START = Date.now()
@@ -370,7 +370,7 @@ describe(heading('Performance'), function(){
   
 
 
-    // it('PERF STATS - output', ()=>{
+    // it('PERF STATS - output', async ()=>{
     //     fs.promises.writeFile(testStatsFile, JSON.stringify(testResults, null, 2))
     //     console.log('Wrote to stat file...')
     // })

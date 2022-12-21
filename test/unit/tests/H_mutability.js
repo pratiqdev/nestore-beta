@@ -1,5 +1,5 @@
 import {
-    Nestore,
+    nestore,
     __dir,
     heading,
     expect,
@@ -10,7 +10,7 @@ import {
 describe(heading('I | Mutability / Silent Updates'), () => {
 
     it('I.1 | NST.get() => store.* = X', async () => {
-        const NST = new Nestore(initialStore)
+        const NST = await nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -25,7 +25,7 @@ describe(heading('I | Mutability / Silent Updates'), () => {
     })
 
     it('I.2 | NST.store.* = X', async () => {
-        const NST = new Nestore(initialStore)
+        const NST = await nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -40,7 +40,7 @@ describe(heading('I | Mutability / Silent Updates'), () => {
     })
 
     it('I.3 | setter((x) => x.get() => .store.* = X)', async () => {
-        const NST = new Nestore(initialStore)
+        const NST = await nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -55,7 +55,7 @@ describe(heading('I | Mutability / Silent Updates'), () => {
     })
 
     it('I.4 | setter((x) => x.store.* = X)', async () => {
-        const NST = new Nestore(initialStore)
+        const NST = await nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
@@ -70,7 +70,7 @@ describe(heading('I | Mutability / Silent Updates'), () => {
     })
 
     it('I.5 | NST.get("path") = X', async () => {
-        const NST = new Nestore(initialStore)
+        const NST = await nestore(initialStore)
 
         let recievedEvents = []
         NST.on('', (data) => recievedEvents.push(JSON.stringify(data)))
