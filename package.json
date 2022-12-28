@@ -1,16 +1,26 @@
 {
   "name": "nestore",
-  "version": "1.0.4",
-  "description": "",
+  "version": "0.0.1",
+  "description": "Event based state management",
+  "url": "https://github.com/pratiqdev/nestore/issues",
+  "homepage": "https://github.com/pratiqdev/nestore#readme",
   "keywords": [
     "state-management",
     "event-emitter"
   ],
-  "author": "Event based state management",
-  "license": "UNLICENSED",
+  "person": {
+    "name": "Michael Jannetta",
+    "url": "https://github.com/pratiqdev"
+  },
+  "license": "MIT",
   "main": "index.js",
   "type": "module",
   "types": "dist/nestore.d.ts",
+  "files": [
+    "./index.js",
+    "./README.md",
+    "dist/"
+  ],
   "scripts": {
     "//& PRE-BUILD                                                                                ": "",
     "prebuild:clear": "clear && echo \"[build] Lint, purge and rebuild all artifacts \"",
@@ -64,23 +74,15 @@
     "watch": "nodemon --watch src --exec npm-run-all dev:*",
     "pub": "npm-run-all pub:*"
   },
-  "files": [
-    "./index.js",
-    "./README.md",
-    "dist/"
-  ],
   "dependencies": {
     "debug": "^4.3.4",
     "eventemitter2": "^6.4.7",
-    "lodash-es": "^4.17.21",
-    "mongoose": "^6.6.5"
+    "lodash-es": "^4.17.21"
   },
   "devDependencies": {
-    "@open-wc/building-rollup": "^2.0.2",
     "@types/chai": "^4.3.4",
     "@types/debug": "^4.1.7",
     "@types/lodash-es": "^4.17.6",
-    "@types/mongoose": "^5.11.97",
     "@types/node": "^18.11.15",
     "@types/react": "^18.0.21",
     "@types/spellchecker": "^3.5.0",
