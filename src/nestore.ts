@@ -1,7 +1,6 @@
 import EE2 from "eventemitter2";
 import { omit, set, get, isEqual } from 'lodash-es'
 import debug from 'debug'
-const createLog = (namespace:string) => debug('nestore:' + namespace)
 const LOG = debug('nestore')
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -66,33 +65,9 @@ export type NSTAdapterEmit = {
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 const COMMON = {
-    NESTORE_ROOKEY: 'NESTORE_STORE_ROOKEY',
+    NESTORE_ROOT_KEY: 'NESTORE_STORE_ROOT_KEY',
     DEFAULT_DELIMITER_CHAR: '.'
 }
-
-const COLORS = {
-    reset: '\x1b[0m',
-
-    black: '\x1b[30m',
-    red: '\x1b[31m',
-    green: '\x1b[32m',
-    yellow: '\x1b[33m',
-    blue: '\x1b[34m',
-    magenta: '\x1b[35m',
-    cyan: '\x1b[36m',
-    white: '\x1b[37m',
-
-    blackBg: '\x1b[40m',
-    redBg: '\x1b[41m',
-    greenBg: '\x1b[42m',
-    yellowBg: '\x1b[43m',
-    blueBg: '\x1b[44m',
-    magentaBg: '\x1b[45m',
-    cyanBg: '\x1b[46m',
-    whiteBg: '\x1b[47m'
-}
-
-
 
 
 
@@ -172,12 +147,9 @@ class Nestore<T> extends EE2{
             this.#registerDevTools()
             LOG('Store created:', initialStore)
             
-            
-            //~ hacky - look for real method of awaiting class instantiation
-            //~ added setTimeout to wait for instantiation before passing self reference to adapters
-            // setTimeout(() => {
-                //     this.#registerAdapters(options)
-                // }, 10);
+
+        // FIXME: hacky - look for real method of awaiting class instantiation
+        //! added setTimeout to wait for instantiation before passing self reference to adapters
                 
         let checkForEmit = () => {
             setTimeout(() => {
@@ -277,6 +249,9 @@ class Nestore<T> extends EE2{
     }
 
     //_                                                                                             
+    // Could this be refactored into a function that only works on a single adapter
+    // so that the constructor can call this repeatedly on the array of adapters, or the user
+    // can register a single adapter at any time
     #registerAdapters(options: NSTOptions) {
         const _log = LOG.extend('register-adapters')
 
@@ -707,13 +682,17 @@ export type NSTInstance = typeof nst
 
 // export default Nestore
 
-
-// [ ] Add documentation about awaiting adapters, mutators and listeners to be ready, or listen for '@ready' event
+// TODO- Add documentation about awaiting async nestore (adapter, mutator and listener registration) to resolve, or nestore '@ready' event
 const nestore = <T>(initialStore: T | Partial<T> = {}, options: NSTOptions = {}): Promise<NSTInstance> => {
     return new Promise((res, rej) => {
         try{
             const nst = new Nestore(initialStore, options)
-            nst.on('@ready', () => res(nst))
+            nst.on('@ready', () => {
+                // let omittedNst: NSTInstance = omit(nst, [
+                    // '_delimiter'
+                // ]) as NSTInstance
+                res(nst)
+            })
         }catch(err){
             // console.log('nestore instantiator function error:', err)
             rej(err)

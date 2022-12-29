@@ -3,7 +3,7 @@ import './App.css';
 
 import useNestore from './store/store';
 
-// [ ] - Add deeply nested components for update testing 
+// TODO- Add deeply nested components for update testing 
 
 // function App() {
 
