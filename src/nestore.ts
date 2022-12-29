@@ -187,6 +187,7 @@ class Nestore<T> extends EE2{
 
     //_                                                                                             
     #registerInStoreListeners(initialStore:Partial<T>) {
+        const _log = LOG.extend('register-listeners')
         initialStore && Object.entries(initialStore).forEach(([ key, val ]) => {
             if(typeof val === 'function' && typeof this !== 'undefined'){
                 if(key.startsWith('$')){
