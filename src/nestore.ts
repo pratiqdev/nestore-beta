@@ -1,5 +1,5 @@
 import EE2 from "eventemitter2";
-import { omit, set, get, isEqual } from 'lodash-es'
+import { omit, set, get, isEqual, cloneDeep } from 'lodash-es'
 import debug from 'debug'
 const LOG = debug('nestore')
 
@@ -7,7 +7,9 @@ const LOG = debug('nestore')
 
 //&                                                                                               
 export type NSTOptions = {
+    /** The character used to separate / delimit nested paths */
     delimiter?: string;
+    /** @depracated - always true */
     wildcard?: boolean;
     /**
      *  @deprecated
@@ -16,8 +18,9 @@ export type NSTOptions = {
     mutable?: boolean;
     maxListeners?: number;
     verbose?: boolean;
+    /** @deprecated - unused */
     throwOnRevert?: boolean;
-    timeout?: number;
+    // timeout?: number;
     adapters?: NSTAdapter[];
     preventRepeatUpdates?: boolean;
 }
@@ -66,7 +69,14 @@ export type NSTAdapterEmit = {
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 const COMMON = {
     NESTORE_ROOT_KEY: 'NESTORE_STORE_ROOT_KEY',
-    DEFAULT_DELIMITER_CHAR: '.'
+    DEFAULT_DELIMITER_CHAR: '.',
+    DISALLOWED_DELIMITER_CHARS: [
+        '@',
+        '$',
+        '-',
+        '=',
+        '_',
+    ]
 }
 
 
@@ -95,20 +105,34 @@ class Nestore<T> extends EE2{
 
 
     constructor(initialStore: T | Partial<T> = {}, options: NSTOptions = {}){
-        super({
-            wildcard: options?.wildcard === false ? false : true,
-            delimiter: typeof options?.delimiter === 'string' ? options?.delimiter : '.',
-            verboseMemoryLeak: options?.verbose === true ? true : false,
-            maxListeners: typeof options?.maxListeners === 'number' 
-                && options?.maxListeners <= Number.MAX_SAFE_INTEGER
-                && options?.maxListeners >= Number.MIN_SAFE_INTEGER
-                    ? options?.maxListeners
-                    : 10
-        })
+        // super({
+        //     // TODO- Wildcard should always be true 
+        //     wildcard: options?.wildcard === false ? false : true,
+        //     // TODO- Delimiter should always be '.' 
+        //     //! If delimiter is customizable - must be passed to adapters for custom namespace events: 
+        //     //! `@.mongo.saving` => `@-mongo-saving` interferes with hyphenated namespaces...
+        //     //! must prevent use of reserved characters:
+        //     //! @ (at symbol)- adapters / nestore
+        //     //! $ (dollar sign) - in store listeners
+        //     //! - (hyphen) - used for adapter namespaces / storage keys
+        //     delimiter: typeof options?.delimiter === 'string' ? options?.delimiter : '.',
+        //     // TODO- verboseMemoryLeak SHOULD be true by default 
+        //     verboseMemoryLeak: options?.verbose === true ? true : false,
+
+        //     maxListeners: typeof options?.maxListeners === 'number' 
+        //         && options?.maxListeners <= Number.MAX_SAFE_INTEGER
+        //         && options?.maxListeners >= Number.MIN_SAFE_INTEGER
+        //             ? options?.maxListeners
+        //             : 10
+        // })
+        super(options)
 
         let _log = LOG.extend('constr')
         // console.log('>> NESTORE V4')
-        _log('Creating store...')
+        _log('Creating store:', {
+            initialStore,
+            options,
+        })
 
 
         this.#INTERNAL_STORE = {}
@@ -120,51 +144,61 @@ class Nestore<T> extends EE2{
         this.#DEV_EXTENSION = null
         this.adapters = {};
 
-        if(initialStore instanceof Nestore){
-            this.emit('@ready', initialStore.store)
-            return initialStore
-        }
+        // TODO+ Move instance check to nestore function 
+        // TODO  Add docs: options are not modified when returning the same instance 
+        // This could take place before the class is instantiated
+        // if(initialStore instanceof Nestore){
+        //     this.emit('@ready', initialStore.store)
+        //     return initialStore
+        // }
         
-        if(typeof initialStore !== 'object' || Array.isArray(initialStore)){
-            throw new Error(`Initial store must be an object or map.`)
-        }
+        // TODO+ Move initialStore typecheck to nestore function 
+        // if(typeof initialStore !== 'object' || Array.isArray(initialStore)){
+        //     throw new Error(`Initial store must be an object or map.`)
+        // }
         
-        
-        let storeOmitted:Partial<T> = Object.fromEntries(
-            Object.entries(initialStore as Object)
-            .filter(([KEY,VAL]:any) => 
-                !this.#SETTER_FUNCTIONS.includes(KEY) 
-                && !this.#SETTER_LISTENERS.includes(KEY) )
-        ) as Partial<T>
+        // TODO+ - Nestore class omitting initialStore items before omitable items are accumulated
+        // Omitting items from the store and setting this.#INTERNAL_STORE needs to occur after 
+        // this.registerInStoreListeners() - registering listeners and mutators accumulates arrays of 
+        // these items, which are then used to filter and omit items from the store (the store returned to user)
+        // let storeOmitted:Partial<T> = Object.fromEntries(
+        //     Object.entries(initialStore as Object)
+        //     .filter(([KEY,VAL]:any) => 
+        //         !this.#SETTER_FUNCTIONS.includes(KEY) 
+        //         && !this.#SETTER_LISTENERS.includes(KEY) )
+        // ) as Partial<T>
 
-        this.#PREVENT_REPEAT_UPDATE = options?.preventRepeatUpdates === false ? false : true
-        this.#INTERNAL_STORE = storeOmitted
-        this.#ORIGINAL_STORE = JSON.parse(JSON.stringify(storeOmitted))
-        this.#DELIMITER_CHAR = typeof options?.delimiter === 'string' 
-            ? options?.delimiter 
-            : COMMON.DEFAULT_DELIMITER_CHAR
+
+        this.#PREVENT_REPEAT_UPDATE = options?.preventRepeatUpdates ?? false
+        // this.#INTERNAL_STORE = storeOmitted
+        // this.#ORIGINAL_STORE = JSON.parse(JSON.stringify(storeOmitted))
+        this.#ORIGINAL_STORE = initialStore ?? {}
+        this.#DELIMITER_CHAR = options.delimiter ?? '.'
+
+        this.registerAdapter.bind(this);
             
-            this.#registerDevTools()
+            // this.registerDevTools()
             LOG('Store created:', initialStore)
             
 
-        // FIXME: hacky - look for real method of awaiting class instantiation
-        //! added setTimeout to wait for instantiation before passing self reference to adapters
+        // TODO+ hacky - look for real method of awaiting class instantiation
+        // added setTimeout to wait for instantiation before passing self reference to adapters
                 
-        let checkForEmit = () => {
-            setTimeout(() => {
-                if(typeof this.emit === 'function'){
-                    this.#registerInStoreListeners(initialStore)
-                    this.#registerAdapters(options)
-                }else{
-                    checkForEmit()
-                }
-            }, 10);
-        }
+        // let checkForEmit = () => {
+        //     setTimeout(() => {
+        //         if(typeof this.emit === 'function'){
+        //             this.registerInStoreListeners(initialStore)
+        //             this.registerAdapters(options)
+        //         }else{
+        //             checkForEmit()
+        //         }
+        //     }, 10);
+        // }
 
-        checkForEmit()
+        // checkForEmit()
     }
 
+    /** @deprecated */
     #initComplete(){
         LOG('Nestore ready!')
         LOG({
@@ -184,9 +218,52 @@ class Nestore<T> extends EE2{
     }
 
 
+    //_                                                                                             
+    registerStore() {
+        const _log = LOG.extend('register-store')
+        _log('initialStore:', this.#ORIGINAL_STORE)
+        this.#ORIGINAL_STORE && Object.entries(this.#ORIGINAL_STORE).forEach(([ key, val ]) => {
+            if(typeof val === 'function' && typeof this !== 'undefined'){
+                if(key.startsWith('$')){
+                    this.#SETTER_LISTENERS.push(key)
+                    let SETTER: ListenerMutator = val
+                    let path = key.substring(1, key.length)
+                    // this.on(path, async (event) => await SETTER(this, event))
+                    this.on(path, (event) => SETTER(this, event))
+                    
+                }else{
+                    this.#SETTER_FUNCTIONS.push(key)
+                    let SETTER = val as CustomMutator<T>
+                    //@ts-ignore
+                    // this[key] = async (...args:any) => await SETTER(this, args) 
+                    this[key] = (...args:any) => SETTER(this, args) 
+                }
+            }
+        })
+
+        const storeOmitted:Partial<T> = Object.fromEntries(
+            Object.entries(this.#ORIGINAL_STORE as Object)
+            .filter(([KEY,VAL]:any) => 
+                !this.#SETTER_FUNCTIONS.includes(KEY) 
+                && !this.#SETTER_LISTENERS.includes(KEY) )
+        ) as Partial<T>
+
+        
+        this.#INTERNAL_STORE = { ...storeOmitted } 
+        this.#ORIGINAL_STORE = cloneDeep(storeOmitted)
+        
+        _log('Omitted items from store:', {
+            internal: this.#INTERNAL_STORE,
+            original: this.#ORIGINAL_STORE
+        })
+
+    }
+    
+
+
 
     //_                                                                                             
-    #registerInStoreListeners(initialStore:Partial<T>) {
+    registerInStoreListeners(initialStore:Partial<T>) {
         const _log = LOG.extend('register-listeners')
         initialStore && Object.entries(initialStore).forEach(([ key, val ]) => {
             if(typeof val === 'function' && typeof this !== 'undefined'){
@@ -209,7 +286,8 @@ class Nestore<T> extends EE2{
     }
     
     //_                                                                                             
-    #registerDevTools() {
+    /** dev tools requires active instance of Nestore to be registered */
+    registerDevTools() {
         const _log = LOG.extend('devtool')
         if(typeof window !== 'undefined'){
             _log(`Browser mode`)
@@ -249,11 +327,43 @@ class Nestore<T> extends EE2{
         }
     }
 
+
+      //_                                                                                             
+    // Could this be refactored into a function that only works on a single adapter
+    // so that the constructor can call this repeatedly on the array of adapters, or the user
+    // can register a single adapter at any time
+    registerAdapter = async (adapter: NSTAdapter) => {
+        const _log = LOG.extend('register-adapter')
+        !this && _log('Attempted to register adapter with no self reference (no "this"):', this)
+        try{
+
+            let adpt = await adapter(this)
+            if(
+                !adpt
+                || typeof adpt.namespace !== 'string'
+                || typeof adpt.load !== 'function'
+                || typeof adpt.save !== 'function'
+            ){
+                throw new Error(`Adapter (${adapter}) failed to register.`)
+            }
+            this.adapters[adpt.namespace] = adpt
+            _log('Adapter registered:', adpt.namespace)
+            return true
+            
+        }catch(err){
+            let e:any = err
+            throw new Error(e!)
+        }
+ 
+    }
+    
+
     //_                                                                                             
     // Could this be refactored into a function that only works on a single adapter
     // so that the constructor can call this repeatedly on the array of adapters, or the user
     // can register a single adapter at any time
-    #registerAdapters(options: NSTOptions) {
+    /** @deprecated - use public singular method: registerAdapter(singleAdapter) */
+    registerAdapters(options: NSTOptions) {
         const _log = LOG.extend('register-adapters')
 
         if(!options?.adapters || !options?.adapters.length){
@@ -559,8 +669,11 @@ class Nestore<T> extends EE2{
         const _log = LOG.extend('reset')
         
         _log('-'.repeat(60))
-        _log(`current store:`)
+        _log(`internal store:`)
         _log(this.#INTERNAL_STORE)
+        _log('-'.repeat(60))
+        _log(`original store:`)
+        _log(this.#ORIGINAL_STORE)
         _log('-'.repeat(60))
     
         if(this.#DEV_EXTENSION){
@@ -572,7 +685,7 @@ class Nestore<T> extends EE2{
             }, this.#ORIGINAL_STORE)
         }
 
-        this.#INTERNAL_STORE = this.#ORIGINAL_STORE
+        this.#INTERNAL_STORE = { ...this.#ORIGINAL_STORE }
 
             
 
@@ -685,15 +798,126 @@ export type NSTInstance = typeof nst
 
 // TODO- Add documentation about awaiting async nestore (adapter, mutator and listener registration) to resolve, or nestore '@ready' event
 const nestore = <T>(initialStore: T | Partial<T> = {}, options: NSTOptions = {}): Promise<NSTInstance> => {
-    return new Promise((res, rej) => {
+    return new Promise(async (res, rej) => {
         try{
-            const nst = new Nestore(initialStore, options)
-            nst.on('@ready', () => {
-                // let omittedNst: NSTInstance = omit(nst, [
-                    // '_delimiter'
-                // ]) as NSTInstance
-                res(nst)
-            })
+
+            //? Current flow
+            //- await nestore function
+            //- nestore function instantiates Nestore class
+            //- Nestore extends ee2 and invokes super with options
+            //- Omit items from store (broken - omits nothing)
+            //- attempts to register dev tools
+            //- uses timeout loop to check for instantiation completetion - then:
+            //- registers in store listeners
+            //- loop thru and await register adapters - then set this.adapters[namespace]
+            //- if all adapters registered - emit '@ready'
+
+            // const nst = new Nestore(initialStore, options)
+            
+            // nst.on('@ready', () => {
+            //     res(nst)
+            // })
+
+
+
+            //? Updated flow
+            //- 1. check for correct types of initialStore and options - return if instance of nestore
+            //- 2. parse options and set defaults - options can now be used directly in Nestore class
+
+            //- 3. define util functions:
+            //-    - _get_last_key_from_path_string
+            //-    - _split_path_string_at_known_delimiters
+            //-    - _convert_string_or_array_to_normalized_path_string
+            
+            //+ x. create instance => const nst = new Nestore(initialStore, parsedOptions)
+
+            //- 4. registerInStoreListeners (requires instance)
+            //- 5. registerAdapters (requires instance) - allow user to invoke
+            // await Promis.all( options.adapters.map(async () => {
+            //     
+            // }))
+            //- 6. registerDevTools (requires instance) - allow user to invoke
+            //- 7. delete registerInStoreListeners
+
+
+            // //@ts-expect-error
+            // delete nst['_get_last_key_from_path_string']
+
+            if(initialStore instanceof Nestore){
+                res(initialStore)
+                return
+            }
+            
+            if(typeof initialStore !== 'object' || Array.isArray(initialStore)){
+                throw new Error(`Initial store must be an object.`)
+            }
+
+            if(typeof options !== 'object' || Array.isArray(options)){
+                throw new Error(`Options must be an object.`)
+            }
+
+
+            const defaultOptions =  {
+                wildcard: true, // always true
+                delimiter: '.',
+                maxListeners: 0,
+                verbose: false,
+                preventRepeatUpdates: false,
+            }
+
+            if(typeof options.maxListeners === 'number' 
+                    && options.maxListeners <= Number.MAX_SAFE_INTEGER
+                    && options.maxListeners >= Number.MIN_SAFE_INTEGER
+            ){
+                defaultOptions.maxListeners = options.maxListeners
+                defaultOptions.verbose = true
+            }
+
+            if(options.preventRepeatUpdates === true){
+                defaultOptions.preventRepeatUpdates = true
+            }
+
+            if(typeof options.delimiter === 'string' && options.delimiter.length == 1){
+                if(COMMON.DISALLOWED_DELIMITER_CHARS.includes(options.delimiter)){
+                    throw new Error(
+                        'Delimiter cannot be any of the following characters:'
+                        + COMMON.DISALLOWED_DELIMITER_CHARS.join(', ')
+                    )
+                }else{
+                    defaultOptions.delimiter = options.delimiter
+                }
+            }
+
+
+            const _log = LOG.extend('creator')
+            
+            
+            
+            
+            
+            _log('Creating instance...')
+            const nst = new Nestore(initialStore, defaultOptions)
+            _log('Instance created:', nst)
+            
+            _log('Registering store...')
+            nst.registerStore()
+            
+            if(options.adapters && options.adapters.length){
+                _log('Registering adapters...')
+                await Promise.all( 
+                    options.adapters.map(nst.registerAdapter)
+                )
+            }
+                
+            _log('Registering dev-tools...')
+            nst.registerDevTools()
+            
+            _log('Resolving with nst...')
+            res(nst)
+
+
+
+            
         }catch(err){
             // console.log('nestore instantiator function error:', err)
             rej(err)

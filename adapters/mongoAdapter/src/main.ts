@@ -6,7 +6,7 @@ import type { Model as ModelType } from 'mongoose'
 import debug from 'debug'
 import { throttle } from 'lodash-es'
 //@ts-ignore
-import Nestore, { NST, NSTAdapterGenerator, NSTAdapter, NSTClass } from '../../../src/nestore' //~ DEV - import from npm 
+import nestore, { NST, NSTAdapterGenerator, NSTAdapter, NSTClass } from '../../../src/nestore' //~ DEV - import from npm 
 // import Nestore, { NestoreType, NestoreAdapter } from 'nestore'
 
 const createLog = (namespace:string) => debug(`nestore:mongo-adapter:${namespace}`)
@@ -19,71 +19,38 @@ type NestoreMongoAdapterConfig = {
     batchTime?: number
 }
 
-/*
-Call signature return types 
-'<T>(nst: NSTClass<T>) => Promise<string | undefined>' 
-'<T>(nst: NSTClass<T>) => Promise<string>' are incompatible.
-
-
-
-
-
-
-
-Type 
-'(config: NestoreMongoAdapterConfig) => <T>(nst: NSTClass<T>, callbacks: NSTAdapterGeneratorCallbacks) => Promise<string | undefined>' 
-
-is not assignable to type 'NSTAdapterGenerator'.
-
-Call signature return types 
-'<T>(nst: NSTClass<T>, callbacks: NSTAdapterGeneratorCallbacks) => Promise<string | undefined>' and 
-'NSTAdapter' 
-
-are incompatible.
-    
-Type 
-'Promise<string | undefined>' 
-is not assignable to type 
-'string | Promise<string> | undefined'.
-
-
-      Type 'Promise<string | undefined>' is not assignable to type 'Promise<string>'.
-        Type 'string | undefined' is not assignable to type 'string'.
-          Type 'undefined' is not assignable to type 'string'.ts(2322)
-
-
-
-
-
-
-
-
-
-
-
-*/
-
-// const goodMemoize = (cb:any, ...args:any[]) => {
-
-//   function md5blk(s) { /* I figured global was faster.   */
-//     var md5blks = [], i; /* Andy King said do it this way. */
-//     for (i=0; i<64; i+=4) {
-//     md5blks[i>>2] = s.charCodeAt(i)
-//     + (s.charCodeAt(i+1) << 8)
-//     + (s.charCodeAt(i+2) << 16)
-//     + (s.charCodeAt(i+3) << 24);
-//     }
-//     return md5blks;
-//   }
-
-// }
 
 
 const mongoAdapterGenerator: NSTAdapterGenerator = <T>(config: NestoreMongoAdapterConfig) => {
   const log = createLog('mongo')
   log('Initializing...')
 
+  // TODO+ Move setup and options parsing to generator before returning adapter 
+
+  if (!mongoose || !mongoose.connect || typeof mongoose.connect !== 'function') {
+    throw new Error('nestore mongooseAdapter - Could not find package "mongoose"')
+  }
+
+  if(
+    !config 
+    || typeof config !== 'object' 
+    || Array.isArray(config) 
+    || typeof config.mongoUri !== 'string' 
+    || config.mongoUri.length < 10
+  ){
+    throw new Error('nestore-mongo-adapter error: Must provide valid config object with at least "mongoUri" connection string.')
+  }
+
+
+
+
   const mongoAdapter:NSTAdapter = async <T>(nst: NSTClass<T>) => {
+
+    console.log(
+      '>>>>>>>>>>>>>>>\n',
+      'MONGO ADAPTER: nst is available:', typeof nst.emit === 'function' ? true : false,
+      '>>>>>>>>>>>>>>>\n',
+    )
 
     const settings = {
       namespace: config.namespace ?? 'nestore-mongo-adapter',
@@ -96,7 +63,7 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(config: NestoreMongoAdapt
     settings.mongoUri = config.mongoUri
 
     log('Namespace:', settings.namespace)
-    log('Mongo URI:', settings.mongoUri) //~ DEV - remove 
+    // log('Mongo URI:', settings.mongoUri) //~ DEV - remove 
 
 
     const ns = {
@@ -113,18 +80,17 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(config: NestoreMongoAdapt
     try {
       
       
-      if (!mongoose || !mongoose.connect || typeof mongoose.connect !== 'function') {
-        const err = 'Could not find package "mongoose"'
-        console.log(err)
-        nst.emit(ns.error, err)
-        throw new Error(err)
-      }
-
+   
       let Model: ModelType<any> | null = null
       
       //&                                                                                 
       const handleLoad = async () => {
         const log = createLog('mongo:load')
+        if(mongoose?.connection?.readyState !== 1){
+          log('Mongoose not ready...')
+          return false
+        }
+
         try {
           log('-'.repeat(60))
           log(`loading collection "${settings.collectionName}" - document "${settings.documentKey}"...`)
@@ -157,9 +123,14 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(config: NestoreMongoAdapt
 
       //&                                                                                 
       const handleSave = async () => {
+        const log = createLog('mongo:save')
+        if(mongoose?.connection?.readyState !== 1){
+          log('Mongoose not ready...')
+          return false
+        }
+        
         try {
           // handleSave?.cancel && handleSave.cancel()
-          const log = createLog('mongo:save')
           const currentStore = nst.store
           log('-'.repeat(60))
           nst.emit(ns.saving, currentStore)
@@ -243,13 +214,14 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(config: NestoreMongoAdapt
 
       log('Mongoose connecting...')
       mongoose.set('strictQuery', false)
-      mongoose.connect(settings.mongoUri)
+      await mongoose.connect(settings.mongoUri)
+      // mongoose.connection.readyState
       mongoose.connection
-      .once('open', onMongoConnect)
       .on('error', (err:any) => {
         console.log('MONGOOSE ERROR:', err)
         log('MONGOOSE ERROR', err)
       })
+      .once('open', () => onMongoConnect())
 
       const handleDisconnect = async () => {
         await mongoose.disconnect()
@@ -271,15 +243,7 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(config: NestoreMongoAdapt
 
 
 
-  if(
-    !config 
-    || typeof config !== 'object' 
-    || Array.isArray(config) 
-    || typeof config.mongoUri !== 'string' 
-    || config.mongoUri.length < 10
-  ){
-    throw new Error('nestore-mongo-adapter error: Must provide valid config object with at least "mongoUri" connection string.')
-  }
+
 
   
   return mongoAdapter

@@ -1,5 +1,5 @@
 import assert from 'assert'
-import Nestore from '../../../index.js'
+import nestore from '../../../index.js'
 
 //! dont import here... throws react error
 // import useNestore from '../../adapters/useNestore/index.js' 
@@ -165,7 +165,7 @@ const initialStore = {
 
 
 export {
-    Nestore,
+    nestore,
 
     initialStore,
     createMockStorage,

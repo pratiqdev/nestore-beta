@@ -1,5 +1,5 @@
 import createStore from "../locals/useNestore/index.js"
-import createPersistAdapter from '../locals/persistAdapter/index.js'
+// import createPersistAdapter from '../locals/persistAdapter/index.js'
 // import persistAdapter from './nestore-dist/adapters/persistAdapter'
 import debug from 'debug'
 import axios from 'axios'

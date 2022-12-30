@@ -13,6 +13,7 @@ import {
 describe(heading('A | Setup'), function(){
     this.timeout(4_000)
 
+
     it('A.1 | Creates a filled store that returns store and methods', async () => {
         const NST = await nestore(initialStore)
 

@@ -2,6 +2,7 @@
   "name": "nst-hook-test-react",
   "version": "0.1.0",
   "private": true,
+  "type":"module",
   "dependencies": {
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
@@ -14,7 +15,7 @@
   "scripts": {
     "start": "rm -rf ./src/locals       && cd ../../../../      && yarn build-all       && cp -r ./_temp ./adapters/useNestore/test/nst-hook-test-react/src/locals       && cd ./adapters/useNestore/test/nst-hook-test-react     && BROWSER=none react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test"
+    "test": "rm -rf ./src/locals        && cp -r ../../../../_temp ./src/locals && react-scripts test"
   },
   "eslintConfig": {
     "extends": [

@@ -1,16 +1,28 @@
-![logo-banner](logo.png)
+<p align="center">
+<img src="logo-v3-square-transparent.png" align="center" />
+</p>
 
 <p align='center'>
-<img src='https://img.shields.io/badge/license_MIT-darkblue'>
-<img src='https://img.shields.io/badge/npm_1.0.0-darkblue'>
-<img src='https://img.shields.io/badge/tests_passing-darkblue'>
+<img src='https://img.shields.io/badge/license_MIT-blue'>
+<img src='https://img.shields.io/badge/npm_1.0.0-blue'>
+<img src='https://img.shields.io/badge/tests_passing-blue'>
 </p>
-<h4 align='center'>A simple key-value store with a powerful real-time state management api. </h4>
-<p align='center'>Access, monitor and update values with events.</p>
-<p align='center'>Support for persistent storage with included or custom adapters.</p>
-<p align='center'>In-store mutator functions for easy to manage logic.</p>
+
+<p align='center'>A simple key-value store with a powerful real-time state management api.</p>
+<p align='center'>Event based real-time state management API with single-source-of-truth and two-way data binding</p>
+<!-- <p align='center'>Access, monitor and update values with events.</p> -->
+<!-- <p align='center'>Support for persistent storage with included or custom adapters.</p> -->
+<!-- <p align='center'>In-store mutator functions for easy to manage logic.</p> -->
 
 
+> Cool words:  
+> - Event-based architecture (All store actions are event based)
+> - real-time state management
+> - two-way data binding (IF mutable: true)
+> - single-source-of-truth  
+> - In store mutator functions
+> - Built in + custom middleware / adapters
+> - restrictable mutability
 
 
 <br />
