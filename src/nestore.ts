@@ -682,7 +682,7 @@ class Nestore<T> extends EE2{
 
         })
         //! Why is this being called here!?
-        //! Remove events should ONLY fire an event for the namespace of the key that was removed
+        // BUG - Remove events should ONLY fire an event for the namespace of the key that was removed
         this.#handleEmitAll()
     }
 
