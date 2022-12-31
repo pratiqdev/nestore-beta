@@ -1,2 +1,2 @@
-import Nestore from './dist/nestore.js'
-export default Nestore
+import nestore from './dist/nestore.js'
+export default nestore

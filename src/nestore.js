@@ -2,6 +2,9 @@ import EE2 from "eventemitter2";
 import { omit, set, get, isEqual, cloneDeep } from 'lodash-es';
 import debug from 'debug';
 const LOG = debug('nestore');
+/* TODO- JSDoc comments
+All public/usable functions, methods, types, values, properties and arguments need to be properly commented with jsDoc
+*/
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 const COMMON = {
     NESTORE_ROOT_KEY: 'NESTORE_STORE_ROOT_KEY',
@@ -179,6 +182,8 @@ class Nestore extends EE2 {
     }
     //_                                                                                             
     /** dev tools requires active instance of Nestore to be registered */
+    // DOCS- use can register dev tools
+    // TODO- Add nestore option to ena
     registerDevTools() {
         const _log = LOG.extend('devtool');
         if (typeof window !== 'undefined') {
@@ -596,9 +601,10 @@ class Nestore extends EE2 {
         return this.#convertStringOrArrayToNormalizedPathString;
     }
 }
-const nst = new Nestore();
+// export type NSTClass<T = void> = Nestore<T>
+// DOCS- list the namespaces used for debug functions in case users or devs have issues (contributing / testing)
 // export default Nestore
-// TODO- Add documentation about awaiting async nestore (adapter, mutator and listener registration) to resolve, or nestore '@ready' event
+// DOCS- awaiting async nestore (adapter, mutator and listener registration) to resolve, or nestore '@ready' event
 const nestore = (initialStore = {}, options = {}) => {
     return new Promise(async (res, rej) => {
         try {
@@ -633,6 +639,8 @@ const nestore = (initialStore = {}, options = {}) => {
             //- 7. delete registerInStoreListeners
             // //@ts-expect-error
             // delete nst['_get_last_key_from_path_string']
+            // TODO_ reduce as much as possible to ternary and inline statements
+            // DOCS- nestore will return existing instance of Nestore
             if (initialStore instanceof Nestore) {
                 res(initialStore);
                 return;
@@ -645,10 +653,11 @@ const nestore = (initialStore = {}, options = {}) => {
             }
             const defaultOptions = {
                 wildcard: true,
+                verbose: true,
                 delimiter: '.',
                 maxListeners: 0,
-                verbose: false,
                 preventRepeatUpdates: false,
+                devTools: false,
             };
             if (typeof options.maxListeners === 'number'
                 && options.maxListeners <= Number.MAX_SAFE_INTEGER
@@ -667,6 +676,9 @@ const nestore = (initialStore = {}, options = {}) => {
                 else {
                     defaultOptions.delimiter = options.delimiter;
                 }
+            }
+            if (options.devTools === true) {
+                defaultOptions.devTools = true;
             }
             const _log = LOG.extend('creator');
             _log('Creating instance...');
@@ -689,4 +701,5 @@ const nestore = (initialStore = {}, options = {}) => {
         }
     });
 };
+const nst = new Nestore();
 export default nestore;

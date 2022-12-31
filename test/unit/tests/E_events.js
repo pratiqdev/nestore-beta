@@ -312,7 +312,7 @@ describe(heading('E | Events'), () => {
             weekdays: ['monday', 'tuesday', 'wednesday']
         })
 
-        console.log('1 - NST PUBLIC: original_store:', NST._original_store)
+        // console.log('1 - NST PUBLIC: original_store:', NST._original_store)
 
 
         let recievedEvents = []
@@ -322,7 +322,7 @@ describe(heading('E | Events'), () => {
         //! double wildcard required for "building.stats.sqft"
         NST.on('building.**', (data) => recievedEvents.push(JSON.stringify(data)))
 
-        console.log('2 - NST PUBLIC: original_store:', NST._original_store)
+        // console.log('2 - NST PUBLIC: original_store:', NST._original_store)
 
 
 
@@ -335,7 +335,7 @@ describe(heading('E | Events'), () => {
         NST.set('building.type', 'Residential')
         NST.set('building.stats.sqft', 5250)
 
-        console.log('3 - NST PUBLIC: original_store:', NST._original_store)
+        // console.log('3 - NST PUBLIC: original_store:', NST._original_store)
         
         NST.reset()
    

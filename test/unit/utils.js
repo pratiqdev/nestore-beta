@@ -39,7 +39,7 @@ const COLORS = {
     whiteBg: '\x1b[47m'
 }
 
-const heading = (text) => `${COLORS.blue}${text}\n  ${'-'.repeat(80)}${COLORS.reset}`
+const heading = (text) => `${COLORS.blue}${text}\n  ${'-'.repeat(process.stdout.columns - 10)}${COLORS.reset}`
 
 
 

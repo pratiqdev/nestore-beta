@@ -1,49 +1,4 @@
 import EE2 from "eventemitter2";
-export declare type NSTOptions = {
-    /** The character used to separate / delimit nested paths */
-    delimiter?: string;
-    /** @depracated - always true */
-    wildcard?: boolean;
-    /**
-     *  @deprecated
-     *  The store and its values will always be de-reffed from the original
-     */
-    mutable?: boolean;
-    maxListeners?: number;
-    verbose?: boolean;
-    /** @deprecated - unused */
-    throwOnRevert?: boolean;
-    adapters?: NSTAdapter[];
-    preventRepeatUpdates?: boolean;
-};
-export declare type NSTEmit = {
-    path: string;
-    key: string;
-    value?: any;
-};
-export declare type NSTStoreMutator<T> = (this: Nestore<Partial<T>>, args?: any[]) => any;
-export declare type NSTStoreListener = any;
-export declare type NSTAnyStorage = {
-    get: (...args: any[]) => any;
-    set: (...args: any[]) => any;
-} | {
-    getItem: (...args: any[]) => any;
-    setItem: (...args: any[]) => any;
-};
-export declare type NSTAdapterGenerator = <T>(config: any) => NSTAdapter;
-export declare type NSTAdapterFunctions = {
-    namespace: string;
-    load: () => Promise<boolean>;
-    save: () => Promise<boolean>;
-    disconnect?: () => Promise<any>;
-};
-export declare type NSTAdapter = <T>(nst: NSTClass<T>) => Promise<NSTAdapterFunctions>;
-export declare type NSTAdapterEmit = {
-    timestamp: number;
-    action: string;
-    store: any;
-};
-declare type NSTEmitFlags = 'none' | 'emit' | 'all';
 /** Nestore | Dec 19, 2:41 PM */
 declare class Nestore<T> extends EE2 {
     #private;
@@ -78,8 +33,52 @@ declare class Nestore<T> extends EE2 {
     get _split_path_string_at_known_delimiters(): (path: string) => string[];
     get _convert_string_or_array_to_normalized_path_string(): (path: string | string[]) => string;
 }
-export declare type NSTClass<T = void> = Nestore<T>;
+declare const nestore: NSTFunction;
+export type NSTClass<T = void> = Nestore<T>;
 declare const nst: Nestore<unknown>;
-export declare type NSTInstance = typeof nst;
-declare const nestore: <T>(initialStore?: T | Partial<T>, options?: NSTOptions) => Promise<NSTInstance>;
+export type NSTInstance = typeof nst;
+export type NSTOptions = {
+    /** The character used to separate / delimit nested paths */
+    delimiter?: string;
+    /** @depracated - always true */
+    wildcard?: boolean;
+    /**
+     *  @deprecated
+     *  The store and its values will always be de-reffed from the original
+     */
+    mutable?: boolean;
+    maxListeners?: number;
+    verbose?: boolean;
+    /** @deprecated - unused */
+    throwOnRevert?: boolean;
+    adapters?: NSTAdapter[];
+    preventRepeatUpdates?: boolean;
+    devTools?: boolean;
+};
+export type NSTEmit = {
+    path: string;
+    key: string;
+    value?: any;
+};
+export type NSTFunction = <T>(initialStore: T | Partial<T>, options: NSTOptions) => Promise<NSTInstance>;
+export type NSTStoreMutator<T> = (this: Nestore<Partial<T>>, args?: any[]) => any;
+export type NSTStoreListener = any;
+export type NSTAnyStorage = {
+    getItem: (...args: unknown[]) => unknown;
+    setItem: (...args: unknown[]) => unknown;
+};
+export type NSTAdapterGenerator = <T>(config: any) => NSTAdapter;
+export type NSTAdapterFunctions = {
+    namespace: string;
+    load: () => Promise<boolean>;
+    save: () => Promise<boolean>;
+    disconnect?: () => Promise<any>;
+};
+export type NSTAdapter = <T>(nst: NSTClass<T>) => Promise<NSTAdapterFunctions>;
+export type NSTAdapterEmit = {
+    timestamp: number;
+    action: string;
+    store: any;
+};
+export type NSTEmitFlags = 'none' | 'emit' | 'all';
 export default nestore;

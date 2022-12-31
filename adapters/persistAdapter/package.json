@@ -16,7 +16,8 @@
     "build:clean-1": "rm -rf ./dist && rm -rf ../../_temp/persistAdapter",
     "build:clean-2": "mkdir -p ../../_temp/persistAdapter",
     "//>build:build": "built `useNestore` as a standard es module witt tsc",
-    "build:build": "tsc -p ./tsconfig.json",
+    "//_build:build": "tsc -p ./tsconfig.json",
+    "build:build": "babel --extensions .ts ./src -d ./dist && tsc -p ./tsconfig.json",
     "//>build:copy": "copy all relevant files to _temp/persistAdapter",
     "build:copy-1": "cp -r ./dist ../../_temp/persistAdapter/dist",
     "build:copy-2": "cp ./index.js ../../_temp/persistAdapter",
@@ -25,16 +26,24 @@
     "test:mocha": "mocha ./test/tests --config .mocharc.cjs",
     "//& COMMANDS                                              ": "",
     "build": "npm-run-all build:*",
-    "test": "npm-run-all test:*"
+    "test": "npm-run-all test:*",
+    "types": "npx tsc -p ./tsconfig.json && cp ./types/main.d.ts ./dist && rm -rf ./types"
   },
   "devDependencies": {
+    "@babel/cli": "^7.20.7",
+    "@babel/core": "^7.20.7",
+    "@babel/preset-env": "^7.20.2",
+    "@babel/preset-typescript": "^7.18.6",
     "@types/debug": "^4.1.7",
     "@types/lodash-es": "^4.17.6",
     "conf": "^10.2.0",
     "debug": "^4.3.4",
-    "npm-run-all": "^4.1.5"
+    "dts-gen": "^0.6.1",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^4.9.4"
   },
   "dependencies": {
+    "@babel/preset-flow": "^7.18.6",
     "lodash-es": "^4.17.21"
   }
 }
