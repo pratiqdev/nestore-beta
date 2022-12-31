@@ -3,7 +3,7 @@ import { omit, set, get, isEqual, cloneDeep } from 'lodash-es'
 import debug from 'debug'
 const LOG = debug('nestore')
 
-/* TODO- JSDoc comments
+/* TODO- JSDoc comments 
 All public/usable functions, methods, types, values, properties and arguments need to be properly commented with jsDoc 
 */
 
@@ -204,34 +204,35 @@ class Nestore<T> extends EE2{
 
 
 
-    //_                                                                                             
-    /** @deprecated - use registerStore */
-    registerInStoreListeners(initialStore:Partial<T>) {
-        const _log = LOG.extend('register-listeners')
-        initialStore && Object.entries(initialStore).forEach(([ key, val ]) => {
-            if(typeof val === 'function' && typeof this !== 'undefined'){
-                if(key.startsWith('$')){
-                    this.#STORE_LISTENERS.push(key)
-                    let SETTER: NSTStoreListener = val
-                    let path = key.substring(1, key.length)
-                    // this.on(path, async (event) => await SETTER(this, event))
-                    this.on(path, (event) => SETTER(this, event))
+    // //_                                                                                             
+    // /** @deprecated - use registerStore */
+    // registerInStoreListeners(initialStore:Partial<T>) {
+    //     const _log = LOG.extend('register-listeners')
+    //     initialStore && Object.entries(initialStore).forEach(([ key, val ]) => {
+    //         if(typeof val === 'function' && typeof this !== 'undefined'){
+    //             if(key.startsWith('$')){
+    //                 this.#STORE_LISTENERS.push(key)
+    //                 let SETTER: NSTStoreListener = val
+    //                 let path = key.substring(1, key.length)
+    //                 // this.on(path, async (event) => await SETTER(this, event))
+    //                 this.on(path, (event) => SETTER(this, event))
                     
-                }else{
-                    this.#STORE_MUTATORS.push(key)
-                    let SETTER = val as NSTStoreMutator<T>
-                    //@ts-ignore
-                    // this[key] = async (...args:any) => await SETTER(this, args) 
-                    this[key] = (...args:any) => SETTER(this, args) 
-                }
-            }
-        })
-    }
+    //             }else{
+    //                 this.#STORE_MUTATORS.push(key)
+    //                 let SETTER = val as NSTStoreMutator<T>
+    //                 //@ts-ignore
+    //                 // this[key] = async (...args:any) => await SETTER(this, args) 
+    //                 this[key] = (...args:any) => SETTER(this, args) 
+    //             }
+    //         }
+    //     })
+    // }
     
     //_                                                                                             
     /** dev tools requires active instance of Nestore to be registered */
-    // DOCS- use can register dev tools
-    // TODO- Add nestore option to ena
+    /* DOCS- devTools registration
+    user can defer register dev tools by setting false, and invoking
+    later */
     registerDevTools() {
         const _log = LOG.extend('devtool')
         if(typeof window !== 'undefined'){
@@ -304,76 +305,76 @@ class Nestore<T> extends EE2{
     }
     
 
-    //_                                                                                             
-    // Could this be refactored into a function that only works on a single adapter
-    // so that the constructor can call this repeatedly on the array of adapters, or the user
-    // can register a single adapter at any time
-    /** @deprecated - use public singular method: registerAdapter(singleAdapter) */
-    registerAdapters(options: NSTOptions) {
-        const _log = LOG.extend('register-adapters')
+    // //_                                                                                             
+    // // Could this be refactored into a function that only works on a single adapter
+    // // so that the constructor can call this repeatedly on the array of adapters, or the user
+    // // can register a single adapter at any time
+    // /** @deprecated - use public singular method: registerAdapter(singleAdapter) */
+    // registerAdapters(options: NSTOptions) {
+    //     const _log = LOG.extend('register-adapters')
 
-        if(!options?.adapters || !options?.adapters.length){
-            _log('No adapters provided...')
-            this.#initComplete()
-            return
-        }
+    //     if(!options?.adapters || !options?.adapters.length){
+    //         _log('No adapters provided...')
+    //         this.#initComplete()
+    //         return
+    //     }
         
-        if((!Array.isArray(options?.adapters) || !options?.adapters?.every(a => typeof a === 'function'))){
-            console.warn(`Nestore adapters must be provided as an array of one or more adapter functions`);
-            // this.emit('@ready', this.#INTERNAL_STORE)
-            return false
-        }
+    //     if((!Array.isArray(options?.adapters) || !options?.adapters?.every(a => typeof a === 'function'))){
+    //         console.warn(`Nestore adapters must be provided as an array of one or more adapter functions`);
+    //         // this.emit('@ready', this.#INTERNAL_STORE)
+    //         return false
+    //     }
         
         
-        // _log('awaiting nst.emit...')
-        // const register = () => {
-            _log('registering adapters...')
+    //     // _log('awaiting nst.emit...')
+    //     // const register = () => {
+    //         _log('registering adapters...')
 
-            try{
-                let numRegistered = 0
+    //         try{
+    //             let numRegistered = 0
 
-                options?.adapters?.forEach(async (adapter: NSTAdapter, idx:number) => {
-                    let adpt = await adapter(this)
-                    if(
-                        !adpt
-                        || typeof adpt.namespace !== 'string'
-                        || typeof adpt.load !== 'function'
-                        || typeof adpt.save !== 'function'
-                    ){
-                        throw new Error(`Adapter (index ${idx}) failed to register.`)
-                    }
-                    this.adapters[adpt.namespace] = adpt
-                    _log('Adapter registered:', adpt.namespace)
-                    numRegistered++
-                    if(options?.adapters?.length === numRegistered){
-                        // _log('All adapters registered:', options.adapters)
-                        // this.emit('@ready', this.#INTERNAL_STORE)
-                        this.#initComplete()
-                        return true
-                    }
+    //             options?.adapters?.forEach(async (adapter: NSTAdapter, idx:number) => {
+    //                 let adpt = await adapter(this)
+    //                 if(
+    //                     !adpt
+    //                     || typeof adpt.namespace !== 'string'
+    //                     || typeof adpt.load !== 'function'
+    //                     || typeof adpt.save !== 'function'
+    //                 ){
+    //                     throw new Error(`Adapter (index ${idx}) failed to register.`)
+    //                 }
+    //                 this.adapters[adpt.namespace] = adpt
+    //                 _log('Adapter registered:', adpt.namespace)
+    //                 numRegistered++
+    //                 if(options?.adapters?.length === numRegistered){
+    //                     // _log('All adapters registered:', options.adapters)
+    //                     // this.emit('@ready', this.#INTERNAL_STORE)
+    //                     this.#initComplete()
+    //                     return true
+    //                 }
 
-                })
+    //             })
                 
-            }catch(err){
-                let e:any = err
-                throw new Error(e!)
-            }
-        // }
+    //         }catch(err){
+    //             let e:any = err
+    //             throw new Error(e!)
+    //         }
+    //     // }
 
-        // let count = 0
-        // let checkForEmit = () => {
-        //     setTimeout(() => {
-        //         if(typeof this.emit === 'function'){
-        //             register()
-        //         }else{
-        //             count++
-        //             checkForEmit()
-        //         }
-        //     }, 10);
-        // }
+    //     // let count = 0
+    //     // let checkForEmit = () => {
+    //     //     setTimeout(() => {
+    //     //         if(typeof this.emit === 'function'){
+    //     //             register()
+    //     //         }else{
+    //     //             count++
+    //     //             checkForEmit()
+    //     //         }
+    //     //     }, 10);
+    //     // }
 
-        // checkForEmit()
-    }
+    //     // checkForEmit()
+    // }
     
     
     
@@ -864,6 +865,10 @@ const nestore:NSTFunction = <T>(initialStore: T | Partial<T> = {}, options: NSTO
                 
             _log('Registering dev-tools...')
             nst.registerDevTools()
+
+            _log('Deleting "private" methods...')
+            //@ts-expect-error
+            delete nst['registerStore']
             
             _log('Resolving with nst...')
             res(nst)

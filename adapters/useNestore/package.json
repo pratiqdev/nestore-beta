@@ -17,7 +17,7 @@
     "build:clean-1": "rm -rf ./dist && rm -rf ../../_temp/useNestore",
     "build:clean-2": "mkdir -p ../../_temp/useNestore",
     "//>build:build": "built `useNestore` as a standard es module witt tsc",
-    "build:build": "tsc -p ./tsconfig.json",
+    "build:build":  "babel --extensions .ts ./src -d ./dist",
     "//>build:copy": "copy all relevant files to _temp/useNestore",
     "build:copy-1": "cp -r ./dist ../../_temp/useNestore/dist",
     "build:copy-2": "cp ./index.js ../../_temp/useNestore",
@@ -27,7 +27,9 @@
     "//& COMMANDS                                              ": "",
     "build": "npm-run-all build:*",
     "//_test": "jest",
-    "test": "cd test/nst-hook-test-react && yarn test"
+    "test": "cd test/nst-hook-test-react && yarn test",
+    "types": "npx tsc -p ./tsconfig.json && cp ./types/main.d.ts ./dist && rm -rf ./types"
+
   },
   "devDependencies": {
     "@babel/preset-env": "^7.20.2",

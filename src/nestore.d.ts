@@ -34,10 +34,10 @@ declare class Nestore<T> extends EE2 {
     get _convert_string_or_array_to_normalized_path_string(): (path: string | string[]) => string;
 }
 declare const nestore: NSTFunction;
-export type NSTClass<T = void> = Nestore<T>;
+export declare type NSTClass<T = void> = Nestore<T>;
 declare const nst: Nestore<unknown>;
-export type NSTInstance = typeof nst;
-export type NSTOptions = {
+export declare type NSTInstance = typeof nst;
+export declare type NSTOptions = {
     /** The character used to separate / delimit nested paths */
     delimiter?: string;
     /** @depracated - always true */
@@ -55,30 +55,30 @@ export type NSTOptions = {
     preventRepeatUpdates?: boolean;
     devTools?: boolean;
 };
-export type NSTEmit = {
+export declare type NSTEmit = {
     path: string;
     key: string;
     value?: any;
 };
-export type NSTFunction = <T>(initialStore: T | Partial<T>, options: NSTOptions) => Promise<NSTInstance>;
-export type NSTStoreMutator<T> = (this: Nestore<Partial<T>>, args?: any[]) => any;
-export type NSTStoreListener = any;
-export type NSTAnyStorage = {
+export declare type NSTFunction = <T>(initialStore: T | Partial<T>, options: NSTOptions) => Promise<NSTInstance>;
+export declare type NSTStoreMutator<T> = (this: Nestore<Partial<T>>, args?: any[]) => any;
+export declare type NSTStoreListener = any;
+export declare type NSTAnyStorage = {
     getItem: (...args: unknown[]) => unknown;
     setItem: (...args: unknown[]) => unknown;
 };
-export type NSTAdapterGenerator = <T>(config: any) => NSTAdapter;
-export type NSTAdapterFunctions = {
+export declare type NSTAdapterGenerator = <T>(config: any) => NSTAdapter;
+export declare type NSTAdapterFunctions = {
     namespace: string;
     load: () => Promise<boolean>;
     save: () => Promise<boolean>;
     disconnect?: () => Promise<any>;
 };
-export type NSTAdapter = <T>(nst: NSTClass<T>) => Promise<NSTAdapterFunctions>;
-export type NSTAdapterEmit = {
+export declare type NSTAdapter = <T>(nst: NSTClass<T>) => Promise<NSTAdapterFunctions>;
+export declare type NSTAdapterEmit = {
     timestamp: number;
     action: string;
     store: any;
 };
-export type NSTEmitFlags = 'none' | 'emit' | 'all';
+export declare type NSTEmitFlags = 'none' | 'emit' | 'all';
 export default nestore;

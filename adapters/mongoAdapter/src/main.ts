@@ -46,11 +46,11 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(config: NestoreMongoAdapt
 
   const mongoAdapter:NSTAdapter = async <T>(nst: NSTClass<T>) => {
 
-    console.log(
-      '>>>>>>>>>>>>>>>\n',
-      'MONGO ADAPTER: nst is available:', typeof nst.emit === 'function' ? true : false,
-      '>>>>>>>>>>>>>>>\n',
-    )
+    // console.log(
+    //   '>>>>>>>>>>>>>>>\n',
+    //   'MONGO ADAPTER: nst is available:', typeof nst.emit === 'function' ? true : false,
+    //   '>>>>>>>>>>>>>>>\n',
+    // )
 
     const settings = {
       namespace: config.namespace ?? 'nestore-mongo-adapter',
