@@ -31,12 +31,13 @@ describe(heading('C | Set'), () => {
         
     })
 
-    it('C.3 | Set method should with no args should return false', async () => {
+    it('C.3 | Set method should should return false with no args', async () => {
         const NST = await nestore(initialStore)
 
-        assert( NST.set() === false )
-        assert( NST.set('thing') === false )
-        assert( NST.set('thing', 'blap') === true )
+        expect( NST.set() ).to.eq(false)
+        expect( NST.set('thing') ).to.eq(false)
+        expect( NST.set('thing', 'blap') ).to.eq(true)
+
     })
 
     // it.skip('C.4 | (set cb is deprecated) Set callback method should set correct values', async () => {
@@ -47,7 +48,7 @@ describe(heading('C | Set'), () => {
 
     // })
 
-    it('C.4 | Direct store modifications dont affect internal store', async () => {
+    it('C.4 | Direct store modifications mutate the internal store', async () => {
         const NST = await nestore(initialStore)
 
         NST.on('title', ()=> console.log('store was updated...'))
@@ -100,7 +101,26 @@ describe(heading('C | Set'), () => {
 
     })
 
-    it('C.6 | Emits updates for repeated matching events when preventRepeatUpdates = false', async () => {
+    it('C.6 | Setter functions passed to set should be invoked with the current value and set new value', async () => {
+        const NST = await nestore({
+            say: 'hello'
+        })
+
+        await NST.set('say', (text) => {
+            return text + ' world'
+        })
+
+
+        expect( NST.get('say') )
+            .to.eq( 'hello world' )
+        
+
+
+
+
+    })
+
+    it('C.7 | Emits updates for repeated matching events when preventRepeatUpdates = false', async () => {
         const NST = await nestore(initialStore, {
             preventRepeatUpdates: false
         })

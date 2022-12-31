@@ -123,7 +123,7 @@ describe(heading('A | Setup'), function(){
     })
 
     //~ nestore instantiator function does not emit '@ready' if returning another instance of Nestore
-    it.skip('A.7 | Passing existing nestore to nestore returns original', async (done) => {
+    it('A.7 | Passing existing nestore to nestore returns original', async () => {
         const A = await nestore({ name: 'Alice'})
         // done()
         const B = await nestore(A)
@@ -138,7 +138,7 @@ describe(heading('A | Setup'), function(){
         B.set('name', 'Becky')
         expect(A.get().name).to.eq('Becky')
         expect(B.get().name).to.eq('Becky')
-        
+        return
     })
 
     it('A.8 | nestore does not provide access to internal methods', async () => {

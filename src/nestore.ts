@@ -497,6 +497,7 @@ class Nestore<T> extends EE2{
         
             
             if(this.#PREVENT_REPEAT_UPDATE){
+                _log('preventRepeatUpdates: true - checking shallow equality...')
                 if(typeof path === 'string' && isEqual(  get(this.#INTERNAL_STORE, path),  value  )){
                     _log(`Provided value already matches stored value, skipping...`, {
                         new: value,
@@ -511,18 +512,20 @@ class Nestore<T> extends EE2{
 
   
             if(
-                (typeof path === 'undefined' && typeof value === 'undefined')
-                || (typeof path === 'undefined' && typeof value !== 'undefined') 
-                || (typeof path !== 'object' && typeof value === 'undefined')
+                (path === void 0 && value === void 0)
+                || (path === void 0 && value !== void 0) 
+                || (typeof path !== 'object' && value === void 0)
             ){
                 _log('Incorrect args for "set()" :', {path, value})
-                return false;  
+                return false
             } 
             
             
             // set the store directly with an object
             // NST.set({ ...newStore })
-            if(typeof path === 'object'){
+            //! Added value function type check - functions are objects duh
+            if(typeof path === 'object' && !value){
+                _log('path is object')
                 let originalValue = this.#INTERNAL_STORE
     
                 if(!Array.isArray(path)){
@@ -562,28 +565,70 @@ class Nestore<T> extends EE2{
                 return true
             }
 
-            // log(`Setting "${path}" : "${value}"`)
-            let originalValue = this.#DEV_EXTENSION ? this.get(path) : null
+            // TODO- handle setter functions: nst.set('path', value => newValue)
 
-            set(this.#INTERNAL_STORE, path, value)
+            if(typeof path === 'string' && typeof value === 'function'){
 
-            this.#DEV_EXTENSION
-                && this.#DEV_EXTENSION.send({
-                    type: `${path}: "${originalValue}" => "${value}"`,
-                    previousValue: originalValue,
-                    path,
-                    value,
+                // return an active promise that can be awaited
+                return (async () => {
+
+                    _log('path is string with setter function')
+                    
+                    // DOCS- nst.set(path, setterFunction) setter is invoked with value at path
+                    let originalValue = this.get(path)
+                    const newValue = await value(originalValue)
+                    
+                    
+                    set(this.#INTERNAL_STORE, path, newValue)
+
+                    
+                    this.#DEV_EXTENSION
+                        && this.#DEV_EXTENSION.send({
+                            type: `${path}: "${originalValue}" => "${newValue}"`,
+                            previousValue: originalValue,
+                            path,
+                            value: newValue
+                        }, this.store)
+                        
+                    
+                    this.#emit({
+                        path,
+                        key: this.#getLastKeyFromPathString(path),
+                        value: newValue
+                        // timestamp: Date.now(),
+                        
+                    })
+                    return true    
+                })()
+            }
+
+            if(typeof path === 'string' && (typeof value !== 'function' || typeof value !== 'object')){
+                _log('path and value are standard set args')
+
+
+                // log(`Setting "${path}" : "${value}"`)
+                let originalValue = this.#DEV_EXTENSION ? this.get(path) : null
+
+                set(this.#INTERNAL_STORE, path, value)
+
+                this.#DEV_EXTENSION
+                    && this.#DEV_EXTENSION.send({
+                        type: `${path}: "${originalValue}" => "${value}"`,
+                        previousValue: originalValue,
+                        path,
+                        value,
                 }, this.store)
                 
-            
-            this.#emit({
-                path,
-                key: this.#getLastKeyFromPathString(path),
-                value,
-                // timestamp: Date.now(),
-
-            })
-            return true
+                
+                this.#emit({
+                    path,
+                    key: this.#getLastKeyFromPathString(path),
+                    value,
+                    // timestamp: Date.now(),
+                    
+                })
+                return true
+            }
         }catch(err){
             _log(`Nestore.set() encountered an error:`, err)
             return false
@@ -792,7 +837,10 @@ const nestore:NSTFunction = <T>(initialStore: T | Partial<T> = {}, options: NSTO
 
             // TODO_ reduce as much as possible to ternary and inline statements
             // DOCS- nestore will return existing instance of Nestore
+            const _log = LOG.extend('creator')
+
             if(initialStore instanceof Nestore){
+                _log('Recieved instance of Nestore as initialStore - returning original instance...')
                 res(initialStore)
                 return
             }
@@ -843,7 +891,6 @@ const nestore:NSTFunction = <T>(initialStore: T | Partial<T> = {}, options: NSTO
             }
 
 
-            const _log = LOG.extend('creator')
             
             
             

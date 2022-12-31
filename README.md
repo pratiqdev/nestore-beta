@@ -28,6 +28,9 @@
 
 
 - [Getting Started](#getting-started)
+  - [Installation](#installation)
+  - [Usage](#usage)
+- [Store Actions](#store-actions)
   - [Create a Store](#create-a-store)
   - [Access the Store](#access-the-store)
   - [Update the Store](#update-the-store)
@@ -35,12 +38,20 @@
   - [Reset the Store](#reset-the-store)
 - [Store Events](#store-events)
   - [Listen to Changes](#listen-to-changes)
-- [Store Events](#store-events-1)
-  - [On Update](#on-update)
+  - [Emit Changes](#emit-changes)
   - [Manual Emit](#manual-emit)
-- [Custom Mutator functions](#custom-mutator-functions)
-- [TypeScript](#typescript)
-  - [Interfaces](#interfaces)
+- [Common Emitter Methods](#common-emitter-methods)
+  - [emit](#emit)
+  - [on / off](#on--off)
+- [Full API](#full-api)
+  - [Types](#types)
+  - [Nestore Async Generator](#nestore-async-generator)
+  - [Nestore Options](#nestore-options)
+  - [Properties](#properties)
+  - [Methods](#methods)
+  - [In Store Listeners](#in-store-listeners)
+  - [In Store Mutators](#in-store-mutators)
+  - [Adapters](#adapters)
 - [About](#about)
 - [Contributing](#contributing)
     - [GitHub Repository](#github-repository)
@@ -55,8 +66,9 @@
 
 # Getting Started
 
+## Installation
 
-Install using a package manager like npm or yarn, or import from a cdn:
+Install using your preferred package manager, or import from a cdn:
 
 ```bash
 yarn add nestore
@@ -66,11 +78,75 @@ yarn add nestore
 <script src="https://unpkg.com/nestore"></script>
 ```
 
+
+
+
+
+
 <!-- > [almost Object] nestore does not support symbols when parsing nested objects for paths or keys -->
+## Usage
+
+Import (or require) nestore and create a store with values, setters and listeners all in one place
+```ts
+// store.js
+import nestore from 'nestore'
+
+const nst = nestore({
+    logged_in: false,
+    user: null,
+    messages: [],
+    login: (NST, [name, password]) => {
+        NST.set('logged_in', true)
+        NST.store.user = name
+    }
+})
+
+export default nst
+```
+
+Then import your store, register listeners on any path, and interact with the store
+```ts
+// app.js
+import nst from './store.js'
+
+nst.on('user', ({ key, path, value }) => {
+    console.log(`Logged in as ${value}`)
+})
+
+nst.login('Alice', '1234')
+nst.set('messages')
+```
+
+Nestore will automatically infer the types from the values in the `initialStore`, or you can provide
+a custom type definition for more type-safety
+
+```ts
+export type MyStore = {
+    user: null | MyUser;
+    messages: MyMessage[]
+}
+
+export type MyUser = {
+    id: number;
+    name: string;
+}
+
+export type MyMessage =  {
+    time: number;
+    text: string;
+    media?: string[];
+}
+
+const myStore = nestore<MyStore>({
+    user: null,
+    messages: [],
+})
+```
 
 
 
 
+# Store Actions
 
 
 <br />
@@ -142,7 +218,8 @@ nst.set('user_name', null)
 
 ## Remove from the Store
 
-To completely remove a key from the store 'object' - use the `remove` method. Th
+To completely remove a key from the store 'object' - use the `remove` method.
+This will emit an event for the provided path.
 <!-- TODO- Should `remove` method have optional emit flags? -->
 ```ts
 nst.remove('user_name')
@@ -196,96 +273,96 @@ Nestore provides a method for registering an `event listener` that
 subscribes to a specific path, provided as the first argument to the `nst.on` method, and a callback to handle logic as the second argument. The callback will be always be invoked with an object of type `NSTEmit`.
 
 ```ts
+nst.on('/', ({ value }) => {
+    // react to the entire store (path and key are '/')
+})
 nst.on('path', ({ path, key, value }) => {
-
+    // react to any changes to 'path'
 })
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!-- ~                                                 -->
-
-<br />
-
-
-# Store Events
-
-<!-- <details><summary><b>oii</b></summary><br>
-Updates to the store emit events containing which path and key was changed, the new value and a timestamp of the event.
-</details> -->
-
-Updates to the store emit events containing which path and key was changed, the new value and a timestamp of the event.
-
-> **Nestore extends the EventEmitter2 API**  
-> Documentation for all `EE2` methods can be found [here](https://www.npmjs.com/package/eventemitter2)
-
-
-<br />
-
-## On Update
-
-Register event listeners on a key to watch for updates and trigger a callback. 
-The `set` method causes the store to emit an event containing the key, value and path that was updated.
+Thanks to [eventemitter2](https://npmjs.com/eventemitter2) we can listen to
+nested paths in objects and arrays. See more emitter methods and examples in 
+[Common Emitter Methods](#common-emitter-methods)
 
 ```ts
-myStore.on('user.**', ({ path, key, value }) => {
-    console.log(`Path ${path} was changed to ${value}`)
+nst.on('users.*.logged_in', ({ path, key, value }) => {
+    // react to any users `logged_in` status
 })
 ```
 
-You can also register listeners directly in the store with the `$` prefix. These are great for managing repeatable async operations, eg: fetching user data when a `user_name` value changes.
+*or* we can use some convenience/utility methods provided by `ee2` like:
 
 ```ts
-const myStore = nestore({
-    name: null,
-    online: false,
-
-    $name: (nst, event) => nst.set('online', event.value ? true : false)
-})
+// invoke the callback, then remove the lsitener
+nst.once('path', () => {})
+// invoke the callback n times, then remove the lsitener
+nst.many('path', 5, () => {})
+// invoke a callback on any change to the store
+nst.onAny('path', () => {})
 ```
 
 
 
+## Emit Changes
+
+Any update to the store using the `set` method will emit events for all paths/keys that
+were modified by the update
+
+> Events will only be emitted if the values are different (shallow equality) when
+> `preventRepeatUpdates` is true, and when the emit flag is omitted or set to 'emit' or 'all'.
+> See the [Full API section](#full-api)
 
 
 
 
-<br />
 
 ## Manual Emit
 
 You can also manually emit events to force update a listener. The value provided to the emit method *should* be an object with the type `T_NSTEmit`, but any values / types provided will be emitted.
 
 
-```ts
-myStore.emit('address', {
-    key: 'address',
-    path: 'user.location.address',
-    value: '1234 Street Lane',
-})
 
-myStore.emit('greeting', 'Well, hello there...')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<br />
+<br />
+
+# Common Emitter Methods
+
+Nestore extends the `event-emitter-2` class. Visit the [ee2 npm page](https://www.npmjs.com/package/eventemitter2) to view the full documentation of every method included with the 
+event emitter.
+
+
+## emit
+Execute each of the listeners that may be listening for the specified event name in order with the list of arguments.
+emitter.
+```ts
+emitter.emit(event | eventNS, [arg1], [arg2], [...])
+```
+
+## on / off
+Execute each of the listeners that may be listening for the specified event name in order with the list of arguments.
+
+Same as `addListener` and `removeListener`
+```ts
+emitter.emit(event | eventNS, [arg1], [arg2], [...])
 ```
 
 
@@ -293,15 +370,32 @@ myStore.emit('greeting', 'Well, hello there...')
 
 
 
+# Full API
+
+## Types
+
+`NSTOptions`  
+`NSTEmit`  
+`...`  
+
+## Nestore Async Generator
+<!-- This needs a shorter / more concise name  -->
+
+## Nestore Options
+
+`delimiter`  
+`adapters` [See Adapters](#adapters)
 
 
+## Properties
+`maxListeners`  
+`delimiter`
 
+## Methods
 
+## In Store Listeners
 
-<br />
-<br />
-
-# Custom Mutator functions
+## In Store Mutators
 
 Manage all store logic in a single place with custom in-store mutator functions.
 
@@ -331,6 +425,7 @@ let userData = await myStore.fetchUserData('Johnny68')
 
 
 
+## Adapters
 
 
 
@@ -338,78 +433,16 @@ let userData = await myStore.fetchUserData('Johnny68')
 
 
 
-<br />
-<br />
 
-# TypeScript
 
-<!-- TODO- List all exported types that are available to users -->
 
-Nestore was built with and supports TypeScript out-of-the-box. Types are automatically inferred from the provided `initialStore` or you can optionally provide a type definition when creating the store.
 
-```ts
-export interface I_MyStore {
-    user: {
-        signedIn: boolean;
-        name?: string,
-        email?: string
-    },
-    cart?: any[]
-}
 
-const NST = nestore<I_MyStore>({
-    user: {
-        signedIn: false
-    },
-})
-```
 
 
 
 <br />
-
-## Interfaces
-
-
-```ts
-const NST: Nestore<Partial<T>> = nestore<T>(initialStore: Partial<T>, options: T_NestoreOptions)
-```
-
-
-```ts
-export type T_NestoreOptions = {    // default
-
-    /* The character used to separate wildcards or nested store properties */
-    delimiter?: string;             // "."
-
-    /* Set to false to disable the usage of wildcards on event listeners */
-    wildcard?: boolean;             // true
-
-    /*  Error messages will contain the event name of the listener that threw the error */
-    maxListeners?: number;          // 10
-
-    /* Maximum number of registered listeners before memory leak error is thrown */
-    verbose?: boolean;              // false
-
-}
-```
-
-
-```ts
-export type T_NSTEmitStruct = { // example
-
-    /* A full, normalized path to the nested object in the store using the provided delimiter. */
-    path: string;                   // "chapter.7.title"
-
-    /* The key used to access the store value, appears as the last segment of `path` */
-    key: string;                    // "title"
-
-    /* The current value of this `key` @ `path` after the store was updated */
-    value?: any;                    // "A New Chapter"
-}
-```
-
-
+<br />
 
 
 
