@@ -1,0 +1,80 @@
+{
+    "todo-tree.tree.showBadges": true,
+    "editor.tokenColorCustomizations": {
+        "comments": "",
+        "textMateRules": [
+            {
+                "scope": [
+                    "comment.block.documentation.js",
+                    "comment.block.documentation.ts",
+                    "comment.block.documentation.jsx",
+                    "comment.block.documentation.tsx",
+                    "comment.block.documentation.solidity"
+                ],
+                "settings": {
+                    "foreground": "#6e2ce9"
+                }
+            },
+            {
+                "scope": [
+                    "comment.block.documentation.js punctuation.definition.comment.js",
+                    "comment.block.documentation.ts punctuation.definition.comment.ts",
+                    "comment.block.documentation.jsx punctuation.definition.comment.jsx",
+                    "comment.block.documentation.tsx punctuation.definition.comment.tsx",
+                    "comment.block.documentation.solidity punctuation.definition.comment.solidity"
+                ],
+                "settings": {
+                    "foreground": "#6e2ce9"
+                }
+            },
+            {
+                "scope": [
+                    "comment.block.documentation.js entity.name.type.instance.jsdoc",
+                    "comment.block.documentation.ts entity.name.type.instance.jsdoc",
+                    "comment.block.documentation.jsx entity.name.type.instance.jsdoc",
+                    "comment.block.documentation.tsx entity.name.type.instance.jsdoc",
+                    "comment.block.documentation.solidity entity.name.type.instance.jsdoc"
+                ],
+                "settings": {
+                    "foreground": "#2c58e9"
+                }
+            },
+            {
+                "scope": [
+                    "comment.block.documentation.js storage.type.class.jsdoc",
+                    "comment.block.documentation.ts storage.type.class.jsdoc",
+                    "comment.block.documentation.jsx storage.type.class.jsdoc",
+                    "comment.block.documentation.tsx storage.type.class.jsdoc",
+                    "comment.block.documentation.solidity storage.type.class.jsdoc"
+                ],
+                "settings": {
+                    "foreground": "#3ab2d7"
+                }
+            },
+            {
+                "scope": [
+                    "comment.block.documentation.js variable.other.jsdoc",
+                    "comment.block.documentation.ts variable.other.jsdoc",
+                    "comment.block.documentation.jsx variable.other.jsdoc",
+                    "comment.block.documentation.tsx variable.other.jsdoc",
+                    "comment.block.documentation.solidity variable.other.jsdoc"
+                ],
+                "settings": {
+                    "foreground": "#897eec"
+                }
+            },
+            {
+                "scope": [
+                    "comment.block.documentation.js meta.example.jsdoc",
+                    "comment.block.documentation.ts meta.example.jsdoc",
+                    "comment.block.documentation.jsx meta.example.jsdoc",
+                    "comment.block.documentation.tsx meta.example.jsdoc",
+                    "comment.block.documentation.solidity meta.example.jsdoc"
+                ],
+                "settings": {
+                    "foreground": "#5e7183"
+                }
+            }
+        ]
+    }
+}

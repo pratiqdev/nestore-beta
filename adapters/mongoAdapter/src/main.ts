@@ -169,7 +169,7 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(config: NestoreMongoAdapt
           console.log('SAVED:', result?.store ?? {})
 
           // log('db after save:', result)
-          nst.set(result?.store ?? {}, null, 'quiet') // has to be quiet to prevent infinite updates
+          nst.set(result?.store ?? {}, null, 'none') // has to be quiet to prevent infinite updates
           nst.emit(ns.saved, nst.store ?? {})
           log('Store saved')
           return true

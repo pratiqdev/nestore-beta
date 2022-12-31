@@ -4,8 +4,7 @@ import debug from 'debug'
 const LOG = debug('nestore')
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-//&                                                                                               
+// DOCS- type: NSTOptions
 export type NSTOptions = {
     /** The character used to separate / delimit nested paths */
     delimiter?: string;
@@ -26,6 +25,7 @@ export type NSTOptions = {
 }
 
 //&                                                                                               
+// DOCS- type: NSTEmit
 export type NSTEmit = {
     // timestamp: number;
     path: string;
@@ -35,11 +35,14 @@ export type NSTEmit = {
 // export type NSTFunction = <T>(initialStore?: T, options?: NSTOptions) => Nestore<Partial<T>>
 
 //&                                                                                               
-export type CustomMutator<T> = (this: Nestore<Partial<T>>, args?: any[]) => any;
-export type ListenerMutator = any;
+// DOCS- type: NSTStoreMutator (a function in the store that can be invoked thru nestore doThing: (nst, args) => { ... })
+export type NSTStoreMutator<T> = (this: Nestore<Partial<T>>, args?: any[]) => any;
+// DOCS- type: NSTStoreListener (a function that is registered as a listener by name: $name: ()=>{})
+export type NSTStoreListener = any;
 
 //&                                                                                               
-export type NSTAnyStore = {
+// DOCS- type: NSTAnyStorage (any object that has getItem and setItem method)
+export type NSTAnyStorage = {
     get: (...args:any[]) => any; 
     set: (...args:any[]) => any;
 } | {
@@ -48,8 +51,10 @@ export type NSTAnyStore = {
 } 
 
 //&                                                                                               
+// DOCS- type: NSTAdapterGenerator (the function that takes config and returns an adapter)
 export type NSTAdapterGenerator = <T>(config: any) => NSTAdapter;
 
+// DOCS- type: NSTAdapterFunctions (the object returned by an adapter, used to save/load the store)
 export type NSTAdapterFunctions = { 
     namespace: string;
     load: () => Promise<boolean>; 
@@ -57,8 +62,10 @@ export type NSTAdapterFunctions = {
     disconnect?: () => Promise<any>;
 }
 
+// DOCS- type: NSTAdapter (the actual adapter returned by nestore)
 export type NSTAdapter = <T>(nst: NSTClass<T>) => Promise<NSTAdapterFunctions>;
 
+// DOCS- type: NSTAdapterEmit (the structure of all events emitted by adapters)
 export type NSTAdapterEmit = {
     timestamp: number;
     action: string;
@@ -69,6 +76,7 @@ export type NSTAdapterEmit = {
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 const COMMON = {
     NESTORE_ROOT_KEY: 'NESTORE_STORE_ROOT_KEY',
+    // DOCS- default delimiter char / disallowed chars
     DEFAULT_DELIMITER_CHAR: '.',
     DISALLOWED_DELIMITER_CHARS: [
         '@',
@@ -81,7 +89,7 @@ const COMMON = {
 
 
 
-
+type NSTEmitFlags = 'none' | 'emit' | 'all'
 
 
 
@@ -96,8 +104,8 @@ class Nestore<T> extends EE2{
     #INTERNAL_STORE: Partial<T>; 
     #ORIGINAL_STORE: Partial<T>;
     #DELIMITER_CHAR: string;
-    #SETTER_FUNCTIONS: string[];
-    #SETTER_LISTENERS: string[];
+    #STORE_MUTATORS: string[];
+    #STORE_LISTENERS: string[];
     #PREVENT_REPEAT_UPDATE: boolean;
     #DEV_EXTENSION: any;
     adapters: { [key:string]: NSTAdapterFunctions };
@@ -138,8 +146,8 @@ class Nestore<T> extends EE2{
         this.#INTERNAL_STORE = {}
         this.#ORIGINAL_STORE = {}
         this.#DELIMITER_CHAR = ''   
-        this.#SETTER_FUNCTIONS = []
-        this.#SETTER_LISTENERS = []
+        this.#STORE_MUTATORS = []
+        this.#STORE_LISTENERS = []
         this.#PREVENT_REPEAT_UPDATE = true
         this.#DEV_EXTENSION = null
         this.adapters = {};
@@ -164,8 +172,8 @@ class Nestore<T> extends EE2{
         // let storeOmitted:Partial<T> = Object.fromEntries(
         //     Object.entries(initialStore as Object)
         //     .filter(([KEY,VAL]:any) => 
-        //         !this.#SETTER_FUNCTIONS.includes(KEY) 
-        //         && !this.#SETTER_LISTENERS.includes(KEY) )
+        //         !this.#STORE_MUTATORS.includes(KEY) 
+        //         && !this.#STORE_LISTENERS.includes(KEY) )
         // ) as Partial<T>
 
 
@@ -175,6 +183,10 @@ class Nestore<T> extends EE2{
         this.#ORIGINAL_STORE = initialStore ?? {}
         this.#DELIMITER_CHAR = options.delimiter ?? '.'
 
+
+
+        //! remove this and test again! I think this was just used when "this" was undefined
+        //! in the registerAdapter function
         this.registerAdapter.bind(this);
             
             // this.registerDevTools()
@@ -207,9 +219,9 @@ class Nestore<T> extends EE2{
             maxListeners: this.getMaxListeners(),
             devExtension: this.#DEV_EXTENSION,
 
-            inStoreSetters: this.#SETTER_FUNCTIONS,
-            storeSetters: this.#SETTER_FUNCTIONS,
-            storeListeners: this.#SETTER_LISTENERS,
+            inStoreSetters: this.#STORE_MUTATORS,
+            storeSetters: this.#STORE_MUTATORS,
+            storeListeners: this.#STORE_LISTENERS,
             
             storeData: this.#INTERNAL_STORE,
         }) 
@@ -219,21 +231,22 @@ class Nestore<T> extends EE2{
 
 
     //_                                                                                             
+    /** Should not be provided to user */
     registerStore() {
         const _log = LOG.extend('register-store')
         _log('initialStore:', this.#ORIGINAL_STORE)
         this.#ORIGINAL_STORE && Object.entries(this.#ORIGINAL_STORE).forEach(([ key, val ]) => {
             if(typeof val === 'function' && typeof this !== 'undefined'){
                 if(key.startsWith('$')){
-                    this.#SETTER_LISTENERS.push(key)
-                    let SETTER: ListenerMutator = val
+                    this.#STORE_LISTENERS.push(key)
+                    let SETTER: NSTStoreListener = val
                     let path = key.substring(1, key.length)
                     // this.on(path, async (event) => await SETTER(this, event))
                     this.on(path, (event) => SETTER(this, event))
                     
                 }else{
-                    this.#SETTER_FUNCTIONS.push(key)
-                    let SETTER = val as CustomMutator<T>
+                    this.#STORE_MUTATORS.push(key)
+                    let SETTER = val as NSTStoreMutator<T>
                     //@ts-ignore
                     // this[key] = async (...args:any) => await SETTER(this, args) 
                     this[key] = (...args:any) => SETTER(this, args) 
@@ -244,8 +257,8 @@ class Nestore<T> extends EE2{
         const storeOmitted:Partial<T> = Object.fromEntries(
             Object.entries(this.#ORIGINAL_STORE as Object)
             .filter(([KEY,VAL]:any) => 
-                !this.#SETTER_FUNCTIONS.includes(KEY) 
-                && !this.#SETTER_LISTENERS.includes(KEY) )
+                !this.#STORE_MUTATORS.includes(KEY) 
+                && !this.#STORE_LISTENERS.includes(KEY) )
         ) as Partial<T>
 
         
@@ -263,20 +276,21 @@ class Nestore<T> extends EE2{
 
 
     //_                                                                                             
+    /** @deprecated - use registerStore */
     registerInStoreListeners(initialStore:Partial<T>) {
         const _log = LOG.extend('register-listeners')
         initialStore && Object.entries(initialStore).forEach(([ key, val ]) => {
             if(typeof val === 'function' && typeof this !== 'undefined'){
                 if(key.startsWith('$')){
-                    this.#SETTER_LISTENERS.push(key)
-                    let SETTER: ListenerMutator = val
+                    this.#STORE_LISTENERS.push(key)
+                    let SETTER: NSTStoreListener = val
                     let path = key.substring(1, key.length)
                     // this.on(path, async (event) => await SETTER(this, event))
                     this.on(path, (event) => SETTER(this, event))
                     
                 }else{
-                    this.#SETTER_FUNCTIONS.push(key)
-                    let SETTER = val as CustomMutator<T>
+                    this.#STORE_MUTATORS.push(key)
+                    let SETTER = val as NSTStoreMutator<T>
                     //@ts-ignore
                     // this[key] = async (...args:any) => await SETTER(this, args) 
                     this[key] = (...args:any) => SETTER(this, args) 
@@ -310,7 +324,7 @@ class Nestore<T> extends EE2{
                             console.log('devExtension message:', message)
                             if(message.state){
                                 // pass a flag about the expected behaviour for set
-                                this.set(JSON.parse(message.state), null, 'devext')
+                                this.set(JSON.parse(message.state), null, 'all')
                             }
                         })
                         this.#DEV_EXTENSION = devExtension
@@ -332,6 +346,7 @@ class Nestore<T> extends EE2{
     // Could this be refactored into a function that only works on a single adapter
     // so that the constructor can call this repeatedly on the array of adapters, or the user
     // can register a single adapter at any time
+    // DOCS- register an adapter at any time with registerAdapter(NSTAdapter) | registerAdapter(() => NSTAdapterGenerator({ ... }))
     registerAdapter = async (adapter: NSTAdapter) => {
         const _log = LOG.extend('register-adapter')
         !this && _log('Attempted to register adapter with no self reference (no "this"):', this)
@@ -432,6 +447,7 @@ class Nestore<T> extends EE2{
     
     
     //_                                                                                             
+    // DOCS- emit method from ee2 (#emit is private)
     #emit(args:NSTEmit) {
         // const log = console.log
         const _log = LOG.extend('emit')
@@ -533,9 +549,9 @@ class Nestore<T> extends EE2{
     
 
 
-    //~ Should change set flags to 'emit' (default) | 'emit-all' | 'none'
+    //~ Should change set flags to 0 none | 1 emit (default) | 2 all 
     //&                                                                                             
-    set = (path:string | Partial<T>, value?:any, flag?: string) => {
+    set = (path:string | Partial<T>, value?:any, flag: NSTEmitFlags = 'emit') => {
         const _log = LOG.extend('set')
         _log({
             path,
@@ -586,12 +602,12 @@ class Nestore<T> extends EE2{
 
                 // The devext flag provides a way for the extension to prevent an  infinite loop of 
                 // updates when manually altering data in the store
-                if(flag === 'devext'){
+                if(flag === 'all'){
                     _log(`FLAG = "devext" - set new store - handle emit all`)
                     this.#handleEmitAll(true)
                 }
                 
-                if(flag !== 'quiet') {
+                if(flag !== 'none') {
                     _log(`FLAG != "quiet" - emit store "/"`)
                     this.#emit({
                         path: '/',
@@ -602,7 +618,7 @@ class Nestore<T> extends EE2{
                     _log(`FLAG = "quiet" - Setting with no emit (quiet) "/" : "${value}"`)
                 }
 
-                if(flag !== 'devext' && this.#DEV_EXTENSION){
+                if(flag !== 'all' && this.#DEV_EXTENSION){
                     _log(`FLAG != "devext"`)
                     this.#DEV_EXTENSION.send({
                         type: `/: store => newStore`,
@@ -759,11 +775,11 @@ class Nestore<T> extends EE2{
     get _original_store(){
         return this.#ORIGINAL_STORE
     }
-    get _setter_functions(){
-        return this.#SETTER_FUNCTIONS
+    get _STORE_MUTATORS(){
+        return this.#STORE_MUTATORS
     }
-    get _setter_listeners(){
-        return this.#SETTER_LISTENERS
+    get _STORE_LISTENERS(){
+        return this.#STORE_LISTENERS
     }
     get _prevent_repeat_update(){
         return this.#PREVENT_REPEAT_UPDATE

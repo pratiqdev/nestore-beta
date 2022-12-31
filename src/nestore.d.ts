@@ -21,9 +21,9 @@ export declare type NSTEmit = {
     key: string;
     value?: any;
 };
-export declare type CustomMutator<T> = (this: Nestore<Partial<T>>, args?: any[]) => any;
-export declare type ListenerMutator = any;
-export declare type NSTAnyStore = {
+export declare type NSTStoreMutator<T> = (this: Nestore<Partial<T>>, args?: any[]) => any;
+export declare type NSTStoreListener = any;
+export declare type NSTAnyStorage = {
     get: (...args: any[]) => any;
     set: (...args: any[]) => any;
 } | {
@@ -43,6 +43,7 @@ export declare type NSTAdapterEmit = {
     action: string;
     store: any;
 };
+declare type NSTEmitFlags = 'none' | 'emit' | 'all';
 /** Nestore | Dec 19, 2:41 PM */
 declare class Nestore<T> extends EE2 {
     #private;
@@ -50,14 +51,16 @@ declare class Nestore<T> extends EE2 {
         [key: string]: NSTAdapterFunctions;
     };
     constructor(initialStore?: T | Partial<T>, options?: NSTOptions);
+    /** Should not be provided to user */
     registerStore(): void;
+    /** @deprecated - use registerStore */
     registerInStoreListeners(initialStore: Partial<T>): void;
     /** dev tools requires active instance of Nestore to be registered */
     registerDevTools(): void;
     registerAdapter: (adapter: NSTAdapter) => Promise<boolean>;
     /** @deprecated - use public singular method: registerAdapter(singleAdapter) */
     registerAdapters(options: NSTOptions): false | undefined;
-    set: (path: string | Partial<T>, value?: any, flag?: string) => boolean;
+    set: (path: string | Partial<T>, value?: any, flag?: NSTEmitFlags) => boolean;
     get(path?: string | Function): any;
     reset: () => void;
     remove: (path: string) => void;
@@ -66,8 +69,8 @@ declare class Nestore<T> extends EE2 {
     get _dev_extension(): any;
     get _internal_store(): Partial<T>;
     get _original_store(): Partial<T>;
-    get _setter_functions(): string[];
-    get _setter_listeners(): string[];
+    get _STORE_MUTATORS(): string[];
+    get _STORE_LISTENERS(): string[];
     get _prevent_repeat_update(): boolean;
     get _emit(): (args: NSTEmit) => boolean;
     get _handleEmitAll(): (ignoreRoot?: boolean | undefined) => void;

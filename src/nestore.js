@@ -5,6 +5,7 @@ const LOG = debug('nestore');
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 const COMMON = {
     NESTORE_ROOT_KEY: 'NESTORE_STORE_ROOT_KEY',
+    // DOCS- default delimiter char / disallowed chars
     DEFAULT_DELIMITER_CHAR: '.',
     DISALLOWED_DELIMITER_CHARS: [
         '@',
@@ -20,8 +21,8 @@ class Nestore extends EE2 {
     #INTERNAL_STORE;
     #ORIGINAL_STORE;
     #DELIMITER_CHAR;
-    #SETTER_FUNCTIONS;
-    #SETTER_LISTENERS;
+    #STORE_MUTATORS;
+    #STORE_LISTENERS;
     #PREVENT_REPEAT_UPDATE;
     #DEV_EXTENSION;
     adapters;
@@ -55,8 +56,8 @@ class Nestore extends EE2 {
         this.#INTERNAL_STORE = {};
         this.#ORIGINAL_STORE = {};
         this.#DELIMITER_CHAR = '';
-        this.#SETTER_FUNCTIONS = [];
-        this.#SETTER_LISTENERS = [];
+        this.#STORE_MUTATORS = [];
+        this.#STORE_LISTENERS = [];
         this.#PREVENT_REPEAT_UPDATE = true;
         this.#DEV_EXTENSION = null;
         this.adapters = {};
@@ -78,14 +79,16 @@ class Nestore extends EE2 {
         // let storeOmitted:Partial<T> = Object.fromEntries(
         //     Object.entries(initialStore as Object)
         //     .filter(([KEY,VAL]:any) => 
-        //         !this.#SETTER_FUNCTIONS.includes(KEY) 
-        //         && !this.#SETTER_LISTENERS.includes(KEY) )
+        //         !this.#STORE_MUTATORS.includes(KEY) 
+        //         && !this.#STORE_LISTENERS.includes(KEY) )
         // ) as Partial<T>
         this.#PREVENT_REPEAT_UPDATE = options?.preventRepeatUpdates ?? false;
         // this.#INTERNAL_STORE = storeOmitted
         // this.#ORIGINAL_STORE = JSON.parse(JSON.stringify(storeOmitted))
         this.#ORIGINAL_STORE = initialStore ?? {};
         this.#DELIMITER_CHAR = options.delimiter ?? '.';
+        //! remove this and test again! I think this was just used when "this" was undefined
+        //! in the registerAdapter function
         this.registerAdapter.bind(this);
         // this.registerDevTools()
         LOG('Store created:', initialStore);
@@ -111,28 +114,29 @@ class Nestore extends EE2 {
             preventRepeatUpdates: this.#PREVENT_REPEAT_UPDATE,
             maxListeners: this.getMaxListeners(),
             devExtension: this.#DEV_EXTENSION,
-            inStoreSetters: this.#SETTER_FUNCTIONS,
-            storeSetters: this.#SETTER_FUNCTIONS,
-            storeListeners: this.#SETTER_LISTENERS,
+            inStoreSetters: this.#STORE_MUTATORS,
+            storeSetters: this.#STORE_MUTATORS,
+            storeListeners: this.#STORE_LISTENERS,
             storeData: this.#INTERNAL_STORE,
         });
         this.emit('@ready', this.#INTERNAL_STORE);
     }
     //_                                                                                             
+    /** Should not be provided to user */
     registerStore() {
         const _log = LOG.extend('register-store');
         _log('initialStore:', this.#ORIGINAL_STORE);
         this.#ORIGINAL_STORE && Object.entries(this.#ORIGINAL_STORE).forEach(([key, val]) => {
             if (typeof val === 'function' && typeof this !== 'undefined') {
                 if (key.startsWith('$')) {
-                    this.#SETTER_LISTENERS.push(key);
+                    this.#STORE_LISTENERS.push(key);
                     let SETTER = val;
                     let path = key.substring(1, key.length);
                     // this.on(path, async (event) => await SETTER(this, event))
                     this.on(path, (event) => SETTER(this, event));
                 }
                 else {
-                    this.#SETTER_FUNCTIONS.push(key);
+                    this.#STORE_MUTATORS.push(key);
                     let SETTER = val;
                     //@ts-ignore
                     // this[key] = async (...args:any) => await SETTER(this, args) 
@@ -141,8 +145,8 @@ class Nestore extends EE2 {
             }
         });
         const storeOmitted = Object.fromEntries(Object.entries(this.#ORIGINAL_STORE)
-            .filter(([KEY, VAL]) => !this.#SETTER_FUNCTIONS.includes(KEY)
-            && !this.#SETTER_LISTENERS.includes(KEY)));
+            .filter(([KEY, VAL]) => !this.#STORE_MUTATORS.includes(KEY)
+            && !this.#STORE_LISTENERS.includes(KEY)));
         this.#INTERNAL_STORE = { ...storeOmitted };
         this.#ORIGINAL_STORE = cloneDeep(storeOmitted);
         _log('Omitted items from store:', {
@@ -151,19 +155,20 @@ class Nestore extends EE2 {
         });
     }
     //_                                                                                             
+    /** @deprecated - use registerStore */
     registerInStoreListeners(initialStore) {
         const _log = LOG.extend('register-listeners');
         initialStore && Object.entries(initialStore).forEach(([key, val]) => {
             if (typeof val === 'function' && typeof this !== 'undefined') {
                 if (key.startsWith('$')) {
-                    this.#SETTER_LISTENERS.push(key);
+                    this.#STORE_LISTENERS.push(key);
                     let SETTER = val;
                     let path = key.substring(1, key.length);
                     // this.on(path, async (event) => await SETTER(this, event))
                     this.on(path, (event) => SETTER(this, event));
                 }
                 else {
-                    this.#SETTER_FUNCTIONS.push(key);
+                    this.#STORE_MUTATORS.push(key);
                     let SETTER = val;
                     //@ts-ignore
                     // this[key] = async (...args:any) => await SETTER(this, args) 
@@ -195,7 +200,7 @@ class Nestore extends EE2 {
                             console.log('devExtension message:', message);
                             if (message.state) {
                                 // pass a flag about the expected behaviour for set
-                                this.set(JSON.parse(message.state), null, 'devext');
+                                this.set(JSON.parse(message.state), null, 'all');
                             }
                         });
                         this.#DEV_EXTENSION = devExtension;
@@ -215,6 +220,7 @@ class Nestore extends EE2 {
     // Could this be refactored into a function that only works on a single adapter
     // so that the constructor can call this repeatedly on the array of adapters, or the user
     // can register a single adapter at any time
+    // DOCS- register an adapter at any time with registerAdapter(NSTAdapter) | registerAdapter(() => NSTAdapterGenerator({ ... }))
     registerAdapter = async (adapter) => {
         const _log = LOG.extend('register-adapter');
         !this && _log('Attempted to register adapter with no self reference (no "this"):', this);
@@ -295,6 +301,7 @@ class Nestore extends EE2 {
         // checkForEmit()
     }
     //_                                                                                             
+    // DOCS- emit method from ee2 (#emit is private)
     #emit(args) {
         // const log = console.log
         const _log = LOG.extend('emit');
@@ -376,9 +383,9 @@ class Nestore extends EE2 {
         let split = this.#splitPathStringAtKnownDelimiters(path);
         return split[split.length - 1];
     }
-    //~ Should change set flags to 'emit' (default) | 'emit-all' | 'none'
+    //~ Should change set flags to 0 none | 1 emit (default) | 2 all 
     //&                                                                                             
-    set = (path, value, flag) => {
+    set = (path, value, flag = 'emit') => {
         const _log = LOG.extend('set');
         _log({
             path,
@@ -420,11 +427,11 @@ class Nestore extends EE2 {
                 }
                 // The devext flag provides a way for the extension to prevent an  infinite loop of 
                 // updates when manually altering data in the store
-                if (flag === 'devext') {
+                if (flag === 'all') {
                     _log(`FLAG = "devext" - set new store - handle emit all`);
                     this.#handleEmitAll(true);
                 }
-                if (flag !== 'quiet') {
+                if (flag !== 'none') {
                     _log(`FLAG != "quiet" - emit store "/"`);
                     this.#emit({
                         path: '/',
@@ -435,7 +442,7 @@ class Nestore extends EE2 {
                 else {
                     _log(`FLAG = "quiet" - Setting with no emit (quiet) "/" : "${value}"`);
                 }
-                if (flag !== 'devext' && this.#DEV_EXTENSION) {
+                if (flag !== 'all' && this.#DEV_EXTENSION) {
                     _log(`FLAG != "devext"`);
                     this.#DEV_EXTENSION.send({
                         type: `/: store => newStore`,
@@ -564,11 +571,11 @@ class Nestore extends EE2 {
     get _original_store() {
         return this.#ORIGINAL_STORE;
     }
-    get _setter_functions() {
-        return this.#SETTER_FUNCTIONS;
+    get _STORE_MUTATORS() {
+        return this.#STORE_MUTATORS;
     }
-    get _setter_listeners() {
-        return this.#SETTER_LISTENERS;
+    get _STORE_LISTENERS() {
+        return this.#STORE_LISTENERS;
     }
     get _prevent_repeat_update() {
         return this.#PREVENT_REPEAT_UPDATE;
