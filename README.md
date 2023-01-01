@@ -159,11 +159,13 @@ The store can hold any values, nested at any depth, that can be accessed from an
 Import nestore, create your store, and export it.
 
 ```ts
+import nestore from 'nestore'
+
 const nst = nestore({ 
     logged_in: false,
     user_name: null,
     time: Date.now()
-    1: () => 'zero'
+    1: 'one',
 })
 
 export default nst

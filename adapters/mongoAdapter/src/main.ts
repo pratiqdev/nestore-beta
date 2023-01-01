@@ -15,17 +15,24 @@ type NestoreMongoAdapterConfig = {
     mongoUri: string
     collectionName?: string
     documentKey?: string
-    namespace?: string
+    // namespace?: string
     batchTime?: number
 }
 
+/*
+Type '
+<T>(config: NestoreMongoAdapterConfig) => NSTAdapter
+' is not assignable to type '
+NSTAdapterGenerator
+'.
+  Types of parameters 'config' and 'config' are incompatible.
+    Property 'mongoUri' is missing in type '{ namespace: string; } & { [key: string]: unknown; [key: number]: unknown; }' but required in type 'NestoreMongoAdapterConfig'.ts(2322)
+*/
 
-
-const mongoAdapterGenerator: NSTAdapterGenerator = <T>(config: NestoreMongoAdapterConfig) => {
+const mongoAdapterGenerator: NSTAdapterGenerator = <T>(namespace: string, config: NestoreMongoAdapterConfig) => {
   const log = createLog('mongo')
   log('Initializing...')
 
-  // TODO+ Move setup and options parsing to generator before returning adapter 
 
   if (!mongoose || !mongoose.connect || typeof mongoose.connect !== 'function') {
     throw new Error('nestore mongooseAdapter - Could not find package "mongoose"')
@@ -41,6 +48,13 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(config: NestoreMongoAdapt
     throw new Error('nestore-mongo-adapter error: Must provide valid config object with at least "mongoUri" connection string.')
   }
 
+  if(
+    typeof namespace !== 'string' 
+    || !namespace.length 
+  ){
+    throw new Error('nestore-mongo-adapter error: Must provide valid namespace string.')
+  }
+
 
 
 
@@ -53,7 +67,7 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(config: NestoreMongoAdapt
     // )
 
     const settings = {
-      namespace: config.namespace ?? 'nestore-mongo-adapter',
+      namespace: namespace ?? 'nestore-mongo-adapter',
       batchTime: config.batchTime ?? 2000,
       mongoUri: config.mongoUri ?? undefined,
       collectionName: config.collectionName ?? 'nestore-data',

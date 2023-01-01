@@ -24,10 +24,11 @@ const COMMON = {
 
   
 
-
-
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-/** Nestore | Dec 19, 2:41 PM */
+/** Nestore Class
+ * @param initialStore - NST
+ * @returns NSTInstance - instance of Nestore NSTInstance
+ */
 class Nestore<T> extends EE2{
     
     #INTERNAL_STORE: Partial<T>; 
@@ -36,7 +37,7 @@ class Nestore<T> extends EE2{
     #STORE_MUTATORS: string[];
     #STORE_LISTENERS: string[];
     #PREVENT_REPEAT_UPDATE: boolean;
-    #DEV_EXTENSION: any;
+    #DEV_EXTENSION: null | NSTDevExt;
     adapters: { [key:string]: NSTAdapterFunctions };
 
 
@@ -64,7 +65,7 @@ class Nestore<T> extends EE2{
         // })
         super(options)
 
-        let _log = LOG.extend('constr')
+        const _log = LOG.extend('constr')
         // console.log('>> NESTORE V4')
         _log('Creating store:', {
             initialStore,
@@ -81,29 +82,7 @@ class Nestore<T> extends EE2{
         this.#DEV_EXTENSION = null
         this.adapters = {};
 
-        // TODO+ Move instance check to nestore function 
-        // TODO  Add docs: options are not modified when returning the same instance 
-        // This could take place before the class is instantiated
-        // if(initialStore instanceof Nestore){
-        //     this.emit('@ready', initialStore.store)
-        //     return initialStore
-        // }
-        
-        // TODO+ Move initialStore typecheck to nestore function 
-        // if(typeof initialStore !== 'object' || Array.isArray(initialStore)){
-        //     throw new Error(`Initial store must be an object or map.`)
-        // }
-        
-        // TODO+ - Nestore class omitting initialStore items before omitable items are accumulated
-        // Omitting items from the store and setting this.#INTERNAL_STORE needs to occur after 
-        // this.registerInStoreListeners() - registering listeners and mutators accumulates arrays of 
-        // these items, which are then used to filter and omit items from the store (the store returned to user)
-        // let storeOmitted:Partial<T> = Object.fromEntries(
-        //     Object.entries(initialStore as Object)
-        //     .filter(([KEY,VAL]:any) => 
-        //         !this.#STORE_MUTATORS.includes(KEY) 
-        //         && !this.#STORE_LISTENERS.includes(KEY) )
-        // ) as Partial<T>
+     
 
 
         this.#PREVENT_REPEAT_UPDATE = options?.preventRepeatUpdates ?? false
@@ -118,25 +97,10 @@ class Nestore<T> extends EE2{
         //! in the registerAdapter function
         this.registerAdapter.bind(this);
             
-            // this.registerDevTools()
-            LOG('Store created:', initialStore)
+        // this.registerDevTools()
+        LOG('Store created:', initialStore)
             
 
-        // TODO+ hacky - look for real method of awaiting class instantiation
-        // added setTimeout to wait for instantiation before passing self reference to adapters
-                
-        // let checkForEmit = () => {
-        //     setTimeout(() => {
-        //         if(typeof this.emit === 'function'){
-        //             this.registerInStoreListeners(initialStore)
-        //             this.registerAdapters(options)
-        //         }else{
-        //             checkForEmit()
-        //         }
-        //     }, 10);
-        // }
-
-        // checkForEmit()
     }
 
     /** @deprecated */
@@ -161,31 +125,26 @@ class Nestore<T> extends EE2{
 
     //_                                                                                             
     /** Should not be provided to user */
-    registerStore() {
+    registerStore = () => {
         const _log = LOG.extend('register-store')
         _log('initialStore:', this.#ORIGINAL_STORE)
         this.#ORIGINAL_STORE && Object.entries(this.#ORIGINAL_STORE).forEach(([ key, val ]) => {
             if(typeof val === 'function' && typeof this !== 'undefined'){
                 if(key.startsWith('$')){
                     this.#STORE_LISTENERS.push(key)
-                    let SETTER: NSTStoreListener = val
-                    let path = key.substring(1, key.length)
-                    // this.on(path, async (event) => await SETTER(this, event))
-                    this.on(path, (event) => SETTER(this, event))
+                    const path = key.substring(1, key.length)
+                    this.on(path, (event) => val(this, event))
                     
                 }else{
                     this.#STORE_MUTATORS.push(key)
-                    let SETTER = val as NSTStoreMutator<T>
-                    //@ts-ignore
-                    // this[key] = async (...args:any) => await SETTER(this, args) 
-                    this[key] = (...args:any) => SETTER(this, args) 
+                    set(this, key, (...args:unknown[]) => val(this, args))
                 }
             }
         })
 
         const storeOmitted:Partial<T> = Object.fromEntries(
-            Object.entries(this.#ORIGINAL_STORE as Object)
-            .filter(([KEY,VAL]:any) => 
+            Object.entries(this.#ORIGINAL_STORE as NSTStore)
+            .filter(([KEY]: [string, unknown]) => 
                 !this.#STORE_MUTATORS.includes(KEY) 
                 && !this.#STORE_LISTENERS.includes(KEY) )
         ) as Partial<T>
@@ -238,13 +197,14 @@ class Nestore<T> extends EE2{
         if(typeof window !== 'undefined'){
             _log(`Browser mode`)
             
-            let W:any = window
+            const W: typeof globalThis & Window & {'__REDUX_DEVTOOLS_EXTENSION__': { connect: () => NSTDevExt }} 
+            = window as typeof globalThis & Window & {'__REDUX_DEVTOOLS_EXTENSION__': { connect: () => NSTDevExt }}
+
             if(typeof W['__REDUX_DEVTOOLS_EXTENSION__'] && typeof W['__REDUX_DEVTOOLS_EXTENSION__'] !== 'undefined'){
                 // log(`Found window and devTools`)
                 try{
-                    //@ts-ignore
-                    let devExtensionConnector:any =  window['__REDUX_DEVTOOLS_EXTENSION__']
-                    let devExtension:any
+                    const devExtensionConnector: { connect: () => NSTDevExt } =  W['__REDUX_DEVTOOLS_EXTENSION__']
+                    let devExtension:NSTDevExt
                     if (devExtensionConnector && devExtensionConnector.connect) {
                         devExtension = devExtensionConnector.connect()
                         // log(`Connected to devtools`)
@@ -252,11 +212,11 @@ class Nestore<T> extends EE2{
                         devExtension.init(this.#INTERNAL_STORE);
                         // devext.send('@@NESTORE_CONNECT', this.#INTERNAL_STORE )
                         // devTools.send('@@NESTORE_CONNECT', { value: 'state changed' })
-                        devExtension.subscribe((message: any) => {
+                        devExtension.subscribe((message: { state?: unknown }) => {
                             console.log('devExtension message:', message)
                             if(message.state){
                                 // pass a flag about the expected behaviour for set
-                                this.set(JSON.parse(message.state), null, 'all')
+                                this.set(JSON.parse(message.state as string), null, 'all')
                             }
                         })
                         this.#DEV_EXTENSION = devExtension
@@ -284,7 +244,7 @@ class Nestore<T> extends EE2{
         !this && _log('Attempted to register adapter with no self reference (no "this"):', this)
         try{
 
-            let adpt = await adapter(this)
+            const adpt = await adapter(this)
             if(
                 !adpt
                 || typeof adpt.namespace !== 'string'
@@ -298,8 +258,7 @@ class Nestore<T> extends EE2{
             return true
             
         }catch(err){
-            let e:any = err
-            throw new Error(e!)
+            throw new Error(err as string)
         }
  
     }
@@ -400,26 +359,26 @@ class Nestore<T> extends EE2{
         _log('Parsing store to emit events for every key...')
         _log(this.store)
 
-        let emitted:string[] = []
+        const emitted:string[] = []
 
-        const visitNodes = (obj:any, visitor:any, stack:any[] = []) => {
+        const visitNodes = (obj:Partial<NSTStore>, visitor: (path:string, value: unknown) => unknown, stack:unknown[] = []) => {
             if (typeof obj === 'object') {
-              for (let key in obj) {
+              for (const key in obj) {
                 visitor(stack.join('.').replace(/(?:\.)(\d+)(?![a-z_])/ig, '[$1]'), obj);
-                visitNodes(obj[key], visitor, [...stack, key]);
+                visitNodes(obj[key] as Partial<NSTStore>, visitor, [...stack, key]);
               }
             } else {
               visitor(stack.join('.').replace(/(?:\.)(\d+)(?![a-z_])/ig, '[$1]'), obj);
             }
         }
 
-        visitNodes(this.store, (_path:string, value:any) => {
+        visitNodes(this.store, (_path:string, value:unknown) => {
             // let split = _path.split(/\[|\]\[|\]\.|\.|\]/g)
-            let split = this.#splitPathStringAtKnownDelimiters(_path)
+            const split = this.#splitPathStringAtKnownDelimiters(_path)
             .filter(x => x.trim() !== '')
             
-            let key = split[split.length - 1] ?? '/'
-            let path = split.length ? split.join(this.#DELIMITER_CHAR) : '/'
+            const key = split[split.length - 1] ?? '/'
+            const path = split.length ? split.join(this.#DELIMITER_CHAR) : '/'
 
 
             if(!emitted.includes(path)){
@@ -460,8 +419,8 @@ class Nestore<T> extends EE2{
             return '/'
         }
 
-        let split = this.#splitPathStringAtKnownDelimiters(path)
-        let _path:string = split.join(this.#DELIMITER_CHAR)
+        const split = this.#splitPathStringAtKnownDelimiters(path)
+        const _path:string = split.join(this.#DELIMITER_CHAR)
         // log.norm(`Normalized path: ${path} => ${_path}`)
         
         return _path
@@ -474,7 +433,7 @@ class Nestore<T> extends EE2{
 
     //_                                                                                             
     #getLastKeyFromPathString(path:string){
-        let split = this.#splitPathStringAtKnownDelimiters(path)
+        const split = this.#splitPathStringAtKnownDelimiters(path)
         return split[split.length - 1]
     }
 
@@ -483,7 +442,7 @@ class Nestore<T> extends EE2{
 
     //~ Should change set flags to 0 none | 1 emit (default) | 2 all 
     //&                                                                                             
-    set = (path:string | Partial<T>, value?:any, flag: NSTEmitFlags = 'emit') => {
+    set = (path:string | Partial<T>, value?:unknown, flag: NSTEmitFlags = 'emit') => {
         const _log = LOG.extend('set')
         _log({
             path,
@@ -526,7 +485,7 @@ class Nestore<T> extends EE2{
             //! Added value function type check - functions are objects duh
             if(typeof path === 'object' && !value){
                 _log('path is object')
-                let originalValue = this.#INTERNAL_STORE
+                const originalValue = this.#INTERNAL_STORE
     
                 if(!Array.isArray(path)){
                     _log(`Setting "store" to new store object: "${value}"`)
@@ -565,8 +524,7 @@ class Nestore<T> extends EE2{
                 return true
             }
 
-            // TODO- handle setter functions: nst.set('path', value => newValue)
-
+            // TEST- nst.set(path, setterFunction)
             if(typeof path === 'string' && typeof value === 'function'){
 
                 // return an active promise that can be awaited
@@ -575,7 +533,7 @@ class Nestore<T> extends EE2{
                     _log('path is string with setter function')
                     
                     // DOCS- nst.set(path, setterFunction) setter is invoked with value at path
-                    let originalValue = this.get(path)
+                    const originalValue = this.get(path)
                     const newValue = await value(originalValue)
                     
                     
@@ -607,7 +565,7 @@ class Nestore<T> extends EE2{
 
 
                 // log(`Setting "${path}" : "${value}"`)
-                let originalValue = this.#DEV_EXTENSION ? this.get(path) : null
+                const originalValue = this.#DEV_EXTENSION ? this.get(path) : null
 
                 set(this.#INTERNAL_STORE, path, value)
 
@@ -637,7 +595,7 @@ class Nestore<T> extends EE2{
     }
 
     //&                                                                                             
-    get(path?: string | Function): any {
+    get(path?: string | ((store: NSTStore) => unknown)): unknown {
         try{
             const _log = LOG.extend('get')
             if(!path || path === ''){
@@ -789,60 +747,18 @@ class Nestore<T> extends EE2{
 // export default Nestore
 
 // DOCS- awaiting async nestore (adapter, mutator and listener registration) to resolve, or nestore '@ready' event
-const nestore:NSTFunction = <T>(initialStore: T | Partial<T> = {}, options: NSTOptions = {}): Promise<NSTInstance> => {
-    return new Promise(async (res, rej) => {
+const nestore:NSTFunction = async <T>(initialStore: T | Partial<T> = {}, options: NSTOptions = {}): Promise<NSTInstance | undefined> => {
+    const _log = LOG.extend('creator')
+    // return new Promise(async (res, rej) => {
         try{
-
-            //? Current flow
-            //- await nestore function
-            //- nestore function instantiates Nestore class
-            //- Nestore extends ee2 and invokes super with options
-            //- Omit items from store (broken - omits nothing)
-            //- attempts to register dev tools
-            //- uses timeout loop to check for instantiation completetion - then:
-            //- registers in store listeners
-            //- loop thru and await register adapters - then set this.adapters[namespace]
-            //- if all adapters registered - emit '@ready'
-
-            // const nst = new Nestore(initialStore, options)
-            
-            // nst.on('@ready', () => {
-            //     res(nst)
-            // })
-
-
- 
-            //? Updated flow
-            //- 1. check for correct types of initialStore and options - return if instance of nestore
-            //- 2. parse options and set defaults - options can now be used directly in Nestore class
-
-            //- 3. define util functions:
-            //-    - _get_last_key_from_path_string
-            //-    - _split_path_string_at_known_delimiters
-            //-    - _convert_string_or_array_to_normalized_path_string
-            
-            //+ x. create instance => const nst = new Nestore(initialStore, parsedOptions)
-
-            //- 4. registerInStoreListeners (requires instance)
-            //- 5. registerAdapters (requires instance) - allow user to invoke
-            // await Promis.all( options.adapters.map(async () => {
-            //     
-            // }))
-            //- 6. registerDevTools (requires instance) - allow user to invoke
-            //- 7. delete registerInStoreListeners
-
-
-            // //@ts-expect-error
-            // delete nst['_get_last_key_from_path_string']
 
             // TODO_ reduce as much as possible to ternary and inline statements
             // DOCS- nestore will return existing instance of Nestore
-            const _log = LOG.extend('creator')
 
             if(initialStore instanceof Nestore){
                 _log('Recieved instance of Nestore as initialStore - returning original instance...')
-                res(initialStore)
-                return
+                // res(initialStore)
+                return initialStore
             }
             
             if(typeof initialStore !== 'object' || Array.isArray(initialStore)){
@@ -914,24 +830,73 @@ const nestore:NSTFunction = <T>(initialStore: T | Partial<T> = {}, options: NSTO
             nst.registerDevTools()
 
             _log('Deleting "private" methods...')
-            //@ts-expect-error
+            //@ts-expect-error cannot delete read-only properties of nst
             delete nst['registerStore']
             
             _log('Resolving with nst...')
-            res(nst)
+            // res(nst)
+
+            return nst
 
 
 
             
         }catch(err){
             // console.log('nestore instantiator function error:', err)
-            rej(err)
+            _log(err)
+            return
         }
-    })
+    // })
 }
 
 
-export type NSTClass<T = void> = Nestore<T>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+type NSTDevExtSubscribeCb = (message: { state?: unknown }) => unknown
+
+
+
+
+type NSTDevExtSendData = {
+    type: string;
+    path: string;
+    value: unknown;
+    previousValue: unknown;
+}
+
+type NSTDevExtSendFunction = (data: NSTDevExtSendData, store: NSTStore) => unknown;
+
+type NSTDevExt = {
+    init: (store: NSTStore) => unknown;
+    subscribe: (callback: NSTDevExtSubscribeCb) => unknown;
+    send: NSTDevExtSendFunction;
+}
+
+
+
+
+
+
+
+
+export type NSTStore = { [key:string | number | symbol]: unknown }
+
+export type NSTClass<T> = Nestore<T>
 
 const nst = new Nestore()
 export type NSTInstance = typeof nst
@@ -959,20 +924,49 @@ export type NSTOptions = {
 }
 
 // DOCS- type: NSTEmit (the struct emitted by all nestore events - excluding adapter events)
+/** Structure of data object emitted by Nestore events and passed to listeners as the only argument when invoked.
+ * `nst.onAny()` listeners will only be invoked with a string of the path that was updated.
+ */
 export type NSTEmit = {
     path: string;
     key: string;
-    value?: any;
+    value?: unknown;
 }
 
+// DOCS- type: NSTEmitFlags (flags used in `nst.set(path, value, flag)` for emitting with `nst.#emit()` with adapter/dev-tools/custom behavior - does not affect `nst.emit()` )
+/** Flags used to alter the behavior of emitting events when the state is updated.
+ * 
+ * 'none' - do not emit any events
+ * 'emit' - (default) emit event for this path
+ * 'all' - recursively emit events for every item in the store
+ */
+export type NSTEmitFlags = 'none' | 'emit' | 'all'
+
+
+
 // DOCS- type: NSTFunction (the async function that returns an active instance of Nestore)
-export type NSTFunction = <T>(initialStore: T | Partial<T>, options: NSTOptions) => Promise<NSTInstance>
+/** Async function that parses store and options, instantiates Nestore and resolves with the instance  
+ * 
+ * @params Object - initialStore - The user generated object containing the state
+ * @params NSTOptions - An object containing options used to configure the new Nestore instance
+ * 
+ * @returns Promise\<NSTInstance> - The current instance of Nestore
+*/
+export type NSTFunction = <T>(initialStore: T | Partial<T>, options: NSTOptions) => Promise<NSTInstance | undefined>
+
 
 // DOCS- type: NSTStoreMutator (a function in the store that can be invoked thru nestore doThing: (nst, args) => { ... })
-export type NSTStoreMutator<T> = (this: Nestore<Partial<T>>, args?: any[]) => any;
+/** Custom mutator functions exist in the store and can be invoked to update the state 
+ * 
+ * @params Nestore<Partial<T>> - this - a reference to the current instance
+ * @params unknown[] - 
+ * 
+ * @returns unknown
+*/
+export type NSTStoreMutator = (self: NSTInstance, ...args: unknown[]) => unknown;
 
 // DOCS- type: NSTStoreListener (a function that is registered as a listener by name: $name: ()=>{})
-export type NSTStoreListener = any;
+export type NSTStoreListener = (nst: NSTInstance, event: NSTEmit) => unknown
 
 // DOCS- type: NSTAnyStorage (any object that has getItem and setItem method)
 export type NSTAnyStorage = {
@@ -981,14 +975,15 @@ export type NSTAnyStorage = {
 } 
 
 // DOCS- type: NSTAdapterGenerator (the function that takes config and returns an adapter)
-export type NSTAdapterGenerator = <T>(config: any) => NSTAdapter;
+// eslint-disable-next-line
+export type NSTAdapterGenerator = <T>(namespace: string, config: any) => NSTAdapter;
 
 // DOCS- type: NSTAdapterFunctions (the object returned by an adapter, used to save/load the store)
 export type NSTAdapterFunctions = { 
     namespace: string;
     load: () => Promise<boolean>; 
     save: () => Promise<boolean>;
-    disconnect?: () => Promise<any>;
+    disconnect?: () => Promise<unknown>;
 }
 
 // DOCS- type: NSTAdapter (the actual adapter returned by nestore)
@@ -998,11 +993,9 @@ export type NSTAdapter = <T>(nst: NSTClass<T>) => Promise<NSTAdapterFunctions>;
 export type NSTAdapterEmit = {
     timestamp: number;
     action: string;
-    store: any;
+    store: NSTStore;
 }
 
-// DOCS- type: NSTEmitFlags (flags used in `nst.set(path, value, flag)` for emitting with `nst.#emit()` with adapter/dev-tools/custom behavior - does not affect `nst.emit()` )
-export type NSTEmitFlags = 'none' | 'emit' | 'all'
 
 
 export default nestore

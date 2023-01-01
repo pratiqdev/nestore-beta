@@ -9,7 +9,6 @@ const createLog = (namespace) => debug(`nestore:mongo-adapter:${namespace}`);
 const mongoAdapterGenerator = (config) => {
     const log = createLog('mongo');
     log('Initializing...');
-    // TODO+ Move setup and options parsing to generator before returning adapter 
     if (!mongoose || !mongoose.connect || typeof mongoose.connect !== 'function') {
         throw new Error('nestore mongooseAdapter - Could not find package "mongoose"');
     }
