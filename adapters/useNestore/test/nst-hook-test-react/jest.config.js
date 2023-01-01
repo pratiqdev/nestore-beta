@@ -8,7 +8,7 @@ export default {
   // preset: 'ts-jest',
   testEnvironment: 'jsdom',
   moduleDirectories: [
-    // 'node_modules',
+    'node_modules',
     // add the directory with the test-utils.js file, for example:
   //  'test', // a utility folder
     __dir, // the root directory
@@ -18,22 +18,26 @@ export default {
 
   // The glob patterns Jest uses to detect test files
   testMatch: [
-    "**/test/tests/**/*.[jt]s?(x)",
-    "**/test/tests/**/*.mjs",
+    "**/src/*.test.[jt]s?(x)",
+    // "**/test/tests/**/*.mjs",
   ],
 
   // A map from regular expressions to paths to transformers
   // transform: {},
-  preset: 'ts-jest',
+  // preset: 'ts-jest',
+  // transform: {},
   // transform: {
-  //   '.*\.ts|.*\.tsx': 'ts-jest',
-  //   '.*\.js|.*\.jsx': 'babel-jest',
-  //   // '**/test/tests/**/*.[j]s?(x)': 'babel-jest',
-  //   // "^.+\\.(js|jsx)$": "babel-jest",
+  //   ".*\.[t|j]sx?$": "babel-jest"
   // },
-  transforms: {},
+  transform: {
+    // '.*\.ts|.*\.tsx': ['ts-jest', { useEsm: true }],
+    '.*\.js|.*\.jsx': 'babel-jest',
+    
+    // '**/test/tests/**/*.[j]s?(x)': 'babel-jest',
+    // "^.+\\.(js|jsx)$": "babel-jest",
+  },
   transformIgnorePatterns: [
-    "/node_modules/lodash-es/*"
-  ]
+    ".*/node_modules/.*"
+  ],
 
 };

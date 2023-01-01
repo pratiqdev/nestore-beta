@@ -12,6 +12,7 @@ import Nestore, { NSTAdapterGenerator, NSTClass, NSTAdapter } from '../../../src
 //- convert namespaced events to object provided by nestore that include methods:
 //  - adapter.register()
 
+
 export type TypePersistAdapterConfig = {
   namespace?: string;
   storage?: Storage,

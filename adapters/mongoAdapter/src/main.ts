@@ -9,7 +9,8 @@ import { throttle } from 'lodash-es'
 import nestore, { NST, NSTAdapterGenerator, NSTAdapter, NSTClass } from '../../../src/nestore' //~ DEV - import from npm 
 // import Nestore, { NestoreType, NestoreAdapter } from 'nestore'
 
-const createLog = (namespace:string) => debug(`nestore:mongo-adapter:${namespace}`)
+// const createLog = (namespace:string) => debug(`nestore:mongo-adapter:${namespace}`)
+const LOG = debug('nestore').extend('mongo-adapter')
 
 type NestoreMongoAdapterConfig = {
     mongoUri: string
@@ -30,8 +31,8 @@ NSTAdapterGenerator
 */
 
 const mongoAdapterGenerator: NSTAdapterGenerator = <T>(namespace: string, config: NestoreMongoAdapterConfig) => {
-  const log = createLog('mongo')
-  log('Initializing...')
+  const _log = LOG.extend('generator')
+  _log('Initializing...')
 
 
   if (!mongoose || !mongoose.connect || typeof mongoose.connect !== 'function') {
@@ -45,6 +46,7 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(namespace: string, config
     || typeof config.mongoUri !== 'string' 
     || config.mongoUri.length < 10
   ){
+    _log('bad config:', config)
     throw new Error('nestore-mongo-adapter error: Must provide valid config object with at least "mongoUri" connection string.')
   }
 
@@ -76,7 +78,7 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(namespace: string, config
 
     settings.mongoUri = config.mongoUri
 
-    log('Namespace:', settings.namespace)
+    LOG('Namespace:', settings.namespace)
     // log('Mongo URI:', settings.mongoUri) //~ DEV - remove 
 
 
@@ -99,7 +101,7 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(namespace: string, config
       
       //&                                                                                 
       const handleLoad = async () => {
-        const log = createLog('mongo:load')
+        const log = LOG.extend('load')
         if(mongoose?.connection?.readyState !== 1){
           log('Mongoose not ready...')
           return false
@@ -137,7 +139,7 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(namespace: string, config
 
       //&                                                                                 
       const handleSave = async () => {
-        const log = createLog('mongo:save')
+        const log = LOG.extend('save')
         if(mongoose?.connection?.readyState !== 1){
           log('Mongoose not ready...')
           return false
@@ -205,7 +207,7 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(namespace: string, config
         
         nst.emit(ns.registered, settings.namespace)
         
-        const _log = createLog('mongo:on-connect')
+        const _log = LOG.extend('on-connect')
         _log('mongoose connected')
 
         const modelSchema = new mongoose.Schema({}, { strict: false })
@@ -226,14 +228,14 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(namespace: string, config
       }
       
 
-      log('Mongoose connecting...')
+      _log('Mongoose connecting...')
       mongoose.set('strictQuery', false)
       await mongoose.connect(settings.mongoUri)
       // mongoose.connection.readyState
       mongoose.connection
       .on('error', (err:any) => {
         console.log('MONGOOSE ERROR:', err)
-        log('MONGOOSE ERROR', err)
+        _log('MONGOOSE ERROR', err)
       })
       .once('open', () => onMongoConnect())
 

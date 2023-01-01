@@ -64,7 +64,7 @@
     "forceConsistentCasingInFileNames": true,  /* Disallow inconsistently-cased references to the same file. */
     "noEmitOnError": true,
     "jsx": "react-jsx",
-    "allowJs": false,
+    "allowJs": true,
     "skipLibCheck": true
   },
   "exclude": [

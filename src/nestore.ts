@@ -43,30 +43,9 @@ class Nestore<T> extends EE2{
 
 
     constructor(initialStore: T | Partial<T> = {}, options: NSTOptions = {}){
-        // super({
-        //     // TODO- Wildcard should always be true 
-        //     wildcard: options?.wildcard === false ? false : true,
-        //     // TODO- Delimiter should always be '.' 
-        //     //! If delimiter is customizable - must be passed to adapters for custom namespace events: 
-        //     //! `@.mongo.saving` => `@-mongo-saving` interferes with hyphenated namespaces...
-        //     //! must prevent use of reserved characters:
-        //     //! @ (at symbol)- adapters / nestore
-        //     //! $ (dollar sign) - in store listeners
-        //     //! - (hyphen) - used for adapter namespaces / storage keys
-        //     delimiter: typeof options?.delimiter === 'string' ? options?.delimiter : '.',
-        //     // TODO- verboseMemoryLeak SHOULD be true by default 
-        //     verboseMemoryLeak: options?.verbose === true ? true : false,
-
-        //     maxListeners: typeof options?.maxListeners === 'number' 
-        //         && options?.maxListeners <= Number.MAX_SAFE_INTEGER
-        //         && options?.maxListeners >= Number.MIN_SAFE_INTEGER
-        //             ? options?.maxListeners
-        //             : 10
-        // })
         super(options)
 
         const _log = LOG.extend('constr')
-        // console.log('>> NESTORE V4')
         _log('Creating store:', {
             initialStore,
             options,
@@ -103,24 +82,6 @@ class Nestore<T> extends EE2{
 
     }
 
-    /** @deprecated */
-    #initComplete(){
-        LOG('Nestore ready!')
-        LOG({
-            delimiter: this.#DELIMITER_CHAR,
-            preventRepeatUpdates: this.#PREVENT_REPEAT_UPDATE,
-            maxListeners: this.getMaxListeners(),
-            devExtension: this.#DEV_EXTENSION,
-
-            inStoreSetters: this.#STORE_MUTATORS,
-            storeSetters: this.#STORE_MUTATORS,
-            storeListeners: this.#STORE_LISTENERS,
-            
-            storeData: this.#INTERNAL_STORE,
-        }) 
-        this.emit('@ready', this.#INTERNAL_STORE)
-        
-    }
 
 
     //_                                                                                             
@@ -163,29 +124,6 @@ class Nestore<T> extends EE2{
 
 
 
-    // //_                                                                                             
-    // /** @deprecated - use registerStore */
-    // registerInStoreListeners(initialStore:Partial<T>) {
-    //     const _log = LOG.extend('register-listeners')
-    //     initialStore && Object.entries(initialStore).forEach(([ key, val ]) => {
-    //         if(typeof val === 'function' && typeof this !== 'undefined'){
-    //             if(key.startsWith('$')){
-    //                 this.#STORE_LISTENERS.push(key)
-    //                 let SETTER: NSTStoreListener = val
-    //                 let path = key.substring(1, key.length)
-    //                 // this.on(path, async (event) => await SETTER(this, event))
-    //                 this.on(path, (event) => SETTER(this, event))
-                    
-    //             }else{
-    //                 this.#STORE_MUTATORS.push(key)
-    //                 let SETTER = val as NSTStoreMutator<T>
-    //                 //@ts-ignore
-    //                 // this[key] = async (...args:any) => await SETTER(this, args) 
-    //                 this[key] = (...args:any) => SETTER(this, args) 
-    //             }
-    //         }
-    //     })
-    // }
     
     //_                                                                                             
     /** dev tools requires active instance of Nestore to be registered */
@@ -262,79 +200,6 @@ class Nestore<T> extends EE2{
         }
  
     }
-    
-
-    // //_                                                                                             
-    // // Could this be refactored into a function that only works on a single adapter
-    // // so that the constructor can call this repeatedly on the array of adapters, or the user
-    // // can register a single adapter at any time
-    // /** @deprecated - use public singular method: registerAdapter(singleAdapter) */
-    // registerAdapters(options: NSTOptions) {
-    //     const _log = LOG.extend('register-adapters')
-
-    //     if(!options?.adapters || !options?.adapters.length){
-    //         _log('No adapters provided...')
-    //         this.#initComplete()
-    //         return
-    //     }
-        
-    //     if((!Array.isArray(options?.adapters) || !options?.adapters?.every(a => typeof a === 'function'))){
-    //         console.warn(`Nestore adapters must be provided as an array of one or more adapter functions`);
-    //         // this.emit('@ready', this.#INTERNAL_STORE)
-    //         return false
-    //     }
-        
-        
-    //     // _log('awaiting nst.emit...')
-    //     // const register = () => {
-    //         _log('registering adapters...')
-
-    //         try{
-    //             let numRegistered = 0
-
-    //             options?.adapters?.forEach(async (adapter: NSTAdapter, idx:number) => {
-    //                 let adpt = await adapter(this)
-    //                 if(
-    //                     !adpt
-    //                     || typeof adpt.namespace !== 'string'
-    //                     || typeof adpt.load !== 'function'
-    //                     || typeof adpt.save !== 'function'
-    //                 ){
-    //                     throw new Error(`Adapter (index ${idx}) failed to register.`)
-    //                 }
-    //                 this.adapters[adpt.namespace] = adpt
-    //                 _log('Adapter registered:', adpt.namespace)
-    //                 numRegistered++
-    //                 if(options?.adapters?.length === numRegistered){
-    //                     // _log('All adapters registered:', options.adapters)
-    //                     // this.emit('@ready', this.#INTERNAL_STORE)
-    //                     this.#initComplete()
-    //                     return true
-    //                 }
-
-    //             })
-                
-    //         }catch(err){
-    //             let e:any = err
-    //             throw new Error(e!)
-    //         }
-    //     // }
-
-    //     // let count = 0
-    //     // let checkForEmit = () => {
-    //     //     setTimeout(() => {
-    //     //         if(typeof this.emit === 'function'){
-    //     //             register()
-    //     //         }else{
-    //     //             count++
-    //     //             checkForEmit()
-    //     //         }
-    //     //     }, 10);
-    //     // }
-
-    //     // checkForEmit()
-    // }
-    
     
     
     //_                                                                                             
@@ -740,9 +605,6 @@ class Nestore<T> extends EE2{
 
 }
 
-// export type NSTClass<T = void> = Nestore<T>
-
-
 // DOCS- list the namespaces used for debug functions in case users or devs have issues (contributing / testing)
 // export default Nestore
 
@@ -858,26 +720,52 @@ const nestore:NSTFunction = async <T>(initialStore: T | Partial<T> = {}, options
 
 
 
+//& ADAPTERS                                                                                         
+
+// DOCS- type: NSTAdapterGenerator (the function that takes config and returns an adapter)
+//! EXTERNAL
+// eslint-disable-next-line
+type NSTAdapterGenerator = <T>(namespace: string, config: any) => NSTAdapter;
+
+// DOCS- type: NSTAdapter (the actual adapter returned by nestore)
+//! EXTERNAL - NSTAdapterGenerator => NSTAdapter
+type NSTAdapter = <T>(nst: NSTInstance) => Promise<NSTAdapterFunctions>;
+
+
+// DOCS- type: NSTAdapterFunctions (the object returned by an adapter, used to save/load the store)
+/**
+ * NST adapters return a set of functions that can be used to interact with the adapter.
+ * Adapters can be referenced at `nst.adapters.namespace` and will always contain the namespace property
+ * as well as other optional adapter specific properties and methods (most commonly `save` and `load` methods)
+*/
+//! EXTERNAL - NSTAdapterGenerator => NSTAdapter => NSTAdapterFunctions
+type NSTAdapterFunctions = { 
+    namespace: string;
+    // load: (...args: unknown[]) => Promise<boolean>; 
+    // save: (...args: unknown[]) => Promise<boolean>;
+    [key:string]: unknown;
+}
+
+// DOCS- type: NSTAdapterEmit (the structure of all events emitted by adapters)
+/**
+ * NST adapters will emit an object containing the action that took place and the store after
+ * mutations / updates took place, as well as a timestamp of the event
+ */
+//! EXTERNAL - NSTAdapterGenerator => NSTAdapter = NSTAdapterEmit
+type NSTAdapterEmit = {
+    timestamp: number;
+    action: string;
+    store: NSTStore;
+}
 
 
 
 
 
 
-
-
+//& DEV EXTENSION                                                                                     
 
 type NSTDevExtSubscribeCb = (message: { state?: unknown }) => unknown
-
-
-
-
-type NSTDevExtSendData = {
-    type: string;
-    path: string;
-    value: unknown;
-    previousValue: unknown;
-}
 
 type NSTDevExtSendFunction = (data: NSTDevExtSendData, store: NSTStore) => unknown;
 
@@ -887,6 +775,12 @@ type NSTDevExt = {
     send: NSTDevExtSendFunction;
 }
 
+type NSTDevExtSendData = {
+    type: string;
+    path: string;
+    value: unknown;
+    previousValue: unknown;
+}
 
 
 
@@ -894,40 +788,43 @@ type NSTDevExt = {
 
 
 
-export type NSTStore = { [key:string | number | symbol]: unknown }
 
-export type NSTClass<T> = Nestore<T>
 
-const nst = new Nestore()
-export type NSTInstance = typeof nst
+//& NST FUNCTION / CLASS / INSTANCE                                                                           
+
+// DOCS- type: NSTFunction (the async function that returns an active instance of Nestore)
+/** Async function that parses store and options, instantiates Nestore and resolves with the instance  
+ * 
+ * @params Object - initialStore - The user generated object containing the state
+ * @params NSTOptions - An object containing options used to configure the new Nestore instance
+ * 
+ * @returns Promise\<NSTInstance> - The current instance of Nestore
+*/
+type NSTFunction = <T>(initialStore: T | Partial<T>, options: NSTOptions) => Promise<NSTInstance | undefined>
+
+declare const nst: Nestore<unknown>;
+type NSTInstance = typeof nst
 
 // DOCS- type: NSTOptions
-export type NSTOptions = {
+type NSTOptions = {
     /** The character used to separate / delimit nested paths */
     delimiter?: string;
-    /** @depracated - always true */
-    wildcard?: boolean;
-    /**
-     *  @deprecated
-     *  The store and its values will always be de-reffed from the original
-     */
-    mutable?: boolean;
     maxListeners?: number;
     verbose?: boolean;
-    /** @deprecated - unused */
-    throwOnRevert?: boolean;
-    // timeout?: number;
     adapters?: NSTAdapter[];
     preventRepeatUpdates?: boolean;
-    // enable or disable the use of redux-dev-tools extension
     devTools?: boolean;
 }
+
+
+
+//& EMIT                                                                                                     
 
 // DOCS- type: NSTEmit (the struct emitted by all nestore events - excluding adapter events)
 /** Structure of data object emitted by Nestore events and passed to listeners as the only argument when invoked.
  * `nst.onAny()` listeners will only be invoked with a string of the path that was updated.
  */
-export type NSTEmit = {
+type NSTEmit = {
     path: string;
     key: string;
     value?: unknown;
@@ -940,19 +837,12 @@ export type NSTEmit = {
  * 'emit' - (default) emit event for this path
  * 'all' - recursively emit events for every item in the store
  */
-export type NSTEmitFlags = 'none' | 'emit' | 'all'
+type NSTEmitFlags = 'none' | 'emit' | 'all'
 
 
+//& STORE / LISTENERS / MUTATORS                                                                            
 
-// DOCS- type: NSTFunction (the async function that returns an active instance of Nestore)
-/** Async function that parses store and options, instantiates Nestore and resolves with the instance  
- * 
- * @params Object - initialStore - The user generated object containing the state
- * @params NSTOptions - An object containing options used to configure the new Nestore instance
- * 
- * @returns Promise\<NSTInstance> - The current instance of Nestore
-*/
-export type NSTFunction = <T>(initialStore: T | Partial<T>, options: NSTOptions) => Promise<NSTInstance | undefined>
+type NSTStore = { [key:string | number | symbol]: NSTStoreMutator | NSTStoreListener | unknown }
 
 
 // DOCS- type: NSTStoreMutator (a function in the store that can be invoked thru nestore doThing: (nst, args) => { ... })
@@ -963,38 +853,12 @@ export type NSTFunction = <T>(initialStore: T | Partial<T>, options: NSTOptions)
  * 
  * @returns unknown
 */
-export type NSTStoreMutator = (self: NSTInstance, ...args: unknown[]) => unknown;
+type NSTStoreMutator = (nst: NSTInstance, ...args: unknown[]) => unknown;
 
 // DOCS- type: NSTStoreListener (a function that is registered as a listener by name: $name: ()=>{})
-export type NSTStoreListener = (nst: NSTInstance, event: NSTEmit) => unknown
+type NSTStoreListener = (nst: NSTInstance, event: NSTEmit) => unknown
 
-// DOCS- type: NSTAnyStorage (any object that has getItem and setItem method)
-export type NSTAnyStorage = {
-    getItem: (...args:unknown[]) => unknown;
-    setItem: (...args:unknown[]) => unknown;
-} 
 
-// DOCS- type: NSTAdapterGenerator (the function that takes config and returns an adapter)
-// eslint-disable-next-line
-export type NSTAdapterGenerator = <T>(namespace: string, config: any) => NSTAdapter;
-
-// DOCS- type: NSTAdapterFunctions (the object returned by an adapter, used to save/load the store)
-export type NSTAdapterFunctions = { 
-    namespace: string;
-    load: () => Promise<boolean>; 
-    save: () => Promise<boolean>;
-    disconnect?: () => Promise<unknown>;
-}
-
-// DOCS- type: NSTAdapter (the actual adapter returned by nestore)
-export type NSTAdapter = <T>(nst: NSTClass<T>) => Promise<NSTAdapterFunctions>;
-
-// DOCS- type: NSTAdapterEmit (the structure of all events emitted by adapters)
-export type NSTAdapterEmit = {
-    timestamp: number;
-    action: string;
-    store: NSTStore;
-}
 
 
 
