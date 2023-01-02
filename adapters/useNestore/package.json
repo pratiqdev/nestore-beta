@@ -1,13 +1,30 @@
 {
   "name": "use-nestore",
-  "version": "1.0.0",
-  "main": "dist/main.js",
+  "version": "0.0.1",
+  "license": "MIT",
+  "description": "React hook for nestore state management",
+  "keywords": [
+    "state-management",
+    "react-hook",
+    "nestore"
+  ],
+
+  "url": "https://github.com/pratiqdev/nestore/issues",
+  "homepage": "https://github.com/pratiqdev/nestore#readme",
+  "person": {
+    "name": "Michael Jannetta",
+    "url": "https://github.com/pratiqdev"
+  },
+
+  "main": "index.js",
   "types": "dist/main.d.ts",
-  "keywords": [],
-  "author": "pratiqdev",
-  "license": "UNLICENSED",
-  "description": "",
   "type": "module",
+  "files": [
+    "README.md",
+    "index.js",
+    "dist/"
+  ],
+
   "scripts": {
     "//& BUILD                                                  ": "",
     "//>build:lint": "Run ESLint with autofix",

@@ -1,13 +1,29 @@
 {
   "name": "nestore-persist-adapter",
-  "version": "1.0.0",
-  "main": "dist/main.js",
-  "types": "dist/main.d.ts",
-  "keywords": [],
-  "author": "pratiqdev",
+  "version": "0.0.1",
   "license": "MIT",
-  "description": "",
+  "description": "Custom storage sync adapter for nestore",
+  "keywords": [
+    "state-management",
+    "event-emitter"
+  ],
+
+  "url": "https://github.com/pratiqdev/nestore/issues",
+  "homepage": "https://github.com/pratiqdev/nestore#readme",
+  "person": {
+    "name": "Michael Jannetta",
+    "url": "https://github.com/pratiqdev"
+  },
+  
+  "main": "index.js",
+  "types": "dist/main.d.ts",
   "type": "module",
+  "files": [
+    "README.md",
+    "index.js",
+    "dist/"
+  ],
+
   "scripts": {
     "//& BUILD                                                  ": "",
     "//>build:lint": "Run ESLint with autofix",

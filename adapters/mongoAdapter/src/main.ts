@@ -6,7 +6,8 @@ import type { Model as ModelType } from 'mongoose'
 import debug from 'debug'
 import { throttle } from 'lodash-es'
 //@ts-ignore
-import nestore, { NST, NSTAdapterGenerator, NSTAdapter, NSTClass } from '../../../src/nestore' //~ DEV - import from npm 
+// import nestore, { NST, NSTAdapterGenerator, NSTAdapter, NSTClass } from '../../../src/nestore' //~ DEV - import from npm 
+import nestore, { NST, NSTAdapterGenerator, NSTAdapter, NSTClass } from 'nestore' //~ DEV - import from npm 
 // import Nestore, { NestoreType, NestoreAdapter } from 'nestore'
 
 // const createLog = (namespace:string) => debug(`nestore:mongo-adapter:${namespace}`)
