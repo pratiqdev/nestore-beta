@@ -704,11 +704,31 @@ export type NSTInstance = typeof nst
 
 
 // TODO- Add documentation about awaiting adapters, mutators and listeners to be ready, or listen for '@ready' event
-const nestore = <T>(initialStore: T | Partial<T> = {}, options: NSTOptions = {}): Promise<NSTInstance> => {
-    return new Promise((res, rej) => {
+
+// function nestore<T>(initialStore: T | Partial<T>, options: NSTOptions, sync: boolean): NSTInstance;
+const nestore = <T>(initialStore: T | Partial<T> = {}, options: NSTOptions = {}, sync: undefined | null): NSTInstance | Promise<NSTInstance> => {
+    
+    // return sync ? new Nestore(initialStore, options) as NSTInstance : new Promise((res, rej) => {
+    // // return new Promise((res, rej) => {
+    //     const nst = new Nestore(initialStore, options)
+    //     nst.on('@ready', () => res(nst))
+    // }) 
+
+    const inst = new Nestore(initialStore, options)
+    const prom = new Promise((res, rej) => {
         const nst = new Nestore(initialStore, options)
         nst.on('@ready', () => res(nst))
-    })
+    }) 
+
+    return sync
+        ? inst as NSTInstance
+        : prom as Promise<NSTInstance>
+    
 }
+
+// export const nestoreSync = <T>(initialStore: T | Partial<T> = {}, options: NSTOptions = {}): NSTInstance => {
+//     return new Nestore(initialStore, options)
+// }
+
 
 export default nestore

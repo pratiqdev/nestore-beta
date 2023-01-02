@@ -609,7 +609,8 @@ class Nestore<T> extends EE2{
 // export default Nestore
 
 // DOCS- awaiting async nestore (adapter, mutator and listener registration) to resolve, or nestore '@ready' event
-const nestore:NSTFunction = async <T>(initialStore: T | Partial<T> = {}, options: NSTOptions = {}): Promise<NSTInstance | undefined> => {
+
+const nestore:NSTFunction = <T>(initialStore: T | Partial<T> = {}, options: NSTOptions = {}, sync?: boolean): NSTInstance | Promise<NSTInstance> => {
     const _log = LOG.extend('creator')
     // return new Promise(async (res, rej) => {
         try{
@@ -672,33 +673,55 @@ const nestore:NSTFunction = async <T>(initialStore: T | Partial<T> = {}, options
             
             
             
-            
-            
-            _log('Creating instance...')
-            const nst = new Nestore(initialStore, defaultOptions)
-            _log('Instance created:', nst)
-            
-            _log('Registering store...')
-            nst.registerStore()
-            
-            if(options.adapters && options.adapters.length){
-                _log('Registering adapters...')
-                await Promise.all( 
-                    options.adapters.map(nst.registerAdapter)
-                )
+            if(sync){
+                _log('sync: true - returning instance immediately')
+                return new Nestore(initialStore, defaultOptions)
             }
+            _log('sync: false - returning promise that resolves with instantiated nst')
+            return new Promise((res, rej) => {
                 
-            _log('Registering dev-tools...')
-            nst.registerDevTools()
+                _log('Creating instance...')
+                const nst = new Nestore(initialStore, defaultOptions)
+                _log('Instance created:', nst)
+                
+                _log('Registering store...')
+                nst.registerStore()
+                
+                if(options.adapters && options.adapters.length){
+                    _log('Registering adapters...')
+                    Promise.all( 
+                        options.adapters.map(nst.registerAdapter)
+                    ).then(()=>{
+                        
+                    _log('Registering dev-tools...')
+                    nst.registerDevTools()
 
-            _log('Deleting "private" methods...')
-            //@ts-expect-error cannot delete read-only properties of nst
-            delete nst['registerStore']
-            
-            _log('Resolving with nst...')
-            // res(nst)
+                    _log('Deleting "private" methods...')
+                    //@ts-expect-error cannot delete read-only properties of nst
+                    delete nst['registerStore']
+                    
+                    _log('Resolving with nst...')
+                    // res(nst)
 
-            return nst
+                    // return nst
+                    res(nst)
+                    })
+                }
+                    
+                _log('Registering dev-tools...')
+                nst.registerDevTools()
+
+                _log('Deleting "private" methods...')
+                //@ts-expect-error cannot delete read-only properties of nst
+                delete nst['registerStore']
+                
+                _log('Resolving with nst...')
+                // res(nst)
+
+                // return nst
+                res(nst)
+
+            })
 
 
 
@@ -706,7 +729,8 @@ const nestore:NSTFunction = async <T>(initialStore: T | Partial<T> = {}, options
         }catch(err){
             // console.log('nestore instantiator function error:', err)
             _log(err)
-            return
+            throw new Error(err as string)
+            // res()
         }
     // })
 }
@@ -800,7 +824,10 @@ type NSTDevExtSendData = {
  * 
  * @returns Promise\<NSTInstance> - The current instance of Nestore
 */
-type NSTFunction = <T>(initialStore: T | Partial<T>, options: NSTOptions) => Promise<NSTInstance | undefined>
+type NSTFunction = <T>(initialStore: T | Partial<T>, options: NSTOptions, sync?: boolean) =>  NSTInstance | Promise<NSTInstance>
+// type NSTFunction = <T>(initialStore: T | Partial<T>, options: NSTOptions, sync: boolean) => NSTInstance
+
+// function NSTFunction<T>(initialStore: T | Partial<T>, options: NSTOptions, sync: boolean): NSTInstance;
 
 declare const nst: Nestore<unknown>;
 type NSTInstance = typeof nst

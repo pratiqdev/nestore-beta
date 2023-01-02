@@ -35,7 +35,7 @@
     "//>build:build": "built `useNestore` as a standard es module witt tsc",
     "//_build:build": "tsc -p ./tsconfig.json",
     "build:build": "babel --extensions .ts ./src -d ./dist",
-    "//>build:link": "link nestore relevant files to _temp/mongoAdapter",
+    "//>build:link": "link nestore",
     "build:link": "npm link ../../",
     "//& TEST                                                  ": "",
     "//>test:mocha": "test the adapter with mocha",

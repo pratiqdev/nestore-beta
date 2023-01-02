@@ -3,8 +3,7 @@
 /* eslint-disable import/no-unresolved */
 import { useState, useEffect, useCallback, useMemo } from 'react'
 //@ts-ignore
-import Nestore, { NSTOptions, NSTEmit } from '../../nestore/index.js' //~ DEV ONLY
-// import Nestore, { NSTEmit, NSTOptions } from 'nestore'
+import nestore, { NSTOptions, NSTEmit, NSTInstance } from 'nestore'
 import debug from 'debug'
 
 // type Noop = (...args:unknown[]) => {}
@@ -15,7 +14,7 @@ type UseNestoreListener = (event: string | string[], ...values: any[]) => void;
 
 
 
-const log = debug('nestore').extend('use-nestore')
+const log = debug('nestore:use-nestore')
 
 
 
@@ -33,19 +32,28 @@ const log = debug('nestore').extend('use-nestore')
 
 
 const createStore = <T>(initialStore?:Partial<T>, options?: NSTOptions): UseNestoreHook => {
-  const NST = new Nestore(initialStore, options) as { [key:string]: any }
+
+  //@ts-ignore
+  const NST = nestore(initialStore, options, true) as NSTInstance
+
+  console.log('||> >> got store:', NST)
+  
 
   const useNestoreHook = (path?:string) => {
     // log('path:', path)
-
+    console.log('||> USE NESTORE HOOK')
+    
+    console.log('||> checking for path:', path)
     //$ does this call to useStore() contain a path?
-    const hasPath = useMemo(() => typeof path === 'string' && path.length > 0, [ path ])
-
+    const hasPath = useMemo(() => typeof path === 'string' && path.length > 0, [ path, NST ])
+    
+    console.log('||> checking for mutator and root types')
     //$ does this path lead to an in store mutator?
-    const isMutator = useMemo(() => typeof path === 'string' && typeof NST[path] === 'function', [ path ])
-    const isRoot = useMemo(() => !path || path === '/', [ path ])
-
-    const prevVal = useMemo(() => hasPath ? NST.get(path) : NST.store, [ path ])
+    const isMutator = useMemo(() => NST ? typeof path === 'string' && typeof NST[path] === 'function' : null, [ path, NST ])
+    const isRoot = useMemo(() => !path || path === '/', [ path, NST ])
+    
+    console.log('||> getting previous value')
+    const prevVal = useMemo(() => NST ? hasPath ? NST.get(path) : NST.store : null, [ path, NST ])
 
     //$ set the initial state with the value at the given path or the whole store
     // const [ value, setValue ] = useState<any>()
@@ -55,8 +63,10 @@ const createStore = <T>(initialStore?:Partial<T>, options?: NSTOptions): UseNest
 
     //$ The listener is fired every time there is a change to NST
     const listener: UseNestoreListener = useCallback((event:string | string[], ..._values:any[]) =>{
-      const _log = log.extend('listener')
-      _log('Listener any event:', {
+      if (!NST) return
+      
+      // const _log = log.extend('listener')
+      console.log('Listener any event:', {
         event,
         path,
         hasPath,
@@ -80,7 +90,7 @@ const createStore = <T>(initialStore?:Partial<T>, options?: NSTOptions): UseNest
         //! any event was fired - if the whole store was updated with set({})
         //! then "/" will be emitted.
         let store = NST.get()
-        _log(`path = "/" or no path | Setting value to entire store with force update trigger (${trig}):`, store)
+        console.log(`path = "/" or no path | Setting value to entire store with force update trigger (${trig}):`, store)
         //~ REACT COMPARES OBJECTS BY REFERENCE - USING Object.is()
         //!
         //! [object Object]<Ref*1> === [object Object]<Ref*1>
@@ -108,21 +118,32 @@ const createStore = <T>(initialStore?:Partial<T>, options?: NSTOptions): UseNest
         // })
       } else if (hasPath) {
         let val = NST.get(path)
-        _log(`path = "${path}" | Setting value to NST.get(path):`, val)
+        console.log(`path = "${path}" | Setting value to NST.get(path):`, val)
         setValue(val)
       } else {
         console.log('what???????')
       }
-    }, [ path ])
+    }, [ path, NST ])
 
-    const set = (_value:any, quiet?:boolean) => (
+    const set = (_value:any, quiet?:boolean) => {
+      console.log('||> setting value:', _value, quiet)
+      
       //~ devext flag is required for updates with no "path" - invokes emitAll()
-      hasPath ? NST.set(path, _value) : NST.set(_value, null, 'devext')
-    )
+      return hasPath ? NST.set(path, _value) : NST.set(_value, null, 'all')
+    }
     
 
     useEffect(() => {
-      const _log = log.extend('useEffect')
+      // if(!NST){
+      //   (async ()=>{
+      //     console.log('||> No NST - creating nestore...')
+
+      //     const N = await nestore(initialStore, options)
+      //     if(!NST) NST = N
+      //   })()
+      //   return
+      // }
+      // const _log = log.extend('useEffect')
       // return early if this is an internal mutator function - ref to the mutator func never changes
       if(isMutator) return
 
@@ -130,15 +151,18 @@ const createStore = <T>(initialStore?:Partial<T>, options?: NSTOptions): UseNest
       hasPath ? NST.on(path!, (e:NSTEmit) => setValue(e.value as Partial<T>)) : NST.on('/', (e:NSTEmit) => setValue(e.value))
 
       if(hasPath){
+        console.log('||> registering listener on path...')
+        
         NST.on(path!, (e:NSTEmit) => {
-          _log(`Path emitted:`, {path, value: e.value})
+          console.log(`Path emitted:`, {path, value: e.value})
           setValue(e.value as Partial<T>)
         })
       }
       else{
+          console.log('||> no path - listening for all changes')
         NST.onAny(listener)
         NST.on('/', (e:NSTEmit) => {
-          _log(`Path emitted:`, {path: '/', value: e.value})
+          console.log(`Path emitted:`, {path: '/', value: e.value})
           setValue(e.value as Partial<T>)
         })
       }
@@ -151,7 +175,7 @@ const createStore = <T>(initialStore?:Partial<T>, options?: NSTOptions): UseNest
       //     setValue(e.value as Partial<T>)
       //   })
       // }
-    }, [ path ])
+    }, [ path, NST ])
     
     
  
@@ -159,12 +183,14 @@ const createStore = <T>(initialStore?:Partial<T>, options?: NSTOptions): UseNest
 
 
     if(hasPath && isMutator){
+      console.log('||> path to mutator - returning NST[pathToMutator]')
       return NST[path as string]
     }
     return [ value, set ]
   }
 
-  return useNestoreHook
+  return useNestoreHook 
+  // ?? (() => ([undefined, () => {}]))
 }
 
 export default createStore

@@ -8,14 +8,12 @@
     "react-hook",
     "nestore"
   ],
-
   "url": "https://github.com/pratiqdev/nestore/issues",
   "homepage": "https://github.com/pratiqdev/nestore#readme",
   "person": {
     "name": "Michael Jannetta",
     "url": "https://github.com/pratiqdev"
   },
-
   "main": "index.js",
   "types": "dist/main.d.ts",
   "type": "module",
@@ -24,31 +22,31 @@
     "index.js",
     "dist/"
   ],
-
   "scripts": {
     "//& BUILD                                                  ": "",
     "//>build:lint": "Run ESLint with autofix",
     "// TODO- Configure linting rules for useNestore": "",
     "//_CONFIGURE_LINTING_RULES - super:lint": "eslint --fix -c .eslintrc.json .",
-    "//>build:clean": " remove the `./useNestore/dist/` directory",
-    "build:clean-1": "rm -rf ./dist && rm -rf ../../_temp/useNestore",
-    "build:clean-2": "mkdir -p ../../_temp/useNestore",
+    "//>build:clean": " remove dist and node_modules",
+    "build:clean": "rm -rf ./dist && rm -rf ./node_modules",
+    "//>build:re-install": "install all packages and link nestore",
+    "build:install": "npm i && npm link ../../",
     "//>build:build": "built `useNestore` as a standard es module witt tsc",
-    "build:build":  "babel --extensions .ts ./src -d ./dist",
-    "//>build:copy": "copy all relevant files to _temp/useNestore",
-    "build:copy-1": "cp -r ./dist ../../_temp/useNestore/dist",
-    "build:copy-2": "cp ./index.js ../../_temp/useNestore",
+    "//-build:build": "babel --extensions .ts ./src -d ./dist",
+    "build:build": "tsc -p ./tsconfig.json",
     "//& TEST                                                  ": "",
     "//>test:mocha": "test the adapter with mocha",
     "test:mocha": "mocha ./test/tests --config .mocharc.cjs",
     "//& COMMANDS                                              ": "",
     "build": "npm-run-all build:*",
     "//_test": "jest",
-    "test": "cd test/nst-hook-test-react && yarn test",
-    "types": "npx tsc -p ./tsconfig.json && cp ./types/main.d.ts ./dist && rm -rf ./types"
-
+    "test": "cd test/nst-react-18 && yarn test",
+    "//>dev":"symlink to nestore and build useNestore",
+    "dev": "npm-run-all build:* && cd test/nst-react-18 && yarn start",
+    "//_types": "npx tsc -p ./tsconfig.json && cp ./types/main.d.ts ./dist && rm -rf ./types"
   },
   "devDependencies": {
+    "@babel/core": "^7.20.5",
     "@babel/preset-env": "^7.20.2",
     "@babel/preset-react": "^7.18.6",
     "@babel/preset-typescript": "^7.18.6",
@@ -60,17 +58,6 @@
     "jest": "^29.2.0",
     "jest-environment-jsdom": "^29.3.1",
     "npm-run-all": "^4.1.5",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "source-map": "^0.7.4",
-    "ts-jest": "^29.0.3",
     "typescript": "^4.9.4"
-  },
-  "peerDependencies": {
-    "nestore": "^1.4.4",
-    "react": "16 <= 18"
-  },
-  "dependencies": {
-    "@babel/core": "^7.20.5"
   }
 }
