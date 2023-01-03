@@ -347,7 +347,7 @@ const createStore = <T>(initialStore?:Partial<T>, options?: NSTOptions): UseNest
     return [ value, set ]
   }
 
-  return useNestoreHook3
+  return useNestoreHook1
 }
 
 export default createStore
