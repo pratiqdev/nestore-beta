@@ -674,9 +674,32 @@ const nestore:NSTFunction = <T>(initialStore: T | Partial<T> = {}, options: NSTO
             
             
             if(sync){
-                _log('sync: true - returning instance immediately')
-                return new Nestore(initialStore, defaultOptions)
+                _log('sync: true - returning instance directly')
+                const nst = new Nestore(initialStore, defaultOptions)
+                _log('Registering store...')
+                nst.registerStore()
+
+                if(options?.adapters?.length){
+                    _log('Registering adapters...')
+                    Promise.all(options.adapters.map(nst.registerAdapter))
+                    .then(() => _log('Adapters registered'))
+                    .catch((err) => _log('Error registering adapters:', err))
+                }
+                        
+                _log('Registering dev-tools...')
+                nst.registerDevTools()
+
+                _log('Deleting "private" methods...')
+                //@ts-expect-error cannot delete read-only properties of nst
+                delete nst['registerStore']
+                        
+                _log('Registering dev-tools...')
+                nst.registerDevTools()
+                //@ts-expect-error cannot delete read-only properties of nst
+                delete nst['registerStore']
+                return nst
             }
+
             _log('sync: false - returning promise that resolves with instantiated nst')
             return new Promise((res, rej) => {
                 
@@ -693,18 +716,19 @@ const nestore:NSTFunction = <T>(initialStore: T | Partial<T> = {}, options: NSTO
                         options.adapters.map(nst.registerAdapter)
                     ).then(()=>{
                         
-                    _log('Registering dev-tools...')
-                    nst.registerDevTools()
+                        _log('Registering dev-tools...')
+                        nst.registerDevTools()
 
-                    _log('Deleting "private" methods...')
-                    //@ts-expect-error cannot delete read-only properties of nst
-                    delete nst['registerStore']
-                    
-                    _log('Resolving with nst...')
-                    // res(nst)
-
-                    // return nst
-                    res(nst)
+                        _log('Deleting "private" methods...')
+                        //@ts-expect-error cannot delete read-only properties of nst
+                        delete nst['registerStore']
+                        
+                        // _log('Emitting @ready with nst...')
+                        // nst.emit('@ready', nst.store)
+                        
+                        _log('Resolving with nst...')
+                        // return nst
+                        res(nst)
                     })
                 }
                     

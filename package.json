@@ -34,7 +34,7 @@
     "//>build:esm": "Build ESM",
     "//_build:esm": "tsc -p tsconfig.umd.json",
     "build:nst": "npx babel --extensions .ts ./src -d ./dist",
-    "build:nst-types": "tsc -p ./tsconfig.json && cp ./_types/nestore.d.ts ./dist && rm -rf ./_types",
+    "//_build:nst-types": "tsc -p ./tsconfig.json && cp ./_types/nestore.d.ts ./dist && rm -rf ./_types",
     "//>build:mongo": "Build the nestore mongodb adapter",
     "build:mongo": "cd ./adapters/mongoAdapter && yarn build",
     "//>build:pers": "Build the nestore persistence adapter",
