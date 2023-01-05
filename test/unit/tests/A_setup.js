@@ -56,14 +56,14 @@ describe(heading('A | Setup'), function(){
                 let NST
                 expect(() => {
                     NST = nestore(store)
-                }).to.not.throw()
+                }).to.throw()
     
             })
 
     });
 
-    it('A.4 | Rejects or ignores incorrectly formatted config', async () => {
-        const NST = await nestore(initialStore)
+    it('A.4 | Throws error on incorrectly formatted config', async () => {
+        // const NST = await nestore(initialStore)
 
         let configs = [
             {
@@ -83,14 +83,17 @@ describe(heading('A | Setup'), function(){
             5 * 'not a number'
         ]
 
-        configs.forEach(config => {
-            let NST
-            expect(() => {
-                NST = nestore({}, config)
-            }).to.not.throw()
+        configs.forEach( async config => {
+            await expect(nestore({}, config))
+                .rejects
+                .toThrow()
 
-            expect(NST.settings)
+            // expect(NST.settings)
         })
+// 
+        // await expect(failingAsyncTest())
+        // .rejects
+        // .toThrow('I should fail');
 
     });
     

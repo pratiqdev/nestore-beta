@@ -39,7 +39,7 @@
     "build:link": "npm link ../../",
     "//& TEST                                                  ": "",
     "//>test:mocha": "test the adapter with mocha",
-    "test:mocha": "mocha ./test/tests --config .mocharc.cjs -c -j 100 -R min",
+    "test:mocha": "mocha ./test/tests --config .mocharc.cjs -c -j 100 --exit",
     "//& COMMANDS                                              ": "",
     "build": "npm-run-all build:*",
     "test": "npm-run-all test:*",

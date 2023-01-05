@@ -15,6 +15,7 @@ import createPersistAdapter from '../../index.js'
 describe.only(heading('C | Events'), function(){
     this.timeout(30_000)
 
+
     it('C.1 | Adapter is registered and emits events', async () => {
 
         let ns = 'nst-pa-namespace'

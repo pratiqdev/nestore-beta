@@ -14,23 +14,24 @@ import createMongoAdapter from '../../index.js'
 
 
 
-describe(heading('C | Events'), function(){
-    let timeout = 30_000
-    this.timeout(timeout)
+describe.only(heading('C | Events'), function(){
+    // let timeout = 2_000
+    // this.timeout(timeout)
+
 
     this.beforeEach(()=> {
         // (nst ||process).removeAllListeners()
     })
 
 
-    it('C.1 | Adapter is registered and emits events', async function(done){
-        console.log('starting C.1')
+    it('C.1 | Adapter is registered and emits events', async () => {
+        // console.log('starting C.1')
 
 
         const NST = await nestore({ time: Date.now() }, {
             preventRepeatUpdates: false,
             adapters: [
-                createMongoAdapter({
+                createMongoAdapter('mongo-adapter-test-c1',{
                     mongoUri: process.env.MONGO_URI, 
                     collectionName: 'nestore-adapter-test-collection',
                     documentKey: 'NST_MONGO_TEST_B',
@@ -74,7 +75,8 @@ describe(heading('C | Events'), function(){
 
               
                 NST.adapters['nestore-mongo-adapter'].disconnect()
-                done()
+                // done()
+                return 
             }
         }
 

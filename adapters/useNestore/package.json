@@ -32,16 +32,21 @@
     "//>build:re-install": "install all packages and link nestore",
     "build:install": "npm i && npm link ../../",
     "//>build:build": "built `useNestore` as a standard es module witt tsc",
-    "//-build:build": "babel --extensions .ts ./src -d ./dist",
+    "//_build:build": "babel --extensions .ts ./src -d ./dist",
     "build:build": "tsc -p ./tsconfig.json",
     "//& TEST                                                  ": "",
     "//>test:mocha": "test the adapter with mocha",
-    "test:mocha": "mocha ./test/tests --config .mocharc.cjs",
+    "//_test:mocha": "mocha ./test/tests --config .mocharc.cjs",
+    "//+test:react16": "cd test/nst-react-18 && yarn test:jest",
+    "//+test:react17": "cd test/nst-react-17 && yarn test:jest",
+    "test:react18": "cd test/nst-react-18 && yarn test:jest",
+    "//+test:next12": "cd test/nst-next-12 && yarn test:jest",
+    "//+test:next13": "cd test/nst-next-13 && yarn test:jest",
     "//& COMMANDS                                              ": "",
     "build": "npm-run-all build:*",
     "//_test": "jest",
-    "test": "cd test/nst-react-18 && yarn test",
-    "//>dev":"symlink to nestore and build useNestore",
+    "test": "npm-run-all test:*",
+    "//>dev": "symlink to nestore and build useNestore",
     "dev": "npm-run-all build:* && cd test/nst-react-18 && yarn start",
     "//_types": "npx tsc -p ./tsconfig.json && cp ./types/main.d.ts ./dist && rm -rf ./types"
   },
@@ -59,5 +64,11 @@
     "jest-environment-jsdom": "^29.3.1",
     "npm-run-all": "^4.1.5",
     "typescript": "^4.9.4"
+  },
+  "peerDependencies": {
+    "react": "^16"
+  },
+  "dependencies": {
+    "react": "^18.2.0"
   }
 }

@@ -130,44 +130,50 @@ class Nestore<T> extends EE2{
     /* DOCS- devTools registration
     user can defer register dev tools by setting false, and invoking
     later */
-    registerDevTools() {
+    registerDevTools = async (): Promise<boolean> => {
         const _log = LOG.extend('devtool')
-        if(typeof window !== 'undefined'){
-            _log(`Browser mode`)
-            
-            const W: typeof globalThis & Window & {'__REDUX_DEVTOOLS_EXTENSION__': { connect: () => NSTDevExt }} 
-            = window as typeof globalThis & Window & {'__REDUX_DEVTOOLS_EXTENSION__': { connect: () => NSTDevExt }}
+        try{
+            if(typeof window !== 'undefined'){
+                _log(`Browser mode`)
+                
+                const W: typeof globalThis & Window & {'__REDUX_DEVTOOLS_EXTENSION__': { connect: () => NSTDevExt }} 
+                = window as typeof globalThis & Window & {'__REDUX_DEVTOOLS_EXTENSION__': { connect: () => NSTDevExt }}
 
-            if(typeof W['__REDUX_DEVTOOLS_EXTENSION__'] && typeof W['__REDUX_DEVTOOLS_EXTENSION__'] !== 'undefined'){
-                // log(`Found window and devTools`)
-                try{
-                    const devExtensionConnector: { connect: () => NSTDevExt } =  W['__REDUX_DEVTOOLS_EXTENSION__']
-                    let devExtension:NSTDevExt
-                    if (devExtensionConnector && devExtensionConnector.connect) {
-                        devExtension = devExtensionConnector.connect()
-                        // log(`Connected to devtools`)
-                        
-                        devExtension.init(this.#INTERNAL_STORE);
-                        // devext.send('@@NESTORE_CONNECT', this.#INTERNAL_STORE )
-                        // devTools.send('@@NESTORE_CONNECT', { value: 'state changed' })
-                        devExtension.subscribe((message: { state?: unknown }) => {
-                            console.log('devExtension message:', message)
-                            if(message.state){
-                                // pass a flag about the expected behaviour for set
-                                this.set(JSON.parse(message.state as string), null, 'all')
-                            }
-                        })
-                        this.#DEV_EXTENSION = devExtension
-                        _log('Devtools registered')
+                if(typeof W['__REDUX_DEVTOOLS_EXTENSION__'] && typeof W['__REDUX_DEVTOOLS_EXTENSION__'] !== 'undefined'){
+                    // log(`Found window and devTools`)
+                    try{
+                        const devExtensionConnector: { connect: () => NSTDevExt } =  W['__REDUX_DEVTOOLS_EXTENSION__']
+                        let devExtension:NSTDevExt
+                        if (devExtensionConnector && devExtensionConnector.connect) {
+                            devExtension = devExtensionConnector.connect()
+                            // log(`Connected to devtools`)
+                            
+                            devExtension.init(this.#INTERNAL_STORE);
+                            // devext.send('@@NESTORE_CONNECT', this.#INTERNAL_STORE )
+                            // devTools.send('@@NESTORE_CONNECT', { value: 'state changed' })
+                            devExtension.subscribe((message: { state?: unknown }) => {
+                                console.log('devExtension message:', message)
+                                if(message.state){
+                                    // pass a flag about the expected behaviour for set
+                                    this.set(JSON.parse(message.state as string), null, 'all')
+                                }
+                            })
+                            this.#DEV_EXTENSION = devExtension
+                            _log('Devtools registered')
+                        }
+
+                    }catch(err){
+                        _log(`Devtools error:`, err)
                     }
-
-                }catch(err){
-                    _log(`Devtools error:`, err)
                 }
+                return true
+            }else{
+                _log(`Headless mode`)
+                return false
             }
-
-        }else{
-            _log(`Headless mode`)
+        }catch(err){
+            _log('Error registering dev-tools:', err)
+            return false
         }
     }
 
@@ -693,15 +699,13 @@ const nestore:NSTFunction = <T>(initialStore: T | Partial<T> = {}, options: NSTO
                 //@ts-expect-error cannot delete read-only properties of nst
                 delete nst['registerStore']
                         
-                _log('Registering dev-tools...')
-                nst.registerDevTools()
-                //@ts-expect-error cannot delete read-only properties of nst
-                delete nst['registerStore']
                 return nst
             }
 
             _log('sync: false - returning promise that resolves with instantiated nst')
-            return new Promise((res, rej) => {
+            return (async () => {
+
+
                 
                 _log('Creating instance...')
                 const nst = new Nestore(initialStore, defaultOptions)
@@ -712,41 +716,25 @@ const nestore:NSTFunction = <T>(initialStore: T | Partial<T> = {}, options: NSTO
                 
                 if(options.adapters && options.adapters.length){
                     _log('Registering adapters...')
-                    Promise.all( 
-                        options.adapters.map(nst.registerAdapter)
-                    ).then(()=>{
-                        
-                        _log('Registering dev-tools...')
-                        nst.registerDevTools()
+                    await Promise.all(options.adapters.map(nst.registerAdapter))
+                    _log('Adapters registered')
 
-                        _log('Deleting "private" methods...')
-                        //@ts-expect-error cannot delete read-only properties of nst
-                        delete nst['registerStore']
-                        
-                        // _log('Emitting @ready with nst...')
-                        // nst.emit('@ready', nst.store)
-                        
-                        _log('Resolving with nst...')
-                        // return nst
-                        res(nst)
-                    })
                 }
-                    
+
+                        
                 _log('Registering dev-tools...')
-                nst.registerDevTools()
+                await nst.registerDevTools()
+                _log('Dev-tools registered')
 
                 _log('Deleting "private" methods...')
                 //@ts-expect-error cannot delete read-only properties of nst
                 delete nst['registerStore']
                 
                 _log('Resolving with nst...')
-                // res(nst)
+                return nst
+                    
 
-                // return nst
-                res(nst)
-
-            })
-
+            })()
 
 
             

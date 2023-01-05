@@ -15,7 +15,7 @@ import createMongoAdapter from '../../index.js'
 
 
 
-describe.only(heading('B | Registration'), function(){
+describe(heading('B | Registration'), function(){
     this.timeout(60_000)
 
 
@@ -35,7 +35,13 @@ describe.only(heading('B | Registration'), function(){
             ]
         })
 
-        // NST.onAny(event => console.log('>> onAny:', event))
+        // console.log('Immediately check for adapters:', NST.adapters)
+
+        // setTimeout(()=>{
+        //     console.log('Check for adapters:', NST.adapters)
+        // }, 1000)
+
+        NST.onAny(event => console.log('>> onAny:', event))
 
 
         // does the adapters property exist as an object

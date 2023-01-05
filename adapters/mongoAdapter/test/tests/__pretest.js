@@ -11,6 +11,7 @@ import {
 
 describe(heading('PRETEST | createMongoAdapter'), function(){
     this.timeout(10_000)
+    console.log('nestore-mongo-adapter | PRETEST')
 
     it('Has access to correct environment variables for testing', () => {
         expect(typeof process.env).to.eq('object')

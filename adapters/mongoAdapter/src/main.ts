@@ -33,11 +33,21 @@ NSTAdapterGenerator
 
 const mongoAdapterGenerator: NSTAdapterGenerator = <T>(namespace: string, config: NestoreMongoAdapterConfig) => {
   const _log = LOG.extend('generator')
-  _log('Initializing...')
-
+  
+  _log('Parsing namespace and config...')
 
   if (!mongoose || !mongoose.connect || typeof mongoose.connect !== 'function') {
     throw new Error('nestore mongooseAdapter - Could not find package "mongoose"')
+  }
+
+  if( typeof namespace !== 'string' ){
+    _log('Invalid namespace:', namespace)
+    throw new Error('nestore-mongo-adapter error: Must provide valid namespace string.')
+  }
+
+  if( namespace.length < 4 ){
+    _log(`Namespace too short. Minimum of 4 characters: ${namespace} (${namespace.length})`)
+    throw new Error('nestore-mongo-adapter error: Must provide valid namespace string.')
   }
 
   if(
@@ -51,37 +61,23 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(namespace: string, config
     throw new Error('nestore-mongo-adapter error: Must provide valid config object with at least "mongoUri" connection string.')
   }
 
-  if(
-    typeof namespace !== 'string' 
-    || !namespace.length 
-  ){
-    throw new Error('nestore-mongo-adapter error: Must provide valid namespace string.')
-  }
+  
 
+  _log('Namespace and config validated')
 
 
 
   const mongoAdapter:NSTAdapter = async <T>(nst: NSTClass<T>) => {
 
-    // console.log(
-    //   '>>>>>>>>>>>>>>>\n',
-    //   'MONGO ADAPTER: nst is available:', typeof nst.emit === 'function' ? true : false,
-    //   '>>>>>>>>>>>>>>>\n',
-    // )
-
     const settings = {
-      namespace: namespace ?? 'nestore-mongo-adapter',
+      namespace,
       batchTime: config.batchTime ?? 2000,
-      mongoUri: config.mongoUri ?? undefined,
+      mongoUri: config.mongoUri,
       collectionName: config.collectionName ?? 'nestore-data',
       documentKey: config.documentKey ?? config.collectionName ?? 'nestore-data'
     }
 
     settings.mongoUri = config.mongoUri
-
-    LOG('Namespace:', settings.namespace)
-    // log('Mongo URI:', settings.mongoUri) //~ DEV - remove 
-
 
     const ns = {
       registered: `@.${settings.namespace}.registered`, // => namespace
@@ -92,12 +88,7 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(namespace: string, config
       saved: `@.${settings.namespace}.saved` // => store (what was saved)
     }
 
-
-
     try {
-      
-      
-   
       let Model: ModelType<any> | null = null
       
       //&                                                                                 
@@ -204,6 +195,12 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(namespace: string, config
       })
 
       //&                                                                                 
+      const handleDisconnect = async () => {
+        await mongoose.disconnect()
+      }
+
+      //&                                                                                 
+      // TODO- Wrap all function bodies in try/catch and use the outer try/catch for definition errors
       const onMongoConnect = () => {
         
         nst.emit(ns.registered, settings.namespace)
@@ -229,6 +226,7 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(namespace: string, config
       }
       
 
+      //&                                                                                 
       _log('Mongoose connecting...')
       mongoose.set('strictQuery', false)
       await mongoose.connect(settings.mongoUri)
@@ -240,9 +238,6 @@ const mongoAdapterGenerator: NSTAdapterGenerator = <T>(namespace: string, config
       })
       .once('open', () => onMongoConnect())
 
-      const handleDisconnect = async () => {
-        await mongoose.disconnect()
-      }
 
 
       return { 

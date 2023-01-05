@@ -15,6 +15,7 @@ describe(heading('A | Generator'), function(){
     this.timeout(10_000)
 
 
+
     it('A.1 | Package provides a function as the default export', () => {
         expect(typeof createPersistAdapter).to.eq('function')
     })
