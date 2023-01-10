@@ -1,8 +1,6 @@
 import assert from 'assert'
 import nestore from '../../index.js'
 
-//! dont import here... throws react error
-// import useNestore from '../../adapters/useNestore/index.js' 
 import chai from 'chai';
 import fs from 'fs'
 import dotenv from 'dotenv'
@@ -10,7 +8,7 @@ import debug from 'debug'
 
 dotenv.config()
 
-const __dir = await fs.promises.realpath('.')
+const __dir = fs.realpathSync('.')
 const testStatsFile = __dir + '/test/unit/test-results.json'
 
 chai.config.truncateThreshold = 1500; // disable truncating

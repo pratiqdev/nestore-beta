@@ -1,5 +1,8 @@
 {
-    "presets": [ "@babel/preset-typescript" ],
+    "presets": [ 
+        "@babel/preset-typescript",
+        ["@babel/preset-env", { "targets" : { "node" : "current" }}]
+    ],
     "targets": {
         "edge": "17",
         "firefox": "60",
@@ -7,5 +10,9 @@
         "safari": "11.1"
     },
     "comments": false,
+    "sourceMaps": "both",
+    "plugins": [
+        "source-map-support"
+    ]
     
 }
