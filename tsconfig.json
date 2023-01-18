@@ -62,10 +62,14 @@
 
     /* Advanced Options */
     "forceConsistentCasingInFileNames": true,  /* Disallow inconsistently-cased references to the same file. */
-    "noEmitOnError": true
+    "noEmitOnError": true,
+    "skipLibCheck": true,
   },
   "include": [
     "./src/**/*.ts",
    ],
+   "ignore": [
+    "./node_modules/**"
+   ]
 
 }

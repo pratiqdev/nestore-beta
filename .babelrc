@@ -7,5 +7,15 @@
         "safari": "11.1"
     },
     "comments": false,
+    "ignore": [
+        "node_modules",
+        "_deprecated",
+        "_notes",
+        "_temp",
+        "_temp",
+        ".devcontainer",
+        "test",
+        "adapters",
+    ]
     
 }

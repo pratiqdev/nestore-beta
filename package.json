@@ -1,6 +1,6 @@
 {
   "name": "nestore",
-  "version": "0.0.47",
+  "version": "0.0.46",
   "description": "Event based state management",
   "url": "https://github.com/pratiqdev/nestore/issues",
   "homepage": "https://github.com/pratiqdev/nestore#readme",
@@ -73,7 +73,7 @@
     "//& PUBLISH                                                                              ": "",
     "pub:clear": "clear && echo \"[publish] Rebuild, bump the patch version and publish\"",
     "//>pub:build": "Rebuild all packages",
-    "pub:build": "npm run build-all",
+    "pub:build": "npm run build-all && npm run test:nst && npm run test:pers && npm run test:mongo",
     "//>pub:bump": "Increment the npm patch version by 1",
     "pub:bump": "npm version patch --force",
     "//>pub:pub": "Publish the public npm package",

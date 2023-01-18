@@ -1291,8 +1291,6 @@
     "is-obj" "^2.0.0"
 
 "dts-dom@latest":
-  "integrity" "sha512-WnmiiHfhtcYS+DyGd2Rq3J6QA3ATVBdKtlrhutc/VzQVFoBgNDm+gnYc5gZizsXAI0xQ2frZntT5IJFeB2qQIg=="
-  "resolved" "https://registry.npmjs.org/dts-dom/-/dts-dom-3.7.0.tgz"
   "version" "3.7.0"
 
 "dts-gen@^0.6.1":
@@ -1873,7 +1871,7 @@
 
 "nestore@file:../..":
   "resolved" "file:../.."
-  "version" "0.0.1"
+  "version" "0.0.46"
   dependencies:
     "axios" "^1.2.2"
     "debug" "^4.3.4"
