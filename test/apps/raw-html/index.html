@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nestore Static</title>
+</head>
+<script src="../../nestore-builder/package/dist/nestore.umd.js"></script>
+<body>
+    <h2>Nestore Static HTML test</h2>
+    <p>Hello, {{hello}}</p>
+</body>
+    <script defer>
+        const Nestore = window.Nestore
+        const NST = new Nestore({
+            hello: 'World!'
+        })
+
+        console.log('Nestore:', Nestore)
+        console.log('new Nestore:', new Nestore())
+        console.log('Store:', NST)
+
+        const connect = (selector, path) => {
+            
+        }
+
+        const func = () => {
+            console.log('func...')
+            var elms = document.getElementsByTagName("*"),
+            len = elms.length;
+            for(var ii = 0; ii < len; ii++) {
+                var myChildred = elms[ii].childNodes;
+                len2 = myChildred.length;
+                for (var jj = 0; jj < len2; jj++) {
+                    if(myChildred[jj].nodeType === 3) {
+                        console.log(myChildred[jj].nodeValue);
+
+                        // example on update a text node's value
+                        myChildred[jj].nodeValue = myChildred[jj].nodeValue.replace(/test/,"123");
+                    }
+                }
+            }
+        }
+
+        NST.on('*', (changedPath)=> {
+            // if not updating the whole store
+            if(changedPath !== '/'){
+                
+            }
+        })
+
+        func()
+
+    </script>
+</html> 

@@ -1,0 +1,61 @@
+{
+  "name": "nestore-mongo-adapter",
+  "version": "0.0.1",
+  "license": "MIT",
+  "description": "MongoDB database sync adapter for nestore",
+  "keywords": [
+    "state-management",
+    "MongoDB",
+    "nestore"
+  ],
+
+  "url": "https://github.com/pratiqdev/nestore/issues",
+  "homepage": "https://github.com/pratiqdev/nestore#readme",
+  "person": {
+    "name": "Michael Jannetta",
+    "url": "https://github.com/pratiqdev"
+  },
+
+  "main": "dist/main.js",
+  "types": "dist/main.d.ts",
+  "type": "module",
+  "files": [
+    "README.md",
+    "index.js",
+    "dist/"
+  ],
+  
+  "scripts": {
+    "//& BUILD                                                  ": "",
+    "//>build:lint": "Run ESLint with autofix",
+    "//_CONFIGURE_LINTING_RULES - super:lint": "eslint --fix -c .eslintrc.json .",
+    "//>build:clean": " remove the `./useNestore/dist/` directory",
+    "//_build:clean-1": "rm -rf ./dist && rm -rf ../../_temp/mongoAdapter",
+    "//_build:clean-2": "mkdir -p ../../_temp/mongoAdapter",
+    "//>build:build": "built `useNestore` as a standard es module witt tsc",
+    "//_build:build": "tsc -p ./tsconfig.json",
+    "build:build": "babel --extensions .ts ./src -d ./dist",
+    "//>build:link": "link nestore",
+    "build:link": "npm link ../../",
+    "//& TEST                                                  ": "",
+    "//>test:mocha": "test the adapter with mocha",
+    "test:mocha": "mocha ./test/tests --config .mocharc.cjs -c -j 100 --exit",
+    "//& COMMANDS                                              ": "",
+    "build": "npm-run-all build:*",
+    "test": "npm-run-all test:*",
+    "types": "npx tsc -p ./tsconfig.json && cp ./types/main.d.ts ./dist && rm -rf ./types"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.20.7",
+    "@babel/core": "^7.20.7",
+    "@babel/preset-typescript": "^7.18.6",
+    "mocha": "^10.2.0"
+  },
+  "dependencies": {
+    "@types/debug": "^4.1.7",
+    "@types/lodash-es": "^4.17.6",
+    "debug": "^4.3.4",
+    "lodash-es": "^4.17.21",
+    "mongoose": "^6.8.0"
+  }
+}

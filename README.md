@@ -1,24 +1,146 @@
-![logo-banner](logo.png)
+<p align="center">
+<img src="https://raw.githubusercontent.com/pratiqdev/public-images/master/logo-v3-square-transparent.png" align="center" />
+</p>
 
 <p align='center'>
-<img src='https://img.shields.io/badge/license_MIT-darkblue'>
-<img src='https://img.shields.io/badge/npm_1.4.X-darkblue'>
-<img src='https://img.shields.io/badge/tests_passing-darkblue'>
+<img src='https://img.shields.io/badge/license_MIT-blue'>
+<img src='https://img.shields.io/badge/npm_0.0.1-blue'>
+<img src='https://img.shields.io/badge/tests_passing-blue'>
 </p>
-<p align='center'>A simple key-value store with a powerful real-time state management api.</p>
-<p align='center'>Access, monitor and update values with events.</p>
-<p align='center'>Support for persistent storage with included or custom adapters.</p>
-<p align='center'>In-store mutator functions for easy to manage logic.</p>
 
+
+<p align='center'>A simple key-value store with a powerful real-time state management API</p>
+<!-- <p align='center'>Event based real-time state management API with single-source-of-truth and two-way data binding</p> -->
+<!-- <p align='center'>Access, monitor and update values with events.</p> -->
+<!-- <p align='center'>Support for persistent storage with included or custom adapters.</p> -->
+<!-- <p align='center'>In-store mutator functions for easy to manage logic.</p> -->
+
+
+<!-- > Cool words:  
+> - Event-based architecture (All store actions are event based)
+> - real-time state management
+> - two-way data binding (IF mutable: true)
+> - single-source-of-truth  
+> - In store mutator functions
+> - Built in + custom middleware / adapters
+> - restrictable mutability -->
+
+
+
+- [Getting Started](#getting-started)
+  - [Introduction](#introduction)
+- [==============================](#)
+- [==============================](#-1)
+  - [Installation](#installation)
+  - [Usage](#usage)
+- [Store Actions](#store-actions)
+  - [Create a Store](#create-a-store)
+  - [Access the Store](#access-the-store)
+  - [Update the Store](#update-the-store)
+  - [Remove from the Store](#remove-from-the-store)
+  - [Reset the Store](#reset-the-store)
+- [Store Events](#store-events)
+  - [Listen to Changes](#listen-to-changes)
+  - [Emit Changes](#emit-changes)
+  - [Manual Emit](#manual-emit)
+- [Common Emitter Methods](#common-emitter-methods)
+  - [emit](#emit)
+  - [on / off](#on--off)
+- [Full API](#full-api)
+  - [Types](#types)
+  - [Nestore Async Generator](#nestore-async-generator)
+  - [Nestore Options](#nestore-options)
+  - [Properties](#properties)
+  - [Methods](#methods)
+  - [In Store Listeners](#in-store-listeners)
+  - [In Store Mutators](#in-store-mutators)
+  - [Adapters](#adapters)
+- [About](#about)
+- [Contributing](#contributing)
+      - [GitHub Repository](#github-repository)
+      - [GitHub Issues](#github-issues)
+      - [NPM Package](#npm-package)
+- [License](#license)
 
 
 
 <br />
 <br />
 
-# Installation
+# Getting Started
 
-Install using a package manager like npm or yarn, or import from a cdn:
+## Introduction
+
+> ### Need to Know:  
+> 
+> **Mutable Store**  
+> The store is mutated, not overwritten (vs redux) and maintains the same reference to the store during nestore lifecycle
+> 
+> **No Actions/Dispatch**  
+
+<details><summary><b>How does redux compare</b></summary><br>
+</details>
+
+Redux uses actions - dispatched to the store, like an event, containing the type and payload
+which is handled by a reducer. Reducers are collections of pure functions that take the original state, clone or slice it to make a copy, mutate the copy and return it as a brand new store object. Redux only compares the reference of the old vs new store to consider it an update.
+
+| property | redux | nestore | explanation |
+|---|---|---|---|
+| mutable store | Y | N | Redux contains an immutable store that can only be updated with actions
+
+# ==============================
+
+> A. Nestore  
+> B. Redux  
+> C. Zustand
+> D. Valtio
+
+<table>
+<thead>
+  <tr>
+    <th>Feature</th>
+    <th>Solution</th>
+    <th></th>
+    <th>Comparison</th>
+  </tr>
+</thead>
+<tbody>
+
+  <tr>
+    <td rowspan="4">Mutable Store</td>
+    <td>A</td>
+    <td>X</td>
+    <td>Mutable store that can be mutated directly with or without triggering side-effects</td>
+  </tr>
+
+  <tr>
+    <td>B</td>
+    <td>_</td>
+    <td>Immutable store that is only updated via <code>actions</code> and <code>reducers</code></td>
+  </tr>
+
+  <tr>
+    <td>C</td>
+    <td>_</td>
+    <td>Immutable store updated via an in-store <code>set</code> method</td>
+  </tr>
+
+  <tr>
+    <td>D</td>
+    <td>X</td>
+    <td></td>
+  </tr>
+
+</tbody>
+</table>
+
+# ==============================
+
+
+
+## Installation
+
+Install using your preferred package manager, or import from a cdn:
 
 ```bash
 yarn add nestore
@@ -33,50 +155,170 @@ yarn add nestore
 
 
 
+<!-- > [almost Object] nestore does not support symbols when parsing nested objects for paths or keys -->
+## Usage
+
+Import (or require) nestore and create a store with values, setters and listeners all in one place
+```ts
+// store.js
+import nestore from 'nestore'
+
+const nst = nestore({
+    logged_in: false,
+    user: null,
+    messages: [],
+    login: (NST, [name, password]) => {
+        NST.set('logged_in', true)
+        NST.store.user = name
+    }
+})
+
+export default nst
+```
+
+Then import your store, register listeners on any path, and interact with the store
+```ts
+// app.js
+import nst from './store.js'
+
+nst.on('user', ({ key, path, value }) => {
+    console.log(`Logged in as ${value}`)
+})
+
+nst.login('Alice', '1234')
+nst.set('messages')
+```
+
+Nestore will automatically infer the types from the values in the `initialStore`, or you can provide
+a custom type definition for more type-safety
+
+```ts
+export type MyStore = {
+    user: null | MyUser;
+    messages: MyMessage[]
+}
+
+export type MyUser = {
+    id: number;
+    name: string;
+}
+
+export type MyMessage =  {
+    time: number;
+    text: string;
+    media?: string[];
+}
+
+const myStore = nestore<MyStore>({
+    user: null,
+    messages: [],
+})
+```
 
 
 
+
+# Store Actions
 
 
 <br />
 
-## Usage
+## Create a Store
 
-Import nestore and create a store. The store is an object that contains all the state, and optionally contains in-store mutator functions
+Import nestore and create a store. The store is an object that contains the current values of the state. 
+The store can hold any values, nested at any depth, that can be accessed from anywhere. The store always maintains the same reference allowing for a `single-source-of-truth`.
+
+Import nestore, create your store, and export it.
 
 ```ts
 import nestore from 'nestore'
 
-const myStore = nestore({ 
-    current_time: Date.now(),
+const nst = nestore({ 
     logged_in: false,
     user_name: null,
-    setUserName: (nst, [name]) => nst.store.user_name = name,
-    getUserData: async (nst, args) => {
-        const { data } = await axios.get(`/api/user-data/${nst.store.user_name}`)
-        nst.set('user_data', data)
-        return data
-    },
+    time: Date.now()
+    1: 'one',
 })
 
-export default myStore
+export default nst
 ```
 
-Register event listeners on a key to watch for updates and trigger a callback:
+
+
+
+
+
+
+<br />
+
+## Access the Store
+
+All values are available through the store **except in-store-mutators**. 
+Use the get method for easy or programmatic access to paths, or access the values directly through the store. Later we will react to changes with [events](#store-events).
+
+> The store is a mutable object with persistent references. Any direct access
+> to `nst.store.<path>` will return that value with its current reference. Be cautious of unintended updates to store values by reference.
+
 
 ```ts
-myStore.on('user.**', ({ path, key, value }) => {
-    console.log(`Path ${path} was changed to ${value}`)
-})
+import nst from './myStore.js'
+
+let loggedIn = nst.get('logged_in')
+let user = nst.store.user_name
 ```
 
-Use the `get` and `set` methods to interact with the store, or custom in-store functions
+
+
+
+
+
+<br />
+
+## Update the Store
+
+You can manually update/create values/keys externally using the `set` method or by updating the value directly. 
+You can also update the entire store using either of these methods. Setting the value
+to `null` or `undefined` will not remove the key from the store.
 
 ```ts
-import myStore from './my-store.ts'
+import nst from './myStore.js'
 
-myStore.set('current_time', Date.now())
-myStore.setUserName('Alice')
+nst.logged_in = false
+nst.set('user_name', null)
+```
+
+
+<br />
+
+## Remove from the Store
+
+To completely remove a key from the store 'object' - use the `remove` method.
+This will emit an event for the provided path.
+<!-- TODO- Should `remove` method have optional emit flags? -->
+```ts
+nst.remove('user_name')
+```
+
+<br />
+
+## Reset the Store
+
+Nestore keeps a copy (deep-clone) of the original store and provides a `reset`
+method.
+
+<!--
+ How are adapters going to hangle 'orginal-state'
+ Will they assume that the first successful load of the adapter-storage is the 'original'? 
+That would require a 3rd deep-cloned copy of the original store, or overriding the first 'original' 
+with the adapters new 'original'
+ -->
+<!-- TODO- reset should have `reset(flag)` with same options as `emit` -->
+
+```ts
+import nst from './myStore.js'
+
+nst.logged_in = false
+nst.set('user_name', null)
 ```
 
 
@@ -87,66 +329,116 @@ myStore.setUserName('Alice')
 
 
 
-
-
-
 <br />
 <br />
 <br />
 
-# Store Events 
+# Store Events
 
-Updates to the store emit events containing which path and key was changed, the new value and a timestamp of the event.
+All actions and events within the store emit events that can be used to trigger external behavior when the data changes. Many storage mediums use
+the pub/sub pattern to react to real-time changes to data.
 
-> **Nestore extends the EventEmitter2 API**  
-> Documentation for all `EE2` methods can be found [here](https://www.npmjs.com/package/eventemitter2)
 
 
 <br />
 <hr />
 
-## On Update
+## Listen to Changes
 
-Register event listeners on a key to watch for updates and trigger a callback. 
-The `set` method causes the store to emit an event containing the key, value and path that was updated.
+Nestore provides a method for registering an `event listener` that 
+subscribes to a specific path, provided as the first argument to the `nst.on` method, and a callback to handle logic as the second argument. The callback will be always be invoked with an object of type `NSTEmit`.
 
 ```ts
-myStore.on('user.**', ({ path, key, value }) => {
-    console.log(`Path ${path} was changed to ${value}`)
+nst.on('/', ({ value }) => {
+    // react to the entire store (path and key are '/')
+})
+nst.on('path', ({ path, key, value }) => {
+    // react to any changes to 'path'
 })
 ```
 
-You can also register listeners directly in the store with the `$` prefix. These are great for managing repeatable async operations, eg: fetching user data when a `user_name` value changes.
+Thanks to [eventemitter2](https://npmjs.com/eventemitter2) we can listen to
+nested paths in objects and arrays. See more emitter methods and examples in 
+[Common Emitter Methods](#common-emitter-methods)
 
 ```ts
-const myStore = nestore({
-    name: null,
-    online: false,
-
-    $name: (nst, event) => nst.set('online', event.value ? true : false)
+nst.on('users.*.logged_in', ({ path, key, value }) => {
+    // react to any users `logged_in` status
 })
+```
+
+*or* we can use some convenience/utility methods provided by `ee2` like:
+
+```ts
+// invoke the callback, then remove the lsitener
+nst.once('path', () => {})
+// invoke the callback n times, then remove the lsitener
+nst.many('path', 5, () => {})
+// invoke a callback on any change to the store
+nst.onAny('path', () => {})
 ```
 
 
 
+## Emit Changes
+
+Any update to the store using the `set` method will emit events for all paths/keys that
+were modified by the update
+
+> Events will only be emitted if the values are different (shallow equality) when
+> `preventRepeatUpdates` is true, and when the emit flag is omitted or set to 'emit' or 'all'.
+> See the [Full API section](#full-api)
 
 
-<br />
-<hr />
+
+
 
 ## Manual Emit
 
-You can also manually emit events to force update a listener. The value provided to the emit method *should* be an object with the type `NestoreEmit`, but any values / types provided will be emitted.
+You can also manually emit events to force update a listener. The value provided to the emit method *should* be an object with the type `T_NSTEmit`, but any values / types provided will be emitted.
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<br />
+<br />
+
+# Common Emitter Methods
+
+Nestore extends the `event-emitter-2` class. Visit the [ee2 npm page](https://www.npmjs.com/package/eventemitter2) to view the full documentation of every method included with the 
+event emitter.
+
+
+## emit
+Execute each of the listeners that may be listening for the specified event name in order with the list of arguments.
+emitter.
 ```ts
-myStore.emit('address', {
-    key: 'address',
-    path: 'user.location.address',
-    value: '1234 Street Lane',
-})
+emitter.emit(event | eventNS, [arg1], [arg2], [...])
+```
 
-myStore.emit('greeting', 'Well, hello there...')
+## on / off
+Execute each of the listeners that may be listening for the specified event name in order with the list of arguments.
+
+Same as `addListener` and `removeListener`
+```ts
+emitter.emit(event | eventNS, [arg1], [arg2], [...])
 ```
 
 
@@ -154,17 +446,32 @@ myStore.emit('greeting', 'Well, hello there...')
 
 
 
+# Full API
+
+## Types
+
+`NSTOptions`  
+`NSTEmit`  
+`...`  
+
+## Nestore Async Generator
+<!-- This needs a shorter / more concise name  -->
+
+## Nestore Options
+
+`delimiter`  
+`adapters` [See Adapters](#adapters)
 
 
+## Properties
+`maxListeners`  
+`delimiter`
 
+## Methods
 
+## In Store Listeners
 
-<br />
-<br />
-<br />
-
-
-# Custom Mutator functions
+## In Store Mutators
 
 Manage all store logic in a single place with custom in-store mutator functions.
 
@@ -194,58 +501,7 @@ let userData = await myStore.fetchUserData('Johnny68')
 
 
 
-
-
-
-<br />
-<br />
-<br />
-
-# View integration
-
-## React / Next / Vite
-
-Nestore provides a function for creating a store that returns a react hook. Create the store and export the hook for usage in other locations.
-
-```tsx
-import { createStore } from 'nestore'
-
-const useNestore = createStore({
-    logged_in: true,
-    user: {
-        name: 'John',
-        badge: {
-            type: 'flat',
-            color: 'blue',
-        }
-    }
-})
-
-export default useNestore
-```
-
-Import the hook from your store and use it in your component.
-
-```tsx
-import useNestore from '../my-store'
-
-const UserBadge = (props:Props) => {
-    const [userName] = useNestore('user.name')
-
-    return <p>{userName}</p>
-}
-```
-
-The hook takes a single argument of the path to watch for updates (or null to return the entire store) and returns the standard `[state, setState]` for interacting with the store.
-
-```ts
-const [name, setName] = useNestore('name')
-const [entireStore, overwriteEntireStore] = useNestore()
-```
-
-
-
-
+## Adapters
 
 
 
@@ -263,270 +519,6 @@ const [entireStore, overwriteEntireStore] = useNestore()
 
 <br />
 <br />
-<br />
-
-# Adapters
-
-Enhance the functionality of your store with the included adapters for persistent storage, or create a custom adapter.
-
-This package includes two adapters:
-- **persistAdapter** - for browser based string storage like localStorage
-- **mongoAdapter** - for interacting with MongoDB
-
-
-
-
-
-<br />
-<hr />
-
-## persistAdapter
-
-**This adapter is built for browser storage objects like localStorage**
-
-This adapter requires a key to reference the item in storage `storageKey` and will use localStorage by default.  
-You can supply any storage object that has `getItem` and `setItem` methods.
-
-
-```ts
-const storageAdapter = persistAdapter(
-    // namespace used when emitting adpater events
-    namespace:  string  = 'nestore-persist', 
-    // key used to set/retrieve data from storage
-    storageKey: string,
-    // Any storage object
-    storage:    Storage,
-    // Wait n milliseconds since the last nestore update to update storage 
-    batchTime:  number  = 10_000
-)
-
-const myStore = nestore(initialStore, { adapter: storageAdapter })
-```
-
-
-
-
-<br />
-<hr />
-
-
-## mongoAdapter
-
-**This adapter is built for MongoDB**
-
-```ts
-const storageAdapter = mongoAdapter(
-    // namespace used when emitting adpater events
-    namespace:string = 'mongo-adapter', 
-    // connection string for your mongo db
-    mongoUri: 'mongo-uri-connection-string',
-    // mongoDB collection name 
-    collectionName: 'my-mongo-collection',
-    // document key - collection name used if null
-    documentKey: 'my-document',
-    // Wait n milliseconds since the last nestore update to update storage 
-    batchTime:number = 10_000
-
-)
-
-const myStore = nestore(initialStore, { adapter: storageAdapter })
-```
-
-
-
-
-
-
-
-
-<br />
-<hr />
-
-
-## Adapter Events
-
-All adapters emit the following events when initializing or interacting with the store.
-
-### `@namespace.registered`
-
-Emitted when the adapter is registered 
-```ts
-nst.emit(`@namespace.registered`, namespace)
-```
-
-### `@namespace.loading`
-
-Emitted when the adapter is registered 
-```ts
-nst.emit(`@namespace.loading`, { ...store })
-```
-
-
-
-### `@namespace.loaded`
-
-Emitted when the adapter is registered 
-```ts
-nst.emit(`@namespace.loaded`, { ...store })
-```
-
-
-
-### `@namespace.saving`
-
-Emitted when the adapter is registered 
-```ts
-nst.emit(`@namespace.saving`, { ...store })
-```
-
-
-
-### `@namespace.saved`
-
-Emitted when the adapter is registered 
-```ts
-nst.emit(`@namespace.saved`, { ...store })
-```
-
-### `@namespace.error`
-
-Emitted when the adapter has an internal error
-```ts
-nst.emit(`@namespace.error`, error)
-```
-
-
-
-
-
-
-
-
-
-
-
-
-<br />
-<hr />
-
-<h2>Custom Adapter</h2>
-
-- Adapters should sync after save by requesting data from storage and loaded what was returned from storage after the update (most db operations return the updated db entry after mutations)
-
-
-Example:
-```ts
-const myAdapter = (
-    MY_DB_URI: string,
-    TABLE_NAME: string,
-) => (nst) => {
-    try{
-
-        nst.emit('@my-adapter.registered', namespace)
-
-        myStorage.init(MY_DB_URI, TABLE_NAME)
-
-        const loadData = async () => {
-            nst.emit('@my-adapter.loading', nst.store)
-            const { data } = await myStorage.getData()
-            nst.set(data)
-            nst.emit('@my-adapter.loaded', nst.store)
-        }
-
-        const saveData = async () => {
-            nst.emit('@my-adapter.saving', nst.store)
-            const { data } = await myStorage.saveData(nst.store)
-            nst.set(data)
-            nst.emit('@my-adapter.saved', nst.store)
-        }
-
-        nst.onAny(saveData)
-
-        loadData()
-            
-    }catch(err){
-        nst.emit('@my-adapter.error', err)
-    }
-
-}
-```
-> ## Prevent excessive DB operations
-> This example does not include a method of throttling or checking for successful writes to the dataabase.  
-> You should provide a method for throttling read/write requests to the database on repeated store 
-> updates and a method for confirming writes / syncinc
-
-
-
-
-
-<br />
-<br />
-<br />
-
-
-# TypeScript
-
-Nestore was built with and supports ts out of the box. Types are automatically inferred from `initialStore`.
-
-
-You can optionally provide a type definition when creating the store
-
-```ts
-export interface I_MyStore {
-    user: {
-        signedIn: boolean;
-        name?: string,
-        email?: string
-    },
-    cart?: any[]
-}
-
-const NST = nestore<I_MyStore>({
-    user: {
-        signedIn: false
-    },
-})
-```
-
-```ts
-const NST: Nestore<Partial<T>> = nestore<T>(initialStore: Partial<T>, options: NestoreOptions)
-```
-
-
-```ts
-export type NestoreOptions = {    // default
-
-    /* The character used to separate wildcards or nested store properties */
-    delimiter?: string;             // "."
-
-    /* Set to false to disable the usage of wildcards on event listeners */
-    wildcard?: boolean;             // true
-
-    /* Maximum number of registered listeners before memory leak error is thrown */
-    maxListeners?: number;          // 10
-
-    /*  Error messages will contain the event name of the listener that threw the error */
-    verbose?: boolean;              // false
-
-}
-```
-
-
-```ts
-export type NestoreEmitStruct = { // example
-
-    /* A full, normalized path to the nested object in the store using the provided delimiter. */
-    path: string;                   // "chapter.7.title"
-
-    /* The key used to access the store value, appears as the last segment of `path` */
-    key: string;                    // "title"
-
-    /* The current value of this `key` @ `path` after the store was updated */
-    value?: any;                    // "A New Chapter"
-}
-```
-
-
 
 
 

@@ -1,0 +1,27 @@
+{
+  "name": "nestore",
+  "version": "0.0.1",
+  "license": "MIT",
+  "description": "Event based state management",
+  "keywords": [
+    "state-management",
+    "event-emitter"
+  ],
+
+  "url": "https://github.com/pratiqdev/nestore/issues",
+  "homepage": "https://github.com/pratiqdev/nestore#readme",
+  "person": {
+    "name": "Michael Jannetta",
+    "url": "https://github.com/pratiqdev"
+  },
+
+
+  "main": "index.js",
+  "types": "dist/nestore.d.ts",
+  "type": "module",
+  "files": [
+    "README.md",
+    "index.js",
+    "dist/"
+  ]
+}

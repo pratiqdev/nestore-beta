@@ -1,8 +1,12 @@
 dist
 node_modules
 test/*
-react-test/*
 _notes
+_temp
+_deprecated
+.vecontainer
+.vscode
+adapters/*
 
 .eslint*
 .gitignore
