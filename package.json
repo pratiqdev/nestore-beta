@@ -1,6 +1,6 @@
 {
   "name": "nestore",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Event based state management",
   "url": "https://github.com/pratiqdev/nestore/issues",
   "homepage": "https://github.com/pratiqdev/nestore#readme",
