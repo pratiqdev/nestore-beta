@@ -1,7 +1,7 @@
 {
   "name": "nestore",
-  "version": "0.0.1",
-  "description": "Event based state management",
+  "version": "0.0.45",
+  "description": "Nested-wildcard event-based data store and state management API ",
   "url": "https://github.com/pratiqdev/nestore/issues",
   "homepage": "https://github.com/pratiqdev/nestore#readme",
   "keywords": [
