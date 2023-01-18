@@ -28,9 +28,6 @@
 
 
 - [Getting Started](#getting-started)
-  - [Introduction](#introduction)
-- [==============================](#)
-- [==============================](#-1)
   - [Installation](#installation)
   - [Usage](#usage)
 - [Store Actions](#store-actions)
@@ -57,85 +54,15 @@
   - [Adapters](#adapters)
 - [About](#about)
 - [Contributing](#contributing)
-      - [GitHub Repository](#github-repository)
-      - [GitHub Issues](#github-issues)
-      - [NPM Package](#npm-package)
+    - [GitHub Repository](#github-repository)
+    - [GitHub Issues](#github-issues)
+    - [NPM Package](#npm-package)
 - [License](#license)
-
-
 
 <br />
 <br />
 
 # Getting Started
-
-## Introduction
-
-> ### Need to Know:  
-> 
-> **Mutable Store**  
-> The store is mutated, not overwritten (vs redux) and maintains the same reference to the store during nestore lifecycle
-> 
-> **No Actions/Dispatch**  
-
-<details><summary><b>How does redux compare</b></summary><br>
-</details>
-
-Redux uses actions - dispatched to the store, like an event, containing the type and payload
-which is handled by a reducer. Reducers are collections of pure functions that take the original state, clone or slice it to make a copy, mutate the copy and return it as a brand new store object. Redux only compares the reference of the old vs new store to consider it an update.
-
-| property | redux | nestore | explanation |
-|---|---|---|---|
-| mutable store | Y | N | Redux contains an immutable store that can only be updated with actions
-
-# ==============================
-
-> A. Nestore  
-> B. Redux  
-> C. Zustand
-> D. Valtio
-
-<table>
-<thead>
-  <tr>
-    <th>Feature</th>
-    <th>Solution</th>
-    <th></th>
-    <th>Comparison</th>
-  </tr>
-</thead>
-<tbody>
-
-  <tr>
-    <td rowspan="4">Mutable Store</td>
-    <td>A</td>
-    <td>X</td>
-    <td>Mutable store that can be mutated directly with or without triggering side-effects</td>
-  </tr>
-
-  <tr>
-    <td>B</td>
-    <td>_</td>
-    <td>Immutable store that is only updated via <code>actions</code> and <code>reducers</code></td>
-  </tr>
-
-  <tr>
-    <td>C</td>
-    <td>_</td>
-    <td>Immutable store updated via an in-store <code>set</code> method</td>
-  </tr>
-
-  <tr>
-    <td>D</td>
-    <td>X</td>
-    <td></td>
-  </tr>
-
-</tbody>
-</table>
-
-# ==============================
-
 
 
 ## Installation
@@ -564,9 +491,9 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 Please make sure to update tests as appropriate, or suggest new test cases.
 
-#### [GitHub Repository](https://github.com/pratiqdev/nestore)
-#### [GitHub Issues](https://github.com/pratiqdev/nestore/issues)
-#### [NPM Package](https://npmjs.com/package/nestore)
+### [GitHub Repository](https://github.com/pratiqdev/nestore)
+### [GitHub Issues](https://github.com/pratiqdev/nestore/issues)
+### [NPM Package](https://npmjs.com/package/nestore)
 
 
 
